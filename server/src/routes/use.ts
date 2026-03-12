@@ -155,10 +155,26 @@ Format your response as JSON:
       { role: 'user' as const, content: designPrompt }
     ], {
       model: 'doubao-seed-1-6-251015',
-      temperature: 0.9,
+      temperature: 0.5,
     });
 
-    const prompts = JSON.parse(analysisResponse.content);
+    // 安全解析 JSON，处理 LLM 可能返回的 markdown 代码块
+    let prompts;
+    try {
+      let content = analysisResponse.content.trim();
+      // 移除 markdown 代码块标记
+      if (content.startsWith('```')) {
+        content = content.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/,'').trim();
+      }
+      prompts = JSON.parse(content);
+    } catch (parseError) {
+      console.error('JSON parse error:', parseError);
+      console.error('LLM response:', analysisResponse.content);
+      return res.status(500).json({
+        error: 'AI 响应格式错误，请重试',
+        details: parseError instanceof Error ? parseError.message : 'Unknown parse error'
+      });
+    }
     console.log('Generated design prompts:', Object.keys(prompts));
 
     // Step 2: Generate product images

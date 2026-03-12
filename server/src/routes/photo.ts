@@ -96,11 +96,26 @@ Format your response as JSON:
 
     const analysisResponse = await llmClient.invoke(analysisMessages, {
       model: 'doubao-seed-1-6-vision-250815',
-      temperature: 0.7,
+      temperature: 0.5,
     });
 
-    // Parse the JSON response
-    const analysisData = JSON.parse(analysisResponse.content);
+    // 安全解析 JSON，处理 LLM 可能返回的 markdown 代码块
+    let analysisData;
+    try {
+      let content = analysisResponse.content.trim();
+      // 移除 markdown 代码块标记
+      if (content.startsWith('```')) {
+        content = content.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/,'').trim();
+      }
+      analysisData = JSON.parse(content);
+    } catch (parseError) {
+      console.error('JSON parse error:', parseError);
+      console.error('LLM response:', analysisResponse.content);
+      return res.status(500).json({
+        error: 'AI 响应格式错误，请重试',
+        details: parseError instanceof Error ? parseError.message : 'Unknown parse error'
+      });
+    }
     console.log('ICH Analysis:', JSON.stringify(analysisData, null, 2));
 
     let staticMainImageUrl: string | undefined;
