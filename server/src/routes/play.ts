@@ -87,67 +87,90 @@ router.post('/generate', async (req: Request, res: Response) => {
       ichContext += `\nTarget Market: ${marketMap[targetMarket]}`;
     }
 
-    const analysisPrompt = `
-You are an expert in intangible cultural heritage (ICH) and creative design.
+    const analysisPrompt = `你是一位非物质文化遗产创意设计专家。请根据用户需求，生成精准的设计方案。
 
-Analyze this creative text and generate design prompts for ICH creative products.
+## 用户描述
+"${text}"
+${materialContext}
+${ichContext}
 
-User's description: "${text}"${materialContext}${ichContext}
+## 目标产品类型
+${productType ? `重点生成：${productType}` : '生成所有类型：海报、节日卡、生日卡、新年卡、动态海报、数字人、互动产品'}
 
-Your task is to generate creative prompts for the following product types${productType ? ` (focus on ${productType})` : ''}:
+## 任务要求
+为每个产品类型生成：
+1. **创意描述**：20个汉字，包含关键词+寓意+效果
+2. **生图Prompt**：必须具体、详细、可执行
 
-1. Poster - A visually striking poster incorporating ICH elements
-2. Festival Card - A greeting card for traditional festivals with ICH motifs
-3. Birthday Card - A creative birthday card blending ICH aesthetics with celebration
-4. New Year Card - A festive New Year card with ICH symbolism
-5. Dynamic Poster - An animated poster with dynamic ICH elements
-6. Digital Avatar - A stylized digital avatar incorporating ICH features
-7. Interactive Product - An interactive creative product with user engagement features
+## 生图Prompt要求（非常重要！）
+- 三个Prompt必须是**同一个产品**的**三个不同角度**
+- 必须保持：相同的产品外观、相同的风格、相同的配色、相同的材质
+- 区别仅在于拍摄角度：
+  - mainPrompt：正面全景图，展示完整产品
+  - subPrompt1：细节特写图，聚焦核心工艺细节
+  - subPrompt2：侧面/俯视图，展示立体结构
 
-For each product type, generate:
-- A creative description in exactly 20 Chinese characters that includes:
-  - Key creative keywords from the user's input
-  - The artistic implication (寓意) of the work
-  - The visual effect (效果) of the work
-  Example: "青花瓷韵，古今交融，清新雅致" (Blue porcelain charm, fusion of ancient and modern, fresh and elegant)
-- A detailed visual description
-- Key ICH elements to incorporate
-- Color scheme and composition
-- Emotional tone
-- **CRITICAL**: Generate **three prompts for the SAME product from different angles**:
-  - The product must be IDENTICAL in content, style, color scheme, and visual elements
-  - Only the camera angle/viewpoint should differ:
-    - mainPrompt: Front/full view (product showcase, complete scene)
-    - subPrompt1: Close-up view (focused on specific details, same product)
-    - subPrompt2: Side/alternative view (same product, different perspective)
-  - Use EXACTLY the same ICH elements, colors, style, materials for all three images
-  - The three images must look like photographs of the same physical object
-
-Format your response as JSON:
+## 输出格式（JSON）
 {
   "poster": {
-    "creativeDescription": "exactly 20 Chinese characters including keywords, implication, and effect",
-    "mainPrompt": "detailed prompt for main poster image",
-    "subPrompt1": "detailed prompt for sub poster image 1 (focus on details)",
-    "subPrompt2": "detailed prompt for sub poster image 2 (alternative perspective)",
-    "ichElements": ["element1", "element2"],
-    "emotion": "emotional tone"
+    "creativeDescription": "20字创意描述",
+    "mainPrompt": "海报正面全景，[主题]，[非遗元素]，[色彩搭配]，[构图]，高清海报设计",
+    "subPrompt1": "同一海报细节特写，[核心元素]，[纹理质感]，[工艺细节]",
+    "subPrompt2": "同一海报侧面视角，[立体效果]，[材质表现]",
+    "ichElements": ["非遗元素"],
+    "emotion": "情感基调"
   },
   "festivalCard": {
-    "creativeDescription": "exactly 20 Chinese characters including keywords, implication, and effect",
-    "mainPrompt": "detailed prompt for main festival card image",
-    "subPrompt1": "detailed prompt for sub festival card image 1 (close-up details)",
-    "subPrompt2": "detailed prompt for sub festival card image 2 (artistic variation)",
-    "ichElements": ["element1"],
-    "emotion": "joyful"
+    "creativeDescription": "20字创意描述",
+    "mainPrompt": "节日贺卡正面，[节日主题]，[非遗元素]，[喜庆色彩]，精致卡片设计",
+    "subPrompt1": "同一贺卡细节特写",
+    "subPrompt2": "同一贺卡展开效果",
+    "ichElements": ["非遗元素"],
+    "emotion": "喜悦"
   },
   "birthdayCard": {
-    "creativeDescription": "exactly 20 Chinese characters including keywords, implication, and effect",
-    "mainPrompt": "detailed prompt for main birthday card image",
-    "subPrompt1": "detailed prompt for sub birthday card image 1 (focused on key elements)",
-    "subPrompt2": "detailed prompt for sub birthday card image 2 (creative alternative)",
-    "ichElements": ["element1"],
-    "emotion": "celebratory"
+    "creativeDescription": "20字创意描述",
+    "mainPrompt": "生日贺卡正面，[生日主题]，[非遗元素]，[庆祝氛围]，精美卡片设计",
+    "subPrompt1": "同一贺卡细节特写",
+    "subPrompt2": "同一贺卡立体效果",
+    "ichElements": ["非遗元素"],
+    "emotion": "庆祝"
+  },
+  "newYearCard": {
+    "creativeDescription": "20字创意描述",
+    "mainPrompt": "新年贺卡正面，[新年主题]，[非遗元素]，[吉祥图案]，传统与现代结合",
+    "subPrompt1": "同一贺卡细节特写",
+    "subPrompt2": "同一贺卡展开效果",
+    "ichElements": ["非遗元素"],
+    "emotion": "喜庆"
+  },
+  "dynamicPoster": {
+    "creativeDescription": "20字创意描述",
+    "mainPrompt": "动态海报主视觉，[主题]，[非遗元素动效]，[流畅线条]，现代设计",
+    "subPrompt1": "同一海报细节特写",
+    "subPrompt2": "同一海报动效展示",
+    "ichElements": ["非遗元素"],
+    "emotion": "活力"
+  },
+  "digitalAvatar": {
+    "creativeDescription": "20字创意描述",
+    "mainPrompt": "数字人形象正面，[非遗服饰/配饰]，[传统文化特征]，[现代风格]，精致人物设计",
+    "subPrompt1": "同一数字人面部特写",
+    "subPrompt2": "同一数字人全身展示",
+    "ichElements": ["非遗元素"],
+    "emotion": "亲和"
+  },
+  "interactiveProduct": {
+    "creativeDescription": "20字创意描述",
+    "mainPrompt": "互动产品整体展示，[产品类型]，[非遗元素]，[交互功能示意]，创新设计",
+    "subPrompt1": "同一产品交互细节特写",
+    "subPrompt2": "同一产品使用场景展示",
+    "ichElements": ["非遗元素"],
+    "emotion": "互动"
+  }
+}
+
+请严格按照以上要求输出JSON，只输出用户需要的产品类型：`;
   },
   "newYearCard": {
     "creativeDescription": "exactly 20 Chinese characters including keywords, implication, and effect",

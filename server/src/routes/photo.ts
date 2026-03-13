@@ -42,41 +42,36 @@ router.post('/generate', upload.single('file'), async (req: Request, res: Respon
     const base64Data = file.buffer.toString('base64');
     const dataUri = `data:${file.mimetype};base64,${base64Data}`;
 
-    const analysisPrompt = `
-You are an expert in intangible cultural heritage (ICH) and creative design.
+    const analysisPrompt = `你是一位非物质文化遗产创意设计专家。请根据用户上传的图片和需求，生成精准的设计方案。
 
-Analyze the uploaded ${file.mimetype.startsWith('video') ? 'video' : 'image'} and extract ICH features.
+## 用户需求
+${description || '（用户未提供额外描述，请根据图片内容自动创作）'}
 
-User's creative description: "${description}"
+## 任务要求
+1. **识别图片中的非遗元素**：工艺类型、纹样图案、色彩搭配、材质特征
+2. **生成创意描述**：用20个汉字概括，包含：关键词+寓意+效果
+3. **生成图像生成Prompt**：用于AI生图，必须具体、详细、可执行
 
-Your task:
-1. Identify the ICH elements in the uploaded media (crafts, patterns, colors, etc.)
-2. Extract the emotional and cultural narrative
-3. Generate a creative description in exactly 20 Chinese characters that includes:
-   - Key creative keywords from the user's input
-   - The artistic implication (寓意) of the work
-   - The visual effect (效果) of the work
-   Example: "青花瓷韵，古今交融，清新雅致" (Blue porcelain charm, fusion of ancient and modern, fresh and elegant)
-4. **IMPORTANT**: Generate **three prompts for the SAME product from different angles**:
-   - The product must be IDENTICAL in content, style, color scheme, and visual elements
-   - Only the camera angle/viewpoint should differ:
-     - mainPrompt: Front/full view (product showcase, complete scene)
-     - subPrompt1: Close-up view (focused on specific details, same product)
-     - subPrompt2: Side/alternative view (same product, different perspective)
-   - Use EXACTLY the same ICH elements, colors, style, materials for all three images
-   - The three images must look like photographs of the same physical object
+## 生图Prompt要求（非常重要！）
+- 三个Prompt必须是**同一个产品**的**三个不同角度**
+- 必须保持：相同的产品外观、相同的风格、相同的配色、相同的材质
+- 区别仅在于拍摄角度：
+  - mainPrompt：正面全景图，展示完整产品
+  - subPrompt1：细节特写图，聚焦核心工艺细节
+  - subPrompt2：侧面/俯视图，展示立体结构
 
-Format your response as JSON:
+## 输出格式（JSON）
 {
-  "creativeDescription": "exactly 20 Chinese characters including keywords, implication, and effect",
-  "ichElements": ["element1", "element2"],
-  "emotionalTone": "emotional description",
-  "culturalNarrative": "cultural story",
-  "mainPrompt": "detailed prompt for main image generation",
-  "subPrompt1": "detailed prompt for sub image 1 generation (focus on details)",
-  "subPrompt2": "detailed prompt for sub image 2 generation (alternative perspective)"
+  "creativeDescription": "20字创意描述",
+  "ichElements": ["非遗元素1", "非遗元素2"],
+  "emotionalTone": "情感基调",
+  "culturalNarrative": "文化内涵说明",
+  "mainPrompt": "产品正面全景，[产品类型]，[非遗元素描述]，[色彩]，[材质]，[场景]，[光线]，高清产品摄影",
+  "subPrompt1": "同一产品细节特写，[聚焦部位]，[工艺细节]，[纹理质感]，微距摄影",
+  "subPrompt2": "同一产品侧面视角，[立体结构]，[整体轮廓]，[空间关系]，产品展示图"
 }
-`;
+
+请严格按照以上要求输出JSON：`;
 
     const analysisMessages = [
       {

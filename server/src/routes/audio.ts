@@ -51,34 +51,40 @@ router.post('/generate', upload.single('file'), async (req: Request, res: Respon
     // Step 2: Analyze emotion and generate creative design using LLM
     const llmClient = new LLMClient(config, customHeaders);
 
-    const designPrompt = `
-You are an expert in intangible cultural heritage (ICH) and emotional design.
+    const designPrompt = `你是一位非物质文化遗产创意设计专家。请根据语音内容和用户关键词，生成精准的设计方案。
 
-Analyze this audio content and extract the emotional tone and creative direction.
+## 语音转写内容
+"${transcription}"
 
-Transcription: "${transcription}"
-User's creative keywords: "${keywords}"
+## 用户关键词
+"${keywords || '（未提供）'}"
 
-Your task:
-1. Identify the emotional tone from the audio (e.g., joyful, nostalgic, solemn, energetic)
-2. Extract key ICH elements mentioned or implied
-3. Create a compelling narrative that connects the emotion with ICH culture
-4. Generate **three different prompts** for creating ICH creative products:
-   - mainPrompt: Main product image (complete view, full scene)
-   - subPrompt1: Sub image 1 (focused on specific details or close-up)
-   - subPrompt2: Sub image 2 (alternative angle or artistic variation)
+## 任务要求
+1. **情感分析**：识别语音中的情感基调（喜悦、怀旧、庄重、活力等）
+2. **提取非遗元素**：根据语音内容提取相关的非遗元素
+3. **生成创意描述**：用20个汉字概括，包含：关键词+寓意+效果
+4. **生成图像生成Prompt**：用于AI生图，必须具体、详细、可执行
 
-Format your response as JSON:
+## 生图Prompt要求（非常重要！）
+- 三个Prompt必须是**同一个产品**的**三个不同角度**
+- 必须保持：相同的产品外观、相同的风格、相同的配色、相同的材质
+- 区别仅在于拍摄角度：
+  - mainPrompt：正面全景图，展示完整产品
+  - subPrompt1：细节特写图，聚焦核心工艺细节
+  - subPrompt2：侧面/俯视图，展示立体结构
+
+## 输出格式（JSON）
 {
-  "emotion": "primary emotion",
+  "emotion": "主要情感",
   "emotionIntensity": "high/medium/low",
-  "ichElements": ["element1", "element2"],
-  "narrative": "emotional story connecting ICH and modern life",
-  "mainPrompt": "detailed prompt for main image generation",
-  "subPrompt1": "detailed prompt for sub image 1 generation (focus on details)",
-  "subPrompt2": "detailed prompt for sub image 2 generation (alternative perspective)"
+  "ichElements": ["非遗元素1", "非遗元素2"],
+  "narrative": "情感故事，连接非遗与现代生活",
+  "mainPrompt": "产品正面全景，[产品类型]，[非遗元素描述]，[色彩]，[材质]，[场景]，[光线]，高清产品摄影",
+  "subPrompt1": "同一产品细节特写，[聚焦部位]，[工艺细节]，[纹理质感]，微距摄影",
+  "subPrompt2": "同一产品侧面视角，[立体结构]，[整体轮廓]，[空间关系]，产品展示图"
 }
-`;
+
+请严格按照以上要求输出JSON：`;
 
     const analysisResponse = await llmClient.invoke([
       { role: 'user' as const, content: designPrompt }

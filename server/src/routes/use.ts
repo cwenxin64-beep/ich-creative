@@ -75,69 +75,67 @@ router.post('/customize', async (req: Request, res: Response) => {
       ichContext += `\nTarget Interaction Type: ${interactionTypeMap[interactionType]}`;
     }
 
-    const designPrompt = `
-You are an expert in intangible cultural heritage (ICH) and modern product design.
+    const designPrompt = `你是一位非物质文化遗产创意设计专家。请根据用户关键词，生成精准的定制产品设计方案。
 
-Analyze these creative keywords and generate detailed design prompts for customized ICH products.
+## 用户关键词
+"${keywords}"
+${materialContext}
+${ichContext}
 
-Keywords: "${keywords}"${materialContext}${ichContext}
+## 任务要求
+为每个应用场景生成：
+1. **创意描述**：20个汉字，包含关键词+寓意+效果
+2. **生图Prompt**：必须具体、详细、可执行
 
-Your task is to create innovative product designs that blend ICH elements with modern functionality and aesthetics.
+## 生图Prompt要求（非常重要！）
+- 三个Prompt必须是**同一个产品**的**三个不同角度**
+- 必须保持：相同的产品外观、相同的风格、相同的配色、相同的材质
+- 区别仅在于拍摄角度：
+  - mainPrompt：正面全景图，展示完整产品
+  - subPrompt1：细节特写图，聚焦核心工艺细节
+  - subPrompt2：侧面/俯视图，展示立体结构
 
-For each application scene, generate:
-1. A creative description in exactly 20 Chinese characters that includes:
-   - Key creative keywords from the user's input
-   - The artistic implication (寓意) of the work
-   - The visual effect (效果) of the work
-   Example: "青花瓷韵，古今交融，清新雅致" (Blue porcelain charm, fusion of ancient and modern, fresh and elegant)
-2. A detailed visual description
-3. Key ICH elements to incorporate (patterns, motifs, techniques)
-4. Modern design features and functionality
-5. Target audience and use case
-6. Color palette and materials
-7. **CRITICAL**: Generate **three prompts for the SAME product from different angles**:
-   - The product must be IDENTICAL in content, style, color scheme, and visual elements
-   - Only the camera angle/viewpoint should differ:
-     - mainPrompt: Front/full view (product showcase, complete scene)
-     - subPrompt1: Close-up view (focused on specific details, same product)
-     - subPrompt2: Side/alternative view (same product, different perspective)
-   - Use EXACTLY the same ICH elements, colors, style, materials for all three images
-   - The three images must look like photographs of the same physical object
-
-Generate prompts for:
-1. Fashion - Scarves, bags, accessories with ICH patterns
-2. Home Decor - Cushions, wall art, tableware
-3. Art Pieces - Sculptures, paintings, mixed media
-4. Gift Items - Special occasion gifts with ICH symbolism
-
-Format your response as JSON:
+## 输出格式（JSON）
 {
   "fashion": {
-    "creativeDescription": "exactly 20 Chinese characters including keywords, implication, and effect",
-    "mainPrompt": "detailed prompt for fashion product main image",
-    "subPrompt1": "detailed prompt for fashion product sub image 1 (focus on details)",
-    "subPrompt2": "detailed prompt for fashion product sub image 2 (alternative perspective)",
-    "ichElements": ["element1", "element2"],
-    "features": ["feature1", "feature2"],
-    "colorPalette": ["color1", "color2"]
+    "creativeDescription": "20字创意描述",
+    "mainPrompt": "时尚配饰正面展示，[产品类型：围巾/包/饰品]，[非遗图案]，[色彩搭配]，[材质]，现代时尚摄影",
+    "subPrompt1": "同一产品细节特写，[图案细节]，[材质纹理]，[工艺特征]",
+    "subPrompt2": "同一产品佩戴效果，[搭配场景]，[整体造型]",
+    "ichElements": ["非遗元素"],
+    "features": ["功能特点"],
+    "colorPalette": ["配色方案"]
   },
   "home": {
-    "creativeDescription": "exactly 20 Chinese characters including keywords, implication, and effect",
-    "mainPrompt": "detailed prompt for home decor main image",
-    "subPrompt1": "detailed prompt for home decor sub image 1 (focus on details)",
-    "subPrompt2": "detailed prompt for home decor sub image 2 (alternative perspective)",
-    "ichElements": ["element1"],
-    "features": ["feature1"],
-    "colorPalette": ["color1"]
+    "creativeDescription": "20字创意描述",
+    "mainPrompt": "家居装饰品正面展示，[产品类型：靠垫/挂画/餐具]，[非遗元素]，[家居风格]，温馨场景摄影",
+    "subPrompt1": "同一产品细节特写",
+    "subPrompt2": "同一产品居家场景展示",
+    "ichElements": ["非遗元素"],
+    "features": ["功能特点"],
+    "colorPalette": ["配色方案"]
   },
   "art": {
-    "creativeDescription": "exactly 20 Chinese characters including keywords, implication, and effect",
-    "mainPrompt": "detailed prompt for art piece main image",
-    "subPrompt1": "detailed prompt for art piece sub image 1 (focus on details)",
-    "subPrompt2": "detailed prompt for art piece sub image 2 (alternative perspective)",
-    "ichElements": ["element1"],
-    "features": ["feature1"],
-    "colorPalette": ["color1"]
+    "creativeDescription": "20字创意描述",
+    "mainPrompt": "艺术品正面展示，[产品类型：雕塑/绘画/综合材料]，[非遗技艺]，[艺术风格]，画廊级摄影",
+    "subPrompt1": "同一艺术品细节特写",
+    "subPrompt2": "同一艺术品侧面展示",
+    "ichElements": ["非遗元素"],
+    "features": ["艺术特点"],
+    "colorPalette": ["配色方案"]
+  },
+  "gifts": {
+    "creativeDescription": "20字创意描述",
+    "mainPrompt": "礼品正面展示，[产品类型]，[非遗元素]，[礼盒包装]，[节日氛围]，精致礼品摄影",
+    "subPrompt1": "同一礼品细节特写",
+    "subPrompt2": "同一礼品包装展示",
+    "ichElements": ["非遗元素"],
+    "features": ["礼品特点"],
+    "colorPalette": ["配色方案"]
+  }
+}
+
+请严格按照以上要求输出JSON：`;
   },
   "gifts": {
     "creativeDescription": "exactly 20 Chinese characters including keywords, implication, and effect",
