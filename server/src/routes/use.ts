@@ -136,18 +136,6 @@ ${ichContext}
 }
 
 请严格按照以上要求输出JSON：`;
-  },
-  "gifts": {
-    "creativeDescription": "exactly 20 Chinese characters including keywords, implication, and effect",
-    "mainPrompt": "detailed prompt for gift item main image",
-    "subPrompt1": "detailed prompt for gift item sub image 1 (focus on details)",
-    "subPrompt2": "detailed prompt for gift item sub image 2 (alternative perspective)",
-    "ichElements": ["element1"],
-    "features": ["feature1"],
-    "colorPalette": ["color1"]
-  }
-}
-`;
 
     const analysisResponse = await llmClient.invoke([
       { role: 'user' as const, content: designPrompt }
