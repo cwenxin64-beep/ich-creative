@@ -7,7 +7,7 @@ import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { FontAwesome6 } from '@expo/vector-icons';
 import { Video, ResizeMode, AVPlaybackStatusSuccess, AVPlaybackStatus } from 'expo-av';
-import { styles } from './detail.styles';
+import { styles } from '@/components/detail.styles';
 
 type DetailParams = {
   imageUrl?: string;
