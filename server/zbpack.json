@@ -1,0 +1,5 @@
+{
+  "app_dir": "/app",
+  "build_command": "pnpm install && pnpm run build",
+  "start_command": "node dist/index.js"
+}
