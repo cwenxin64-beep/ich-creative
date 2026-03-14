@@ -3,7 +3,6 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "preinstall": "npx only-allow pnpm",
     "dev": "bash ../.cozeproj/scripts/server_dev_run.sh",
     "build": "node build.js",
     "start": "NODE_ENV=production PORT=${PORT:-5000} node dist/index.js"
