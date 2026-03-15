@@ -1,0 +1,33 @@
+{
+  "version": "2.0",
+  "$schema": "https://framework-1258016615.tcloudbaseapp.com/schema/latest.json",
+  "functionRoot": "./functions",
+  "functions": [],
+  "framework": {
+    "name": "ich-creative-server",
+    "plugins": {}
+  },
+  "services": [
+    {
+      "name": "ich-server",
+      "type": "node",
+      "path": "/",
+      "entry": "dist/index.js",
+      "installCommand": "pnpm install",
+      "buildCommand": "pnpm run build",
+      "startCommand": "node dist/index.js",
+      "runtime": "nodejs:18",
+      "cpu": 0.25,
+      "mem": 512,
+      "minNum": 0,
+      "maxNum": 1,
+      "policyType": "cpu",
+      "policyThreshold": 60,
+      "envVariables": {
+        "NODE_ENV": "production",
+        "PORT": 80
+      },
+      "customLogs": "stdout"
+    }
+  ]
+}
