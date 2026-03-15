@@ -10,8 +10,20 @@ import favoritesRouter from "./routes/favorites";
 const app = express();
 const port = process.env.PORT || 9091;
 
+// CORS 配置 - 允许前端域名访问
+const corsOptions = {
+  origin: [
+    'https://ich-client-204193-6-1388119917.sh.run.tcloudbase.com',
+    'http://localhost:8081',
+    'http://localhost:19006',
+  ],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true,
+};
+
 // Middleware
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
