@@ -2,7 +2,10 @@
 nixPkgs = ['nodejs_22']
 
 [phases.install]
-cmds = ['npm install']
+cmds = ['npm install -g pnpm', 'pnpm install --ignore-scripts']
+
+[phases.build]
+cmds = ['pnpm run build']
 
 [start]
 cmd = 'node dist/index.js'
