@@ -1,18 +1,18 @@
 FROM node:18-alpine
 
-WORKDIR /app/server
+WORKDIR /app
 
 # 安装 pnpm
 RUN npm install -g pnpm
 
-# 复制 package.json
-COPY server/package.json ./
+# 复制整个项目
+COPY . .
+
+# 进入 server 目录工作
+WORKDIR /app/server
 
 # 安装依赖
 RUN pnpm install
-
-# 复制源代码
-COPY server/ .
 
 # 构建
 RUN pnpm run build
