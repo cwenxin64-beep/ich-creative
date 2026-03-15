@@ -1,0 +1,15 @@
+# 忽略不需要的文件
+node_modules
+.git
+.gitignore
+*.md
+assets
+eslint-plugins
+jiti
+node-compile-cache
+patches
+user
+*.log
+.env
+.env.*
+dist
