@@ -6,11 +6,13 @@ WORKDIR /app
 # 安装 pnpm
 RUN npm install -g pnpm
 
-# 复制整个项目（.dockerignore 会过滤不需要的文件）
-COPY . .
+# 复制 server 目录的所有文件（.dockerignore 会过滤 node_modules 等）
+COPY server/package.json ./
+COPY server/build.js ./
+COPY server/tsconfig.json ./
+COPY server/src ./src
 
-# 进入 server 目录，安装依赖并构建
-WORKDIR /app/server
+# 安装依赖并构建
 RUN pnpm install --ignore-scripts && pnpm run build
 
 # 暴露端口

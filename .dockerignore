@@ -7,7 +7,6 @@ assets
 eslint-plugins
 jiti
 node-compile-cache
-patches
 user
 *.log
 .env
