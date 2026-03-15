@@ -1,18 +1,18 @@
 FROM node:18-alpine
 
-WORKDIR /app
+WORKDIR /app/server
 
 # 安装 pnpm
 RUN npm install -g pnpm
 
 # 复制 package.json
-COPY package.json ./
+COPY server/package.json ./
 
 # 安装依赖
-RUN pnpm install --frozen-lockfile
+RUN pnpm install
 
 # 复制源代码
-COPY . .
+COPY server/ .
 
 # 构建
 RUN pnpm run build
