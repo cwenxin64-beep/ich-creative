@@ -5,14 +5,14 @@ WORKDIR /app
 # 安装 pnpm
 RUN npm install -g pnpm
 
-# 先复制 package.json
-COPY server/package.json ./package.json
+# 复制 package.json
+COPY package.json ./
 
 # 安装依赖
 RUN pnpm install
 
-# 复制 server 目录的所有文件
-COPY server/ ./
+# 复制所有文件
+COPY . ./
 
 # 构建
 RUN pnpm run build
