@@ -9,8 +9,7 @@
       "name": "ich-server",
       "type": "web",
       "path": "/",
-      "dockerfile": "./Dockerfile",
-      "targetDir": "./"
+      "dockerfile": "./Dockerfile"
     }
   ]
 }
