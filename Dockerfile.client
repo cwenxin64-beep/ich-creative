@@ -7,8 +7,9 @@ WORKDIR /app
 # 安装 pnpm
 RUN npm install -g pnpm
 
-# 复制 package.json 和 lock 文件
+# 复制 package.json 和 scripts（postinstall 需要）
 COPY client/package.json ./
+COPY client/scripts ./scripts
 
 # 安装依赖
 RUN pnpm install
