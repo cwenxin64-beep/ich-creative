@@ -1,4 +1,3 @@
-# 在根目录构建
 FROM node:22-alpine
 
 WORKDIR /app
@@ -6,17 +5,14 @@ WORKDIR /app
 # 安装 pnpm
 RUN npm install -g pnpm
 
-# 复制整个仓库
-COPY . /tmp/repo/
-
-# 切换工作目录
-WORKDIR /app/server
-
-# 复制 server 目录内容
-RUN cp -r /tmp/repo/server/* /app/server/ && rm -rf /tmp/repo
+# 复制 package.json
+COPY package.json ./
 
 # 安装依赖
 RUN pnpm install --ignore-scripts
+
+# 复制源代码
+COPY . ./
 
 # 构建
 RUN pnpm run build
