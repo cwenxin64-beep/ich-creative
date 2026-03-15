@@ -15,8 +15,9 @@ COPY server/src ./src
 # 安装依赖并构建
 RUN pnpm install --ignore-scripts && pnpm run build
 
-# 暴露端口
-EXPOSE 9091
+# 暴露端口（CloudBase 默认使用 80）
+EXPOSE 80
 
-# 启动命令
+# 启动命令，设置端口为 80
+ENV PORT=80
 CMD ["node", "dist/index.js"]
