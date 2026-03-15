@@ -10,6 +10,7 @@ import { Screen } from '@/components/Screen';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { createFormDataFile } from '@/utils';
+import { buildApiUrl } from '@/utils/api';
 import { FontAwesome6 } from '@expo/vector-icons';
 import { createStyles } from './styles';
 
@@ -50,7 +51,7 @@ export default function PhotoScreen() {
          * 服务端文件：server/src/routes/favorites.ts
          * 接口：DELETE /api/v1/favorites/:id
          */
-        const response = await fetch(`${process.env.EXPO_PUBLIC_BACKEND_BASE_URL}/api/v1/favorites/${favoriteId}`, {
+        const response = await fetch(buildApiUrl(`/api/v1/favorites/${favoriteId}`), {
           method: 'DELETE',
         });
 
@@ -77,7 +78,7 @@ export default function PhotoScreen() {
        * 接口：POST /api/v1/favorites
        * Body 参数：type: string, imageUrl?: string, videoUrl?: string, title: string, metadata?: any
        */
-      const response = await fetch(`${process.env.EXPO_PUBLIC_BACKEND_BASE_URL}/api/v1/favorites`, {
+      const response = await fetch(buildApiUrl('/api/v1/favorites'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -235,7 +236,7 @@ export default function PhotoScreen() {
        * 接口：POST /api/v1/photo/generate
        * Body 参数：file: File, description: string, outputType: 'static' | 'dynamic' | 'all'
        */
-      const response = await fetch(`${process.env.EXPO_PUBLIC_BACKEND_BASE_URL}/api/v1/photo/generate`, {
+      const response = await fetch(buildApiUrl('/api/v1/photo/generate'), {
         method: 'POST',
         body: formData,
       });

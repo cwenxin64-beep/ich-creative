@@ -8,6 +8,7 @@ import { ThemedView } from '@/components/ThemedView';
 import { Image } from 'expo-image';
 import { FontAwesome6 } from '@expo/vector-icons';
 import { useTheme } from '@/hooks/useTheme';
+import { buildApiUrl } from '@/utils/api';
 import { createStyles } from './styles';
 
 interface FavoriteItem {
@@ -29,7 +30,7 @@ export default function FavoritesScreen() {
 
   const fetchFavorites = async () => {
     try {
-      const response = await fetch(`${process.env.EXPO_PUBLIC_BACKEND_BASE_URL}/api/v1/favorites`);
+      const response = await fetch(buildApiUrl('/api/v1/favorites'));
       if (response.ok) {
         const data = await response.json();
         // 将后端数据映射到前端数据结构
@@ -121,7 +122,7 @@ export default function FavoritesScreen() {
           onPress: async () => {
             try {
               const response = await fetch(
-                `${process.env.EXPO_PUBLIC_BACKEND_BASE_URL}/api/v1/favorites/${id}`,
+                buildApiUrl(`/api/v1/favorites/${id}`),
                 { method: 'DELETE' }
               );
               if (response.ok) {
@@ -152,7 +153,7 @@ export default function FavoritesScreen() {
             try {
               const deletePromises = Array.from(selectedIds).map(id =>
                 fetch(
-                  `${process.env.EXPO_PUBLIC_BACKEND_BASE_URL}/api/v1/favorites/${id}`,
+                  buildApiUrl(`/api/v1/favorites/${id}`),
                   { method: 'DELETE' }
                 )
               );
@@ -184,7 +185,7 @@ export default function FavoritesScreen() {
             try {
               const deletePromises = favorites.map(f =>
                 fetch(
-                  `${process.env.EXPO_PUBLIC_BACKEND_BASE_URL}/api/v1/favorites/${f.id}`,
+                  buildApiUrl(`/api/v1/favorites/${f.id}`),
                   { method: 'DELETE' }
                 )
               );

@@ -7,6 +7,7 @@ import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { FontAwesome6 } from '@expo/vector-icons';
 import { createStyles } from './styles';
+import { buildApiUrl } from '@/utils/api';
 
 interface FormData {
   // 基本信息
@@ -143,7 +144,7 @@ export default function ArtisanRegisterScreen() {
        * 接口：POST /api/v1/users/artisan-register
        * Body 参数：name: string, gender: string, phone: string, wechat: string, province: string, city: string, district: string, address: string, projectName: string, level: string, years: string, lineage: string, hasCertificate: string, crafts: string, services: string[], smallItemDays: string, mediumItemDays: string, largeItemDays: string, urgent: boolean, urgentFee: string, startPrice: string, priceRange: string, adjustable: boolean
        */
-      const response = await fetch(`${process.env.EXPO_PUBLIC_BACKEND_BASE_URL}/api/v1/users/artisan-register`, {
+      const response = await fetch(buildApiUrl('/api/v1/users/artisan-register'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),

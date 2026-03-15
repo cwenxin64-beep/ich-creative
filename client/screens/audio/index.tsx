@@ -8,6 +8,7 @@ import { Screen } from '@/components/Screen';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { createFormDataFile } from '@/utils';
+import { buildApiUrl } from '@/utils/api';
 import { FontAwesome6 } from '@expo/vector-icons';
 import { createStyles } from './styles';
 
@@ -41,7 +42,7 @@ export default function AudioScreen() {
        * 接口：POST /api/v1/favorites
        * Body 参数：type: string, imageUrl?: string, title: string, metadata?: any
        */
-      const response = await fetch(`${process.env.EXPO_PUBLIC_BACKEND_BASE_URL}/api/v1/favorites`, {
+      const response = await fetch(buildApiUrl('/api/v1/favorites'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -208,7 +209,7 @@ export default function AudioScreen() {
        * 接口：POST /api/v1/audio/generate
        * Body 参数：file: File, keywords: string
        */
-      const response = await fetch(`${process.env.EXPO_PUBLIC_BACKEND_BASE_URL}/api/v1/audio/generate`, {
+      const response = await fetch(buildApiUrl('/api/v1/audio/generate'), {
         method: 'POST',
         body: formData,
       });

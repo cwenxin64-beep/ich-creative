@@ -10,6 +10,7 @@ import { ThemedView } from '@/components/ThemedView';
 import { FontAwesome6 } from '@expo/vector-icons';
 import { createStyles } from './styles';
 import { CustomizeOrderModal, CustomizeOrderData } from './CustomizeOrderModal';
+import { buildApiUrl } from '@/utils/api';
 import { Spacing } from '@/constants/theme';
 
 // 非遗类型
@@ -77,7 +78,7 @@ export default function UseScreen() {
        * 服务端文件：server/src/routes/favorites.ts
        * 接口：GET /api/v1/favorites
        */
-      const response = await fetch(`${process.env.EXPO_PUBLIC_BACKEND_BASE_URL}/api/v1/favorites`);
+      const response = await fetch(buildApiUrl('/api/v1/favorites'));
       const data = await response.json();
 
       if (data.success) {
@@ -107,7 +108,7 @@ export default function UseScreen() {
        * 接口：POST /api/v1/favorites
        * Body 参数：type: string, imageUrl?: string, title: string, metadata?: any
        */
-      const response = await fetch(`${process.env.EXPO_PUBLIC_BACKEND_BASE_URL}/api/v1/favorites`, {
+      const response = await fetch(buildApiUrl('/api/v1/favorites'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -237,7 +238,7 @@ export default function UseScreen() {
         };
       }
 
-      const response = await fetch(`${process.env.EXPO_PUBLIC_BACKEND_BASE_URL}/api/v1/use/customize`, {
+      const response = await fetch(buildApiUrl('/api/v1/use/customize'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(requestBody),
@@ -269,7 +270,7 @@ export default function UseScreen() {
        * 接口：POST /api/v1/use/customization-order
        * Body 参数：完整的定制需求单数据（包含基础信息和定制需求信息）
        */
-      const response = await fetch(`${process.env.EXPO_PUBLIC_BACKEND_BASE_URL}/api/v1/use/customization-order`, {
+      const response = await fetch(buildApiUrl('/api/v1/use/customization-order'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
