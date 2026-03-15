@@ -11,8 +11,8 @@ COPY . ./
 # 进入 server 目录工作
 WORKDIR /app/server
 
-# 安装依赖
-RUN pnpm install
+# 安装依赖（跳过 postinstall 避免冲突）
+RUN pnpm install --ignore-scripts
 
 # 构建
 RUN pnpm run build
