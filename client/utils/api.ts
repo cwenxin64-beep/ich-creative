@@ -4,12 +4,11 @@
  * - 生产环境：使用环境变量配置的后端地址
  */
 export const getApiBaseUrl = (): string => {
-  const envUrl = process.env.EXPO_PUBLIC_BACKEND_BASE_URL;
-  if (envUrl) {
-    return envUrl.replace(/\/$/, '');
+  // 开发环境始终使用相对路径，Metro 会代理到后端
+  if (process.env.NODE_ENV === 'development' || !process.env.EXPO_PUBLIC_BACKEND_BASE_URL) {
+    return '';
   }
-  // 开发环境使用相对路径，Metro 会代理到后端
-  return '';
+  return process.env.EXPO_PUBLIC_BACKEND_BASE_URL.replace(/\/$/, '');
 };
 
 /**
