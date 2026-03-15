@@ -8,7 +8,7 @@ import useRouter from "./routes/use";
 import favoritesRouter from "./routes/favorites";
 
 const app = express();
-const port = process.env.PORT || 80;
+const port = process.env.PORT || 9091;
 
 // Middleware
 app.use(cors());
