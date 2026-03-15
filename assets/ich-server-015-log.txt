@@ -1,0 +1,175 @@
+[2026-03-15 16:55:10] Cloning Git repository...
+[2026-03-15 16:55:10] Cloning into '.'...
+[2026-03-15 16:55:15] Already on 'main'
+[2026-03-15 16:55:15] Your branch is up to date with 'origin/main'.
+[2026-03-15 16:55:15] Repository cloned and checked out.
+[2026-03-15 16:55:16] Logging into Docker registry...
+[2026-03-15 16:55:16] WARNING! Your password will be stored unencrypted in /root/.docker/config.json.
+[2026-03-15 16:55:16] Configure a credential helper to remove this warning. See
+[2026-03-15 16:55:16] https://docs.docker.com/engine/reference/commandline/login/#credentials-store
+[2026-03-15 16:55:16] 
+[2026-03-15 16:55:16] Login Succeeded
+[2026-03-15 16:55:16] Building Docker image: ccr.ccs.tencentyun.com/tcb-100045172279-ufpr/ca-lvplhpfs_ich-server:ich-server-015-20260315165459
+[2026-03-15 16:55:16] #0 building with "default" instance using docker driver
+[2026-03-15 16:55:16] 
+[2026-03-15 16:55:16] #1 [internal] load build definition from Dockerfile
+[2026-03-15 16:55:16] #1 transferring dockerfile: 471B done
+[2026-03-15 16:55:16] #1 DONE 0.0s
+[2026-03-15 16:55:16] 
+[2026-03-15 16:55:16] #2 [internal] load metadata for docker.io/library/node:22-alpine
+[2026-03-15 16:55:17] #2 DONE 1.2s
+[2026-03-15 16:55:17] 
+[2026-03-15 16:55:17] #3 [internal] load .dockerignore
+[2026-03-15 16:55:17] #3 transferring context: 177B done
+[2026-03-15 16:55:17] #3 DONE 0.0s
+[2026-03-15 16:55:17] 
+[2026-03-15 16:55:17] #4 [internal] load build context
+[2026-03-15 16:55:17] #4 transferring context: 53.83kB done
+[2026-03-15 16:55:17] #4 DONE 0.0s
+[2026-03-15 16:55:17] 
+[2026-03-15 16:55:17] #5 [1/8] FROM docker.io/library/node:22-alpine@sha256:8094c002d08262dba12645a3b4a15cd6cd627d30bc782f53229a2ec13ee22a00
+[2026-03-15 16:55:17] #5 resolve docker.io/library/node:22-alpine@sha256:8094c002d08262dba12645a3b4a15cd6cd627d30bc782f53229a2ec13ee22a00 0.0s done
+[2026-03-15 16:55:17] #5 sha256:8094c002d08262dba12645a3b4a15cd6cd627d30bc782f53229a2ec13ee22a00 6.41kB / 6.41kB done
+[2026-03-15 16:55:17] #5 sha256:92d51e5f20b7ff58faa5a969af1a1cec6cbec3fbff7e0f523242b9b5c85ad887 1.72kB / 1.72kB done
+[2026-03-15 16:55:17] #5 sha256:be1a50ca7b74053fae772c47e2b487d1939d08d94306836e93b4b3fa2aec0b89 6.52kB / 6.52kB done
+[2026-03-15 16:55:17] #5 sha256:589002ba0eaed121a1dbf42f6648f29e5be55d5c8a6ee0f8eaa0285cc21ac153 0B / 3.86MB 0.1s
+[2026-03-15 16:55:17] #5 sha256:ed87be4595e508c0f2a1ff7a1810938267171d1018a91c41b6dc191f15ca818c 0B / 52.07MB 0.1s
+[2026-03-15 16:55:17] #5 sha256:c699e235cde407e9ab634f43f63d20708c76c61d2817bd98708fc1aa50c09397 0B / 1.26MB 0.1s
+[2026-03-15 16:55:18] #5 sha256:589002ba0eaed121a1dbf42f6648f29e5be55d5c8a6ee0f8eaa0285cc21ac153 3.86MB / 3.86MB 0.4s done
+[2026-03-15 16:55:18] #5 extracting sha256:589002ba0eaed121a1dbf42f6648f29e5be55d5c8a6ee0f8eaa0285cc21ac153 0.1s done
+[2026-03-15 16:55:18] #5 sha256:7c9e1e1c637a965a5768a81fd902f4df05debe64963fcf7c7ed4c5401cc6bcd3 0B / 447B 0.4s
+[2026-03-15 16:55:18] #5 sha256:ed87be4595e508c0f2a1ff7a1810938267171d1018a91c41b6dc191f15ca818c 4.19MB / 52.07MB 0.6s
+[2026-03-15 16:55:18] #5 sha256:c699e235cde407e9ab634f43f63d20708c76c61d2817bd98708fc1aa50c09397 1.26MB / 1.26MB 0.4s done
+[2026-03-15 16:55:18] #5 sha256:7c9e1e1c637a965a5768a81fd902f4df05debe64963fcf7c7ed4c5401cc6bcd3 447B / 447B 0.5s done
+[2026-03-15 16:55:18] #5 sha256:ed87be4595e508c0f2a1ff7a1810938267171d1018a91c41b6dc191f15ca818c 8.39MB / 52.07MB 0.8s
+[2026-03-15 16:55:18] #5 sha256:ed87be4595e508c0f2a1ff7a1810938267171d1018a91c41b6dc191f15ca818c 13.63MB / 52.07MB 1.0s
+[2026-03-15 16:55:18] #5 sha256:ed87be4595e508c0f2a1ff7a1810938267171d1018a91c41b6dc191f15ca818c 19.92MB / 52.07MB 1.3s
+[2026-03-15 16:55:19] #5 sha256:ed87be4595e508c0f2a1ff7a1810938267171d1018a91c41b6dc191f15ca818c 25.17MB / 52.07MB 1.5s
+[2026-03-15 16:55:19] #5 sha256:ed87be4595e508c0f2a1ff7a1810938267171d1018a91c41b6dc191f15ca818c 31.46MB / 52.07MB 1.8s
+[2026-03-15 16:55:19] #5 sha256:ed87be4595e508c0f2a1ff7a1810938267171d1018a91c41b6dc191f15ca818c 34.60MB / 52.07MB 1.9s
+[2026-03-15 16:55:19] #5 sha256:ed87be4595e508c0f2a1ff7a1810938267171d1018a91c41b6dc191f15ca818c 38.80MB / 52.07MB 2.1s
+[2026-03-15 16:55:19] #5 sha256:ed87be4595e508c0f2a1ff7a1810938267171d1018a91c41b6dc191f15ca818c 44.04MB / 52.07MB 2.3s
+[2026-03-15 16:55:20] #5 sha256:ed87be4595e508c0f2a1ff7a1810938267171d1018a91c41b6dc191f15ca818c 48.23MB / 52.07MB 2.5s
+[2026-03-15 16:55:20] #5 sha256:ed87be4595e508c0f2a1ff7a1810938267171d1018a91c41b6dc191f15ca818c 51.38MB / 52.07MB 2.6s
+[2026-03-15 16:55:20] #5 extracting sha256:ed87be4595e508c0f2a1ff7a1810938267171d1018a91c41b6dc191f15ca818c
+[2026-03-15 16:55:20] #5 sha256:ed87be4595e508c0f2a1ff7a1810938267171d1018a91c41b6dc191f15ca818c 52.07MB / 52.07MB 2.6s done
+[2026-03-15 16:55:21] #5 extracting sha256:ed87be4595e508c0f2a1ff7a1810938267171d1018a91c41b6dc191f15ca818c 0.8s done
+[2026-03-15 16:55:21] #5 extracting sha256:c699e235cde407e9ab634f43f63d20708c76c61d2817bd98708fc1aa50c09397 0.0s done
+[2026-03-15 16:55:21] #5 extracting sha256:7c9e1e1c637a965a5768a81fd902f4df05debe64963fcf7c7ed4c5401cc6bcd3
+[2026-03-15 16:55:21] #5 extracting sha256:7c9e1e1c637a965a5768a81fd902f4df05debe64963fcf7c7ed4c5401cc6bcd3 done
+[2026-03-15 16:55:21] #5 DONE 3.6s
+[2026-03-15 16:55:21] 
+[2026-03-15 16:55:21] #6 [2/8] WORKDIR /app
+[2026-03-15 16:55:21] #6 DONE 0.0s
+[2026-03-15 16:55:21] 
+[2026-03-15 16:55:21] #7 [3/8] RUN npm install -g pnpm
+[2026-03-15 16:55:23] #7 2.285 
+[2026-03-15 16:55:23] #7 2.285 added 1 package in 2s
+[2026-03-15 16:55:23] #7 2.285 
+[2026-03-15 16:55:23] #7 2.285 1 package is looking for funding
+[2026-03-15 16:55:23] #7 2.285   run `npm fund` for details
+[2026-03-15 16:55:23] #7 2.286 npm notice
+[2026-03-15 16:55:23] #7 2.286 npm notice New major version of npm available! 10.9.4 -> 11.11.1
+[2026-03-15 16:55:23] #7 2.286 npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.11.1
+[2026-03-15 16:55:23] #7 2.286 npm notice To update run: npm install -g npm@11.11.1
+[2026-03-15 16:55:23] #7 2.286 npm notice
+[2026-03-15 16:55:23] #7 DONE 2.4s
+[2026-03-15 16:55:23] 
+[2026-03-15 16:55:23] #8 [4/8] COPY server/package.json ./
+[2026-03-15 16:55:23] #8 DONE 0.0s
+[2026-03-15 16:55:23] 
+[2026-03-15 16:55:23] #9 [5/8] COPY server/build.js ./
+[2026-03-15 16:55:23] #9 DONE 0.0s
+[2026-03-15 16:55:23] 
+[2026-03-15 16:55:23] #10 [6/8] COPY server/tsconfig.json ./
+[2026-03-15 16:55:23] #10 DONE 0.0s
+[2026-03-15 16:55:23] 
+[2026-03-15 16:55:23] #11 [7/8] COPY server/src ./src
+[2026-03-15 16:55:23] #11 DONE 0.0s
+[2026-03-15 16:55:23] 
+[2026-03-15 16:55:23] #12 [8/8] RUN pnpm install --ignore-scripts && pnpm run build
+[2026-03-15 16:55:24] #12 0.962 Progress: resolved 1, reused 0, downloaded 0, added 0
+[2026-03-15 16:55:25] #12 1.963 Progress: resolved 19, reused 0, downloaded 14, added 0
+[2026-03-15 16:55:26] #12 2.964 Progress: resolved 49, reused 0, downloaded 27, added 0
+[2026-03-15 16:55:27] #12 3.964 Progress: resolved 219, reused 0, downloaded 118, added 0
+[2026-03-15 16:55:28] #12 4.964 Progress: resolved 252, reused 0, downloaded 172, added 0
+[2026-03-15 16:55:29] #12 5.984  WARN  2 deprecated subdependencies found: @esbuild-kit/core-utils@3.3.2, @esbuild-kit/esm-loader@2.6.5
+[2026-03-15 16:55:29] #12 5.998 Progress: resolved 253, reused 0, downloaded 175, added 0
+[2026-03-15 16:55:29] #12 6.002 Packages: +181
+[2026-03-15 16:55:29] #12 6.002 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+[2026-03-15 16:55:30] #12 6.997 Progress: resolved 253, reused 0, downloaded 177, added 171
+[2026-03-15 16:55:31] #12 7.996 Progress: resolved 253, reused 0, downloaded 180, added 178
+[2026-03-15 16:55:32] #12 8.841 Progress: resolved 253, reused 0, downloaded 181, added 181, done
+[2026-03-15 16:55:32] #12 8.948 
+[2026-03-15 16:55:32] #12 8.948 dependencies:
+[2026-03-15 16:55:32] #12 8.948 + @supabase/supabase-js 2.99.1
+[2026-03-15 16:55:32] #12 8.948 + axios 1.13.6
+[2026-03-15 16:55:32] #12 8.948 + cors 2.8.6
+[2026-03-15 16:55:32] #12 8.948 + coze-coding-dev-sdk 0.7.17
+[2026-03-15 16:55:32] #12 8.948 + dayjs 1.11.20
+[2026-03-15 16:55:32] #12 8.948 + dotenv 17.3.1
+[2026-03-15 16:55:32] #12 8.948 + drizzle-orm 0.45.1
+[2026-03-15 16:55:32] #12 8.948 + drizzle-zod 0.8.3
+[2026-03-15 16:55:32] #12 8.948 + express 4.22.1 (5.2.1 is available)
+[2026-03-15 16:55:32] #12 8.948 + multer 2.1.1
+[2026-03-15 16:55:32] #12 8.948 + pg 8.20.0
+[2026-03-15 16:55:32] #12 8.948 + zod 4.3.6
+[2026-03-15 16:55:32] #12 8.948 
+[2026-03-15 16:55:32] #12 8.948 devDependencies:
+[2026-03-15 16:55:32] #12 8.948 + @types/cors 2.8.19
+[2026-03-15 16:55:32] #12 8.948 + @types/express 5.0.6
+[2026-03-15 16:55:32] #12 8.948 + @types/multer 2.1.0
+[2026-03-15 16:55:32] #12 8.948 + @types/pg 8.18.0
+[2026-03-15 16:55:32] #12 8.948 + drizzle-kit 0.31.9
+[2026-03-15 16:55:32] #12 8.948 + esbuild 0.27.2 (0.27.4 is available)
+[2026-03-15 16:55:32] #12 8.948 + tsx 4.21.0
+[2026-03-15 16:55:32] #12 8.948 + typescript 5.9.3
+[2026-03-15 16:55:32] #12 8.948 
+[2026-03-15 16:55:32] #12 8.989 Done in 8.8s using pnpm v10.32.1
+[2026-03-15 16:55:33] #12 9.341 
+[2026-03-15 16:55:33] #12 9.341 > server@ build /app
+[2026-03-15 16:55:33] #12 9.341 > node build.js
+[2026-03-15 16:55:33] #12 9.341 
+[2026-03-15 16:55:33] #12 9.425 ⚡ Build complete!
+[2026-03-15 16:55:33] #12 DONE 9.5s
+[2026-03-15 16:55:33] 
+[2026-03-15 16:55:33] #13 exporting to image
+[2026-03-15 16:55:33] #13 exporting layers
+[2026-03-15 16:55:39] #13 exporting layers 6.2s done
+[2026-03-15 16:55:39] #13 writing image sha256:94c66ac7477a3f88ff51cec8e3b99785d657536f739d7dabaf09b763c5ce6a70 done
+[2026-03-15 16:55:39] #13 naming to ccr.ccs.tencentyun.com/tcb-100045172279-ufpr/ca-lvplhpfs_ich-server:ich-server-015-20260315165459 done
+[2026-03-15 16:55:39] #13 DONE 6.3s
+[2026-03-15 16:55:39] 镜像的大小是：526MB
+[2026-03-15 16:55:39] 优化镜像大小具体可参考： https://docs.cloudbase.net/run/develop/image-optimization
+[2026-03-15 16:55:39] Pushing Docker image to TCR...
+[2026-03-15 16:55:39] The push refers to repository [ccr.ccs.tencentyun.com/tcb-100045172279-ufpr/ca-lvplhpfs_ich-server]
+[2026-03-15 16:55:39] 661b73e8efeb: Preparing
+[2026-03-15 16:55:39] fe1468369da3: Preparing
+[2026-03-15 16:55:39] 2691e6a82458: Preparing
+[2026-03-15 16:55:39] fa9546d3e901: Preparing
+[2026-03-15 16:55:39] 9a3d750df4eb: Preparing
+[2026-03-15 16:55:39] 1f2bf138bff7: Preparing
+[2026-03-15 16:55:39] 0b40decb52f7: Preparing
+[2026-03-15 16:55:39] 7d03813b8f4b: Preparing
+[2026-03-15 16:55:39] 13516add7c97: Preparing
+[2026-03-15 16:55:39] ceea3e55bf6a: Preparing
+[2026-03-15 16:55:39] 989e799e6349: Preparing
+[2026-03-15 16:55:39] 0b40decb52f7: Waiting
+[2026-03-15 16:55:39] 7d03813b8f4b: Waiting
+[2026-03-15 16:55:39] 13516add7c97: Waiting
+[2026-03-15 16:55:39] ceea3e55bf6a: Waiting
+[2026-03-15 16:55:39] 989e799e6349: Waiting
+[2026-03-15 16:55:39] 1f2bf138bff7: Waiting
+[2026-03-15 16:55:41] 9a3d750df4eb: Pushed
+[2026-03-15 16:55:41] 2691e6a82458: Pushed
+[2026-03-15 16:55:41] fa9546d3e901: Pushed
+[2026-03-15 16:55:41] fe1468369da3: Pushed
+[2026-03-15 16:55:42] 7d03813b8f4b: Pushed
+[2026-03-15 16:55:42] 0b40decb52f7: Pushed
+[2026-03-15 16:55:43] 13516add7c97: Pushed
+[2026-03-15 16:55:45] 989e799e6349: Pushed
+[2026-03-15 16:55:48] 1f2bf138bff7: Pushed
+[2026-03-15 16:56:07] ceea3e55bf6a: Pushed
+[2026-03-15 16:56:26] 661b73e8efeb: Pushed
+[2026-03-15 16:56:28] ich-server-015-20260315165459: digest: sha256:444e864eacadbd5f1bae84424c6d65b47991ee7adceab9a333a3bf38545e0f58 size: 2618
+[2026-03-15 16:56:28] Image pushed successfully.
