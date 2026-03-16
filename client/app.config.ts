@@ -3,6 +3,7 @@ import { ExpoConfig, ConfigContext } from 'expo/config';
 const appName = '智能非遗';
 const projectId = process.env.COZE_PROJECT_ID || process.env.EXPO_PUBLIC_COZE_PROJECT_ID;
 const slugAppName = projectId ? `app${projectId}` : 'myapp';
+const backendBaseUrl = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || '';
 
 export default ({ config }: ConfigContext): ExpoConfig => {
   return {
@@ -31,11 +32,14 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       "favicon": "./assets/images/favicon.png",
       "hmr": false
     },
+    "extra": {
+      "backendBaseUrl": backendBaseUrl,
+    },
     "plugins": [
-      process.env.EXPO_PUBLIC_BACKEND_BASE_URL ? [
+      backendBaseUrl ? [
         "expo-router",
         {
-          "origin": process.env.EXPO_PUBLIC_BACKEND_BASE_URL
+          "origin": backendBaseUrl
         }
       ] : 'expo-router',
       [

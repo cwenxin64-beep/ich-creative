@@ -14,11 +14,11 @@ COPY client/scripts ./scripts
 # 安装依赖
 RUN pnpm install
 
-# 复制源代码（.env.production 被 .dockerignore 忽略）
+# 复制源代码
 COPY client/ ./
 
-# 创建生产环境变量文件（必须在构建前）
-RUN echo "EXPO_PUBLIC_BACKEND_BASE_URL=https://ich-server-204193-6-1388119917.sh.run.tcloudbase.com" > .env.production
+# 设置环境变量（Expo 构建时会读取 EXPO_PUBLIC_ 开头的变量）
+ENV EXPO_PUBLIC_BACKEND_BASE_URL=https://ich-server-204193-6-1388119917.sh.run.tcloudbase.com
 
 # 构建生产版本
 RUN pnpm run build
