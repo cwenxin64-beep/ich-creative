@@ -1,4 +1,4 @@
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'crypto';
 
 /**
  * 任务状态
@@ -29,7 +29,7 @@ class TaskStore {
    * 创建新任务
    */
   create(): Task {
-    const id = uuidv4();
+    const id = randomUUID();
     const now = new Date();
     const task: Task = {
       id,

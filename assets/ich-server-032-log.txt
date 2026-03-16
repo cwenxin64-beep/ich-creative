@@ -1,0 +1,174 @@
+[2026-03-16 10:44:54] Cloning Git repository...
+[2026-03-16 10:44:54] Cloning into '.'...
+[2026-03-16 10:45:00] Already on 'main'
+[2026-03-16 10:45:00] Your branch is up to date with 'origin/main'.
+[2026-03-16 10:45:00] Repository cloned and checked out.
+[2026-03-16 10:45:01] Logging into Docker registry...
+[2026-03-16 10:45:01] WARNING! Your password will be stored unencrypted in /root/.docker/config.json.
+[2026-03-16 10:45:01] Configure a credential helper to remove this warning. See
+[2026-03-16 10:45:01] https://docs.docker.com/engine/reference/commandline/login/#credentials-store
+[2026-03-16 10:45:01] 
+[2026-03-16 10:45:01] Login Succeeded
+[2026-03-16 10:45:01] Building Docker image: ccr.ccs.tencentyun.com/tcb-100045172279-ufpr/ca-lvplhpfs_ich-server:ich-server-032-20260316104445
+[2026-03-16 10:45:01] #0 building with "default" instance using docker driver
+[2026-03-16 10:45:01] 
+[2026-03-16 10:45:01] #1 [internal] load build definition from Dockerfile
+[2026-03-16 10:45:01] #1 transferring dockerfile: 471B done
+[2026-03-16 10:45:01] #1 DONE 0.0s
+[2026-03-16 10:45:01] 
+[2026-03-16 10:45:01] #2 [internal] load metadata for docker.io/library/node:22-alpine
+[2026-03-16 10:45:02] #2 DONE 1.2s
+[2026-03-16 10:45:02] 
+[2026-03-16 10:45:02] #3 [internal] load .dockerignore
+[2026-03-16 10:45:02] #3 transferring context: 231B done
+[2026-03-16 10:45:02] #3 DONE 0.0s
+[2026-03-16 10:45:02] 
+[2026-03-16 10:45:02] #4 [internal] load build context
+[2026-03-16 10:45:02] #4 transferring context: 54.21kB done
+[2026-03-16 10:45:02] #4 DONE 0.0s
+[2026-03-16 10:45:02] 
+[2026-03-16 10:45:02] #5 [1/8] FROM docker.io/library/node:22-alpine@sha256:8094c002d08262dba12645a3b4a15cd6cd627d30bc782f53229a2ec13ee22a00
+[2026-03-16 10:45:02] #5 resolve docker.io/library/node:22-alpine@sha256:8094c002d08262dba12645a3b4a15cd6cd627d30bc782f53229a2ec13ee22a00 0.0s done
+[2026-03-16 10:45:02] #5 sha256:be1a50ca7b74053fae772c47e2b487d1939d08d94306836e93b4b3fa2aec0b89 6.52kB / 6.52kB done
+[2026-03-16 10:45:02] #5 sha256:589002ba0eaed121a1dbf42f6648f29e5be55d5c8a6ee0f8eaa0285cc21ac153 0B / 3.86MB 0.1s
+[2026-03-16 10:45:02] #5 sha256:ed87be4595e508c0f2a1ff7a1810938267171d1018a91c41b6dc191f15ca818c 0B / 52.07MB 0.1s
+[2026-03-16 10:45:02] #5 sha256:c699e235cde407e9ab634f43f63d20708c76c61d2817bd98708fc1aa50c09397 0B / 1.26MB 0.1s
+[2026-03-16 10:45:02] #5 sha256:8094c002d08262dba12645a3b4a15cd6cd627d30bc782f53229a2ec13ee22a00 6.41kB / 6.41kB done
+[2026-03-16 10:45:02] #5 sha256:92d51e5f20b7ff58faa5a969af1a1cec6cbec3fbff7e0f523242b9b5c85ad887 1.72kB / 1.72kB done
+[2026-03-16 10:45:03] #5 sha256:589002ba0eaed121a1dbf42f6648f29e5be55d5c8a6ee0f8eaa0285cc21ac153 1.05MB / 3.86MB 0.3s
+[2026-03-16 10:45:03] #5 extracting sha256:589002ba0eaed121a1dbf42f6648f29e5be55d5c8a6ee0f8eaa0285cc21ac153
+[2026-03-16 10:45:03] #5 sha256:589002ba0eaed121a1dbf42f6648f29e5be55d5c8a6ee0f8eaa0285cc21ac153 3.86MB / 3.86MB 0.3s done
+[2026-03-16 10:45:03] #5 sha256:ed87be4595e508c0f2a1ff7a1810938267171d1018a91c41b6dc191f15ca818c 6.29MB / 52.07MB 0.5s
+[2026-03-16 10:45:03] #5 sha256:c699e235cde407e9ab634f43f63d20708c76c61d2817bd98708fc1aa50c09397 1.26MB / 1.26MB 0.4s done
+[2026-03-16 10:45:03] #5 extracting sha256:589002ba0eaed121a1dbf42f6648f29e5be55d5c8a6ee0f8eaa0285cc21ac153 0.1s done
+[2026-03-16 10:45:03] #5 sha256:7c9e1e1c637a965a5768a81fd902f4df05debe64963fcf7c7ed4c5401cc6bcd3 0B / 447B 0.5s
+[2026-03-16 10:45:03] #5 sha256:ed87be4595e508c0f2a1ff7a1810938267171d1018a91c41b6dc191f15ca818c 17.83MB / 52.07MB 0.6s
+[2026-03-16 10:45:03] #5 sha256:7c9e1e1c637a965a5768a81fd902f4df05debe64963fcf7c7ed4c5401cc6bcd3 447B / 447B 0.5s done
+[2026-03-16 10:45:03] #5 sha256:ed87be4595e508c0f2a1ff7a1810938267171d1018a91c41b6dc191f15ca818c 40.89MB / 52.07MB 0.8s
+[2026-03-16 10:45:03] #5 sha256:ed87be4595e508c0f2a1ff7a1810938267171d1018a91c41b6dc191f15ca818c 52.07MB / 52.07MB 0.9s
+[2026-03-16 10:45:03] #5 sha256:ed87be4595e508c0f2a1ff7a1810938267171d1018a91c41b6dc191f15ca818c 52.07MB / 52.07MB 0.9s done
+[2026-03-16 10:45:03] #5 extracting sha256:ed87be4595e508c0f2a1ff7a1810938267171d1018a91c41b6dc191f15ca818c 0.1s
+[2026-03-16 10:45:04] #5 extracting sha256:ed87be4595e508c0f2a1ff7a1810938267171d1018a91c41b6dc191f15ca818c 0.8s done
+[2026-03-16 10:45:04] #5 extracting sha256:c699e235cde407e9ab634f43f63d20708c76c61d2817bd98708fc1aa50c09397
+[2026-03-16 10:45:04] #5 extracting sha256:c699e235cde407e9ab634f43f63d20708c76c61d2817bd98708fc1aa50c09397 0.0s done
+[2026-03-16 10:45:04] #5 extracting sha256:7c9e1e1c637a965a5768a81fd902f4df05debe64963fcf7c7ed4c5401cc6bcd3 done
+[2026-03-16 10:45:04] #5 DONE 2.0s
+[2026-03-16 10:45:04] 
+[2026-03-16 10:45:04] #6 [2/8] WORKDIR /app
+[2026-03-16 10:45:04] #6 DONE 0.0s
+[2026-03-16 10:45:04] 
+[2026-03-16 10:45:04] #7 [3/8] RUN npm install -g pnpm
+[2026-03-16 10:45:06] #7 2.172 
+[2026-03-16 10:45:06] #7 2.172 added 1 package in 2s
+[2026-03-16 10:45:06] #7 2.172 
+[2026-03-16 10:45:06] #7 2.172 1 package is looking for funding
+[2026-03-16 10:45:06] #7 2.172   run `npm fund` for details
+[2026-03-16 10:45:07] #7 2.173 npm notice
+[2026-03-16 10:45:07] #7 2.173 npm notice New major version of npm available! 10.9.4 -> 11.11.1
+[2026-03-16 10:45:07] #7 2.173 npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.11.1
+[2026-03-16 10:45:07] #7 2.173 npm notice To update run: npm install -g npm@11.11.1
+[2026-03-16 10:45:07] #7 2.173 npm notice
+[2026-03-16 10:45:07] #7 DONE 2.2s
+[2026-03-16 10:45:07] 
+[2026-03-16 10:45:07] #8 [4/8] COPY server/package.json ./
+[2026-03-16 10:45:07] #8 DONE 0.0s
+[2026-03-16 10:45:07] 
+[2026-03-16 10:45:07] #9 [5/8] COPY server/build.js ./
+[2026-03-16 10:45:07] #9 DONE 0.0s
+[2026-03-16 10:45:07] 
+[2026-03-16 10:45:07] #10 [6/8] COPY server/tsconfig.json ./
+[2026-03-16 10:45:07] #10 DONE 0.0s
+[2026-03-16 10:45:07] 
+[2026-03-16 10:45:07] #11 [7/8] COPY server/src ./src
+[2026-03-16 10:45:07] #11 DONE 0.0s
+[2026-03-16 10:45:07] 
+[2026-03-16 10:45:07] #12 [8/8] RUN pnpm install --ignore-scripts && pnpm run build
+[2026-03-16 10:45:08] #12 0.950 Progress: resolved 1, reused 0, downloaded 0, added 0
+[2026-03-16 10:45:09] #12 1.951 Progress: resolved 19, reused 0, downloaded 15, added 0
+[2026-03-16 10:45:10] #12 2.950 Progress: resolved 54, reused 0, downloaded 32, added 0
+[2026-03-16 10:45:11] #12 3.950 Progress: resolved 225, reused 0, downloaded 121, added 0
+[2026-03-16 10:45:12] #12 4.950 Progress: resolved 250, reused 0, downloaded 170, added 0
+[2026-03-16 10:45:12] #12 5.549  WARN  2 deprecated subdependencies found: @esbuild-kit/core-utils@3.3.2, @esbuild-kit/esm-loader@2.6.5
+[2026-03-16 10:45:12] #12 5.560 Packages: +181
+[2026-03-16 10:45:12] #12 5.560 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+[2026-03-16 10:45:13] #12 5.950 Progress: resolved 253, reused 0, downloaded 174, added 91
+[2026-03-16 10:45:14] #12 6.951 Progress: resolved 253, reused 0, downloaded 176, added 173
+[2026-03-16 10:45:15] #12 7.951 Progress: resolved 253, reused 0, downloaded 178, added 176
+[2026-03-16 10:45:15] #12 8.792 Progress: resolved 253, reused 0, downloaded 181, added 181, done
+[2026-03-16 10:45:15] #12 8.906 
+[2026-03-16 10:45:15] #12 8.906 dependencies:
+[2026-03-16 10:45:15] #12 8.906 + @supabase/supabase-js 2.99.1
+[2026-03-16 10:45:15] #12 8.906 + axios 1.13.6
+[2026-03-16 10:45:15] #12 8.906 + cors 2.8.6
+[2026-03-16 10:45:15] #12 8.906 + coze-coding-dev-sdk 0.7.17
+[2026-03-16 10:45:15] #12 8.906 + dayjs 1.11.20
+[2026-03-16 10:45:15] #12 8.906 + dotenv 17.3.1
+[2026-03-16 10:45:15] #12 8.906 + drizzle-orm 0.45.1
+[2026-03-16 10:45:15] #12 8.906 + drizzle-zod 0.8.3
+[2026-03-16 10:45:15] #12 8.906 + express 4.22.1 (5.2.1 is available)
+[2026-03-16 10:45:15] #12 8.906 + multer 2.1.1
+[2026-03-16 10:45:15] #12 8.906 + pg 8.20.0
+[2026-03-16 10:45:15] #12 8.906 + zod 4.3.6
+[2026-03-16 10:45:15] #12 8.906 
+[2026-03-16 10:45:15] #12 8.906 devDependencies:
+[2026-03-16 10:45:15] #12 8.906 + @types/cors 2.8.19
+[2026-03-16 10:45:15] #12 8.906 + @types/express 5.0.6
+[2026-03-16 10:45:15] #12 8.906 + @types/multer 2.1.0
+[2026-03-16 10:45:15] #12 8.906 + @types/pg 8.18.0
+[2026-03-16 10:45:15] #12 8.906 + drizzle-kit 0.31.9
+[2026-03-16 10:45:15] #12 8.906 + esbuild 0.27.2 (0.27.4 is available)
+[2026-03-16 10:45:15] #12 8.906 + tsx 4.21.0
+[2026-03-16 10:45:15] #12 8.906 + typescript 5.9.3
+[2026-03-16 10:45:15] #12 8.906 
+[2026-03-16 10:45:16] #12 8.937 Done in 8.7s using pnpm v10.32.1
+[2026-03-16 10:45:16] #12 9.316 
+[2026-03-16 10:45:16] #12 9.316 > server@ build /app
+[2026-03-16 10:45:16] #12 9.316 > node build.js
+[2026-03-16 10:45:16] #12 9.316 
+[2026-03-16 10:45:16] #12 9.383 ✘ [ERROR] Could not resolve "uuid"
+[2026-03-16 10:45:16] #12 9.383 
+[2026-03-16 10:45:16] #12 9.383     src/task-queue.ts:1:29:
+[2026-03-16 10:45:16] #12 9.383       1 │ import { v4 as uuidv4 } from 'uuid';
+[2026-03-16 10:45:16] #12 9.383         ╵                              ~~~~~~
+[2026-03-16 10:45:16] #12 9.383 
+[2026-03-16 10:45:16] #12 9.383   You can mark the path "uuid" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle.
+[2026-03-16 10:45:16] #12 9.383 
+[2026-03-16 10:45:16] #12 9.385 Error: Build failed with 1 error:
+[2026-03-16 10:45:16] #12 9.385 src/task-queue.ts:1:29: ERROR: Could not resolve "uuid"
+[2026-03-16 10:45:16] #12 9.385     at failureErrorWithLog (/app/node_modules/.pnpm/esbuild@0.27.2/node_modules/esbuild/lib/main.js:1467:15)
+[2026-03-16 10:45:16] #12 9.385     at /app/node_modules/.pnpm/esbuild@0.27.2/node_modules/esbuild/lib/main.js:926:25
+[2026-03-16 10:45:16] #12 9.385     at /app/node_modules/.pnpm/esbuild@0.27.2/node_modules/esbuild/lib/main.js:878:52
+[2026-03-16 10:45:16] #12 9.385     at buildResponseToResult (/app/node_modules/.pnpm/esbuild@0.27.2/node_modules/esbuild/lib/main.js:924:7)
+[2026-03-16 10:45:16] #12 9.385     at /app/node_modules/.pnpm/esbuild@0.27.2/node_modules/esbuild/lib/main.js:951:16
+[2026-03-16 10:45:16] #12 9.385     at responseCallbacks.<computed> (/app/node_modules/.pnpm/esbuild@0.27.2/node_modules/esbuild/lib/main.js:603:9)
+[2026-03-16 10:45:16] #12 9.385     at handleIncomingPacket (/app/node_modules/.pnpm/esbuild@0.27.2/node_modules/esbuild/lib/main.js:658:12)
+[2026-03-16 10:45:16] #12 9.385     at Socket.readFromStdout (/app/node_modules/.pnpm/esbuild@0.27.2/node_modules/esbuild/lib/main.js:581:7)
+[2026-03-16 10:45:16] #12 9.385     at Socket.emit (node:events:519:28)
+[2026-03-16 10:45:16] #12 9.385     at addChunk (node:internal/streams/readable:561:12) {
+[2026-03-16 10:45:16] #12 9.385   errors: [Getter/Setter],
+[2026-03-16 10:45:16] #12 9.385   warnings: [Getter/Setter]
+[2026-03-16 10:45:16] #12 9.385 }
+[2026-03-16 10:45:16] #12 9.402  ELIFECYCLE  Command failed with exit code 1.
+[2026-03-16 10:45:16] #12 ERROR: process "/bin/sh -c pnpm install --ignore-scripts && pnpm run build" did not complete successfully: exit code: 1
+[2026-03-16 10:45:16] ------
+[2026-03-16 10:45:16]  > [8/8] RUN pnpm install --ignore-scripts && pnpm run build:
+[2026-03-16 10:45:16] 9.385     at /app/node_modules/.pnpm/esbuild@0.27.2/node_modules/esbuild/lib/main.js:951:16
+[2026-03-16 10:45:16] 9.385     at responseCallbacks.<computed> (/app/node_modules/.pnpm/esbuild@0.27.2/node_modules/esbuild/lib/main.js:603:9)
+[2026-03-16 10:45:16] 9.385     at handleIncomingPacket (/app/node_modules/.pnpm/esbuild@0.27.2/node_modules/esbuild/lib/main.js:658:12)
+[2026-03-16 10:45:16] 9.385     at Socket.readFromStdout (/app/node_modules/.pnpm/esbuild@0.27.2/node_modules/esbuild/lib/main.js:581:7)
+[2026-03-16 10:45:16] 9.385     at Socket.emit (node:events:519:28)
+[2026-03-16 10:45:16] 9.385     at addChunk (node:internal/streams/readable:561:12) {
+[2026-03-16 10:45:16] 9.385   errors: [Getter/Setter],
+[2026-03-16 10:45:16] 9.385   warnings: [Getter/Setter]
+[2026-03-16 10:45:16] 9.385 }
+[2026-03-16 10:45:16] 9.402  ELIFECYCLE  Command failed with exit code 1.
+[2026-03-16 10:45:16] ------
+[2026-03-16 10:45:16] Dockerfile:16
+[2026-03-16 10:45:16] --------------------
+[2026-03-16 10:45:16]   14 |     
+[2026-03-16 10:45:16]   15 |     # 安装依赖并构建
+[2026-03-16 10:45:16]   16 | >>> RUN pnpm install --ignore-scripts && pnpm run build
+[2026-03-16 10:45:16]   17 |     
+[2026-03-16 10:45:16]   18 |     # 暴露端口
+[2026-03-16 10:45:16] --------------------
+[2026-03-16 10:45:16] ERROR: failed to solve: process "/bin/sh -c pnpm install --ignore-scripts && pnpm run build" did not complete successfully: exit code: 1
