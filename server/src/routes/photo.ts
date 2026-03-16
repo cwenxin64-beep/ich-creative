@@ -1,6 +1,7 @@
 import express, { type Request, type Response } from 'express';
 import multer from 'multer';
 import { LLMClient, Config, ImageGenerationClient, VideoGenerationClient, HeaderUtils } from 'coze-coding-dev-sdk';
+import { taskStore, type TaskStatus } from '../task-queue';
 
 const router = express.Router();
 
@@ -10,38 +11,30 @@ const upload = multer({
 });
 
 /**
- * POST /api/v1/photo/generate
- * Generate creative ICH (Intangible Cultural Heritage) products from image/video
- * Body parameters:
- *   - file: Image or video file (multipart/form-data)
- *   - description: Creative description (string)
- *   - outputType: Output type - 'static' | 'dynamic' | 'all' (default: 'all')
- * Response:
- *   - staticImageUrl: URL of generated static image (only if outputType is 'static' or 'all')
- *   - videoUrl: URL of generated video (10-15 seconds, only if outputType is 'dynamic' or 'all')
+ * 执行生成任务（后台执行）
  */
-router.post('/generate', upload.single('file'), async (req: Request, res: Response) => {
+async function executeGenerationTask(
+  taskId: string,
+  fileBuffer: Buffer,
+  mimetype: string,
+  originalname: string,
+  description: string,
+  outputType: string,
+  customHeaders: Record<string, string>
+) {
   try {
-    const file = req.file;
-    const description = req.body.description || '';
-    const outputType = req.body.outputType || 'all';
+    // 更新状态为处理中
+    taskStore.update(taskId, { status: 'processing', progress: 10 });
 
-    if (!file) {
-      return res.status(400).json({ error: 'No file provided' });
-    }
+    const config = new Config({ timeout: 180000 }); // 180 秒超时
 
-    console.log(`Photo generation request: ${file.originalname}, description: ${description}`);
+    // Step 1: 分析图片
+    console.log(`[${taskId}] Starting LLM analysis...`);
+    taskStore.update(taskId, { progress: 20 });
 
-    // Extract headers for SDK
-    const customHeaders = HeaderUtils.extractForwardHeaders(req.headers as Record<string, string>);
-    // 配置更长的超时时间（默认 60 秒可能不够）
-    const config = new Config({ timeout: 120000 }); // 120 秒超时
-
-    // Step 1: Analyze the uploaded image/video and extract ICH features using LLM
     const llmClient = new LLMClient(config, customHeaders);
-
-    const base64Data = file.buffer.toString('base64');
-    const dataUri = `data:${file.mimetype};base64,${base64Data}`;
+    const base64Data = fileBuffer.toString('base64');
+    const dataUri = `data:${mimetype};base64,${base64Data}`;
 
     const analysisPrompt = `你是一位非物质文化遗产创意设计专家。请根据用户上传的图片和需求，生成精准的设计方案。
 
@@ -79,10 +72,11 @@ ${description || '（用户未提供额外描述，请根据图片内容自动�
         role: 'user' as const,
         content: [
           { type: 'text' as const, text: analysisPrompt },
-          { type: file.mimetype.startsWith('video') ? 'video_url' as const : 'image_url' as const,
-            [file.mimetype.startsWith('video') ? 'video_url' : 'image_url']: {
+          {
+            type: mimetype.startsWith('video') ? 'video_url' as const : 'image_url' as const,
+            [mimetype.startsWith('video') ? 'video_url' : 'image_url']: {
               url: dataUri,
-              fps: file.mimetype.startsWith('video') ? 1 : undefined,
+              fps: mimetype.startsWith('video') ? 1 : undefined,
               detail: 'high',
             }
           },
@@ -95,151 +89,109 @@ ${description || '（用户未提供额外描述，请根据图片内容自动�
       temperature: 0.5,
     });
 
-    // 安全解析 JSON，处理 LLM 可能返回的 markdown 代码块
+    // 解析 JSON
     let analysisData;
     try {
       let content = analysisResponse.content.trim();
-      // 移除 markdown 代码块标记
       if (content.startsWith('```')) {
         content = content.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/,'').trim();
       }
       analysisData = JSON.parse(content);
     } catch (parseError) {
-      console.error('JSON parse error:', parseError);
-      console.error('LLM response:', analysisResponse.content);
-      return res.status(500).json({
-        error: 'AI 响应格式错误，请重试',
-        details: parseError instanceof Error ? parseError.message : 'Unknown parse error'
-      });
+      throw new Error('AI 响应格式错误，请重试');
     }
-    console.log('ICH Analysis:', JSON.stringify(analysisData, null, 2));
 
+    console.log(`[${taskId}] LLM analysis completed`);
+    taskStore.update(taskId, { progress: 40 });
+
+    // Step 2: 生成图片
     let staticMainImageUrl: string | undefined;
     let staticSubImageUrl1: string | undefined;
     let staticSubImageUrl2: string | undefined;
-    let videoUrl: string | undefined;
 
-    // Step 2: Generate static images if requested
     const needsStaticImage = outputType === 'all' || outputType === 'static' || outputType === 'dynamic';
     if (needsStaticImage) {
+      console.log(`[${taskId}] Starting image generation...`);
       const imageClient = new ImageGenerationClient(config, customHeaders);
 
-      if (outputType === 'static') {
-        // 快速模式：只生成 1 张主图，避免超时
-        console.log('Quick mode: generating single main image...');
-        const mainResponse = await imageClient.generate({
-          prompt: analysisData.mainPrompt,
-          size: '1K',  // 使用更小尺寸加速生成
-          watermark: false,
-        });
-        const mainHelper = imageClient.getResponseHelper(mainResponse);
-        if (mainHelper.success && mainHelper.imageUrls.length > 0) {
-          staticMainImageUrl = mainHelper.imageUrls[0];
-        }
-      } else {
-        // 完整模式：生成 3 张图片（可能超时，但用户选择了 all/dynamic）
-        console.log('Full mode: generating 3 images...');
-        const [mainResponse, sub1Response, sub2Response] = await Promise.all([
-          imageClient.generate({
-            prompt: analysisData.mainPrompt,
-            size: '1K',  // 使用更小尺寸加速生成
-            watermark: false,
-          }),
-          imageClient.generate({
-            prompt: analysisData.subPrompt1,
-            size: '1K',
-            watermark: false,
-          }),
-          imageClient.generate({
-            prompt: analysisData.subPrompt2,
-            size: '1K',
-            watermark: false,
-          }),
-        ]);
-
-        const mainHelper = imageClient.getResponseHelper(mainResponse);
-        const sub1Helper = imageClient.getResponseHelper(sub1Response);
-        const sub2Helper = imageClient.getResponseHelper(sub2Response);
-
-        if (!mainHelper.success || mainHelper.imageUrls.length === 0) {
-          throw new Error('Main image generation failed');
-        }
-
-        staticMainImageUrl = mainHelper.imageUrls[0];
-        staticSubImageUrl1 = sub1Helper.success && sub1Helper.imageUrls.length > 0
-          ? sub1Helper.imageUrls[0]
-          : staticMainImageUrl;
-        staticSubImageUrl2 = sub2Helper.success && sub2Helper.imageUrls.length > 0
-          ? sub2Helper.imageUrls[0]
-          : staticMainImageUrl;
-      }
-    }
-
-    // Step 3: Generate dynamic video (10-15 seconds) if requested
-    if (outputType === 'all' || outputType === 'dynamic') {
-      if (!staticMainImageUrl) {
-        throw new Error('Static image is required for video generation');
-      }
-
-      const videoClient = new VideoGenerationClient(config, customHeaders);
-
-      const videoContent: any[] = [
-        {
-          type: 'text' as const,
-          text: `Create a 10-15 second promotional video showcasing this ICH creative product.
-          Focus on: ${analysisData.ichElements.join(', ')}.
-          Emotional tone: ${analysisData.emotionalTone}.
-          Cinematic camera movements, smooth transitions, modern yet traditional aesthetic.`,
-        },
-      ];
-
-      // Optionally include the generated image as first frame
-      if (staticMainImageUrl) {
-        videoContent.unshift({
-          type: 'image_url' as const,
-          image_url: {
-            url: staticMainImageUrl,
-          },
-          role: 'first_frame' as const,
-        });
-      }
-
-      const videoResponse = await videoClient.videoGeneration(videoContent, {
-        model: 'doubao-seedance-1-5-pro-251215',
-        duration: -1, // Smart selection (4-12 seconds)
-        resolution: '720p',
-        ratio: '9:16', // Mobile-first vertical video
-        generateAudio: true,
+      // 只生成 1 张主图
+      const mainResponse = await imageClient.generate({
+        prompt: analysisData.mainPrompt,
+        size: '1K',
+        watermark: false,
       });
-
-      if (!videoResponse.videoUrl) {
-        throw new Error('Video generation failed');
+      const mainHelper = imageClient.getResponseHelper(mainResponse);
+      if (mainHelper.success && mainHelper.imageUrls.length > 0) {
+        staticMainImageUrl = mainHelper.imageUrls[0];
       }
 
-      videoUrl = videoResponse.videoUrl;
+      console.log(`[${taskId}] Image generation completed`);
+      taskStore.update(taskId, { progress: 80 });
     }
 
-    console.log('Photo generation completed successfully');
-
-    const responseData: any = {
+    // Step 3: 完成任务
+    const result: any = {
       success: true,
       analysis: analysisData,
+      staticMainImageUrl,
     };
 
-    if (staticMainImageUrl && (outputType === 'all' || outputType === 'static')) {
-      responseData.staticMainImageUrl = staticMainImageUrl;
-      responseData.staticSubImageUrl1 = staticSubImageUrl1;
-      responseData.staticSubImageUrl2 = staticSubImageUrl2;
+    taskStore.update(taskId, {
+      status: 'completed',
+      progress: 100,
+      result,
+    });
+
+    console.log(`[${taskId}] Task completed successfully`);
+  } catch (error) {
+    console.error(`[${taskId}] Task failed:`, error);
+    taskStore.update(taskId, {
+      status: 'failed',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+}
+
+/**
+ * POST /api/v1/photo/generate
+ * 异步生成：立即返回任务 ID，后台执行生成
+ */
+router.post('/generate', upload.single('file'), async (req: Request, res: Response) => {
+  try {
+    const file = req.file;
+    const description = req.body.description || '';
+    const outputType = req.body.outputType || 'static';
+
+    if (!file) {
+      return res.status(400).json({ error: 'No file provided' });
     }
 
-    if (videoUrl && (outputType === 'all' || outputType === 'dynamic')) {
-      responseData.videoUrl = videoUrl;
-      responseData.videoMainImageUrl = staticMainImageUrl;
-      responseData.videoSubImageUrl1 = staticSubImageUrl1;
-      responseData.videoSubImageUrl2 = staticSubImageUrl2;
-    }
+    // 创建任务
+    const task = taskStore.create();
+    console.log(`Created task ${task.id} for photo generation`);
 
-    res.json(responseData);
+    // 提取 headers
+    const customHeaders = HeaderUtils.extractForwardHeaders(req.headers as Record<string, string>);
+
+    // 后台执行生成任务
+    executeGenerationTask(
+      task.id,
+      file.buffer,
+      file.mimetype,
+      file.originalname,
+      description,
+      outputType,
+      customHeaders
+    ).catch(err => {
+      console.error(`Task ${task.id} execution error:`, err);
+    });
+
+    // 立即返回任务 ID
+    res.json({
+      taskId: task.id,
+      status: 'pending',
+      message: '任务已创建，请轮询查询状态',
+    });
   } catch (error) {
     console.error('Photo generation error:', error);
     res.status(500).json({
@@ -247,6 +199,27 @@ ${description || '（用户未提供额外描述，请根据图片内容自动�
       message: error instanceof Error ? error.message : 'Unknown error'
     });
   }
+});
+
+/**
+ * GET /api/v1/photo/status/:taskId
+ * 查询任务状态
+ */
+router.get('/status/:taskId', (req: Request, res: Response) => {
+  const { taskId } = req.params;
+  const task = taskStore.get(taskId);
+
+  if (!task) {
+    return res.status(404).json({ error: 'Task not found' });
+  }
+
+  res.json({
+    taskId: task.id,
+    status: task.status,
+    progress: task.progress,
+    result: task.result,
+    error: task.error,
+  });
 });
 
 export default router;

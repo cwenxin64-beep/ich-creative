@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { View, TouchableOpacity, ScrollView, Alert, TextInput, Platform, Image } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
@@ -15,6 +15,10 @@ import { FontAwesome6 } from '@expo/vector-icons';
 import { createStyles } from './styles';
 
 type OutputType = 'static' | 'dynamic';
+
+// 轮询配置
+const POLL_INTERVAL = 2000; // 2 秒轮询一次
+const MAX_POLL_ATTEMPTS = 120; // 最多轮询 120 次（4 分钟）
 
 export default function PhotoScreen() {
   const { theme, isDark } = useTheme();
@@ -220,6 +224,7 @@ export default function PhotoScreen() {
     }
 
     setLoading(true);
+    setResult(null);
 
     try {
       const fileName = selectedMedia.type === 'video' ? 'video.mp4' : 'image.jpg';
@@ -231,11 +236,7 @@ export default function PhotoScreen() {
       formData.append('description', description);
       formData.append('outputType', outputType);
 
-      /**
-       * 服务端文件：server/src/routes/photo.ts
-       * 接口：POST /api/v1/photo/generate
-       * Body 参数：file: File, description: string, outputType: 'static' | 'dynamic' | 'all'
-       */
+      // Step 1: 发起异步生成请求
       const response = await fetch(buildApiUrl('/api/v1/photo/generate'), {
         method: 'POST',
         body: formData,
@@ -243,16 +244,63 @@ export default function PhotoScreen() {
 
       const data = await response.json();
 
-      if (data.success) {
-        setResult(data);
-      } else {
-        Alert.alert('生成失败', data.message || '请重试');
+      if (!data.taskId) {
+        Alert.alert('生成失败', data.message || data.error || '请重试');
+        setLoading(false);
+        return;
       }
+
+      const taskId = data.taskId;
+      console.log('Task created:', taskId);
+
+      // Step 2: 轮询查询任务状态
+      let attempts = 0;
+      const pollStatus = async (): Promise<void> => {
+        try {
+          const statusResponse = await fetch(buildApiUrl(`/api/v1/photo/status/${taskId}`));
+          const statusData = await statusResponse.json();
+
+          console.log('Task status:', statusData.status, 'progress:', statusData.progress);
+
+          if (statusData.status === 'completed') {
+            // 任务完成
+            setLoading(false);
+            if (statusData.result) {
+              setResult(statusData.result);
+            } else {
+              Alert.alert('生成失败', '结果为空');
+            }
+          } else if (statusData.status === 'failed') {
+            // 任务失败
+            setLoading(false);
+            Alert.alert('生成失败', statusData.error || '请重试');
+          } else if (attempts < MAX_POLL_ATTEMPTS) {
+            // 继续轮询
+            attempts++;
+            setTimeout(pollStatus, POLL_INTERVAL);
+          } else {
+            // 超过最大轮询次数
+            setLoading(false);
+            Alert.alert('超时', '生成时间过长，请稍后重试');
+          }
+        } catch (error) {
+          console.error('Poll error:', error);
+          if (attempts < MAX_POLL_ATTEMPTS) {
+            attempts++;
+            setTimeout(pollStatus, POLL_INTERVAL);
+          } else {
+            setLoading(false);
+            Alert.alert('错误', '查询状态失败');
+          }
+        }
+      };
+
+      // 开始轮询
+      setTimeout(pollStatus, POLL_INTERVAL);
     } catch (error) {
       console.error('Generation error:', error);
-      Alert.alert('错误', '生成失败，请检查网络连接');
-    } finally {
       setLoading(false);
+      Alert.alert('错误', '生成失败，请检查网络连接');
     }
   };
 
