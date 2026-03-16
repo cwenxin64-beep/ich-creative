@@ -28,7 +28,7 @@ router.post('/generate', async (req: Request, res: Response) => {
 
     // Extract headers for SDK
     const customHeaders = HeaderUtils.extractForwardHeaders(req.headers as Record<string, string>);
-    const config = new Config();
+    const config = new Config({ timeout: 120000 });
 
     // Step 1: Analyze text and generate creative prompts using LLM
     const llmClient = new LLMClient(config, customHeaders);

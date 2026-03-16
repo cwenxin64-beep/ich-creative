@@ -34,7 +34,8 @@ router.post('/generate', upload.single('file'), async (req: Request, res: Respon
 
     // Extract headers for SDK
     const customHeaders = HeaderUtils.extractForwardHeaders(req.headers as Record<string, string>);
-    const config = new Config();
+    // 配置更长的超时时间（默认 60 秒可能不够）
+    const config = new Config({ timeout: 120000 }); // 120 秒超时
 
     // Step 1: Analyze the uploaded image/video and extract ICH features using LLM
     const llmClient = new LLMClient(config, customHeaders);

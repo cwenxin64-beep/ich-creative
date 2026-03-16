@@ -33,7 +33,7 @@ router.post('/generate', upload.single('file'), async (req: Request, res: Respon
 
     // Extract headers for SDK
     const customHeaders = HeaderUtils.extractForwardHeaders(req.headers as Record<string, string>);
-    const config = new Config();
+    const config = new Config({ timeout: 120000 });
 
     // Step 1: Transcribe audio using ASR
     const asrClient = new ASRClient(config, customHeaders);
