@@ -1,7 +1,7 @@
 import express, { type Request, type Response } from 'express';
 import multer from 'multer';
 import { taskStore } from '../task-queue';
-import { LLMClient, Config, HeaderUtils } from 'coze-coding-dev-sdk';
+import { LLMClient, Config, ImageGenerationClient, HeaderUtils } from 'coze-coding-dev-sdk';
 
 const router = express.Router();
 
@@ -60,15 +60,35 @@ async function executeGenerationTask(
     const base64Data = fileBuffer.toString('base64');
     const dataUri = `data:${mimetype};base64,${base64Data}`;
 
-    const analysisPrompt = `你是非遗创意设计专家。根据图片生成设计方案。
+    const analysisPrompt = `你是一位非物质文化遗产创意设计专家。请根据图片内容，生成精准的设计方案。
 
-用户需求：${description || '根据图片内容自动创作'}
+## 用户需求
+"${description || '根据图片内容自动创作'}"
 
-输出JSON格式：
+## 任务要求
+1. **识别图片中的元素**：分析图片中的颜色、形状、风格、文化元素
+2. **提取非遗元素**：识别与非物质文化遗产相关的元素
+3. **生成创意描述**：用20个汉字概括，包含：关键词+寓意+效果
+4. **生成图像生成Prompt**：用于AI生图，必须具体、详细、可执行
+
+## 生图Prompt要求（非常重要！）
+- 三个Prompt必须是**同一个产品**的**三个不同角度**
+- 必须保持：相同的产品外观、相同的风格、相同的配色、相同的材质
+- 区别仅在于拍摄角度：
+  - mainPrompt：正面全景图，展示完整产品
+  - subPrompt1：细节特写图，聚焦核心工艺细节
+  - subPrompt2：侧面/俯视图，展示立体结构
+
+## 输出格式（JSON）
 {
   "creativeDescription": "20字创意描述",
-  "mainPrompt": "产品正面全景，高清产品摄影"
-}`;
+  "ichElements": ["非遗元素1", "非遗元素2"],
+  "mainPrompt": "产品正面全景，[产品类型]，[非遗元素描述]，[色彩]，[材质]，[场景]，[光线]，高清产品摄影",
+  "subPrompt1": "同一产品细节特写，[聚焦部位]，[工艺细节]，[纹理质感]，微距摄影",
+  "subPrompt2": "同一产品侧面视角，[立体结构]，[整体轮廓]，[空间关系]，产品展示图"
+}
+
+请严格按照以上要求输出JSON：`;
 
     // 使用 Vision 模型分析图片
     const messages = [
@@ -105,30 +125,73 @@ async function executeGenerationTask(
     } catch {
       analysisData = { 
         creativeDescription: description || '非遗创意',
-        mainPrompt: `非遗风格${description || '创意产品'}，传统工艺，高清产品摄影` 
+        ichElements: ['传统工艺'],
+        mainPrompt: `非遗风格${description || '创意产品'}，传统工艺，高清产品摄影`,
+        subPrompt1: `同一产品细节特写，工艺细节，纹理质感`,
+        subPrompt2: `同一产品侧面视角，立体结构`,
       };
     }
 
     console.log(`[${taskId}] Analysis:`, analysisData);
     taskStore.update(taskId, { progress: 50 });
 
-    // Step 2: 生成图片 - 使用 LLM 生成图片描述，然后返回 prompt
-    console.log(`[${taskId}] Generating image prompt...`);
+    // Step 2: 生成图片
+    console.log(`[${taskId}] Generating images...`);
     
-    // 由于 SDK 暂不支持图片生成，我们返回生成的 prompt
-    // 前端可以使用其他方式生成图片
-    const imagePrompt = analysisData.mainPrompt;
+    const imageClient = new ImageGenerationClient(config, customHeaders);
     
-    console.log(`[${taskId}] Image Prompt:`, imagePrompt);
+    const [mainResponse, sub1Response, sub2Response] = await Promise.all([
+      withRetry(
+        () => imageClient.generate({
+          prompt: analysisData.mainPrompt,
+          size: '2K',
+          watermark: false,
+        }),
+        3, 3000, `[${taskId}] Main Image`
+      ),
+      withRetry(
+        () => imageClient.generate({
+          prompt: analysisData.subPrompt1,
+          size: '2K',
+          watermark: false,
+        }),
+        3, 3000, `[${taskId}] Sub Image 1`
+      ),
+      withRetry(
+        () => imageClient.generate({
+          prompt: analysisData.subPrompt2,
+          size: '2K',
+          watermark: false,
+        }),
+        3, 3000, `[${taskId}] Sub Image 2`
+      ),
+    ]);
+
+    const mainHelper = imageClient.getResponseHelper(mainResponse);
+    const sub1Helper = imageClient.getResponseHelper(sub1Response);
+    const sub2Helper = imageClient.getResponseHelper(sub2Response);
+
+    const mainImageUrl = mainHelper.success && mainHelper.imageUrls.length > 0
+      ? mainHelper.imageUrls[0]
+      : '';
+    const subImageUrl1 = sub1Helper.success && sub1Helper.imageUrls.length > 0
+      ? sub1Helper.imageUrls[0]
+      : mainImageUrl;
+    const subImageUrl2 = sub2Helper.success && sub2Helper.imageUrls.length > 0
+      ? sub2Helper.imageUrls[0]
+      : mainImageUrl;
+
+    console.log(`[${taskId}] Images generated:`, { mainImageUrl, subImageUrl1, subImageUrl2 });
     taskStore.update(taskId, { progress: 90 });
 
-    // Step 3: 完成 - 返回生成的 prompt，前端可以调用图片生成 API
+    // Step 3: 完成
     const result = {
       success: true,
       analysis: analysisData,
-      imagePrompt: imagePrompt,
-      // 使用占位图或让前端调用图片生成
-      staticMainImageUrl: `https://placehold.co/1024x1024?text=${encodeURIComponent('非遗创意产品')}`,
+      mainImageUrl,
+      subImageUrl1,
+      subImageUrl2,
+      staticMainImageUrl: mainImageUrl,
     };
 
     taskStore.update(taskId, {
