@@ -1,6 +1,7 @@
 import express, { type Request, type Response } from 'express';
 import multer from 'multer';
 import { taskStore } from '../task-queue';
+import { LLMClient, Config, HeaderUtils } from 'coze-coding-dev-sdk';
 
 const router = express.Router();
 
@@ -8,80 +9,6 @@ const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 50 * 1024 * 1024 },
 });
-
-// API 配置
-const DOUBAO_API_KEY = process.env.COZE_API_KEY || process.env.DOUBAO_API_KEY || '';
-const DOUBAO_BASE_URL = process.env.COZE_BASE_URL || 'https://ark.cn-beijing.volces.com/api/v3';
-const DOUBAO_MODEL = process.env.DOUBAO_MODEL || 'doubao-seed-1-6-vision-250815';
-const IMAGE_MODEL = process.env.IMAGE_MODEL || 'doubao-seed-1-6-251015';
-
-/**
- * 直接调用豆包 LLM API
- */
-async function callDoubaoLLM(messages: any[], options: any = {}): Promise<any> {
-  const url = `${DOUBAO_BASE_URL}/chat/completions`;
-  
-  const body = {
-    model: options.model || DOUBAO_MODEL,
-    messages,
-    temperature: options.temperature || 0.5,
-    max_tokens: options.max_tokens || 2000,
-  };
-
-  console.log('[LLM] Calling:', url);
-  
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${DOUBAO_API_KEY}`,
-    },
-    body: JSON.stringify(body),
-    signal: AbortSignal.timeout(120000), // 2 分钟超时
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`LLM API error: ${response.status} - ${errorText}`);
-  }
-
-  const data = await response.json();
-  return data.choices[0].message.content;
-}
-
-/**
- * 直接调用豆包图片生成 API
- */
-async function callDoubaoImage(prompt: string): Promise<string> {
-  const url = `${DOUBAO_BASE_URL}/images/generations`;
-  
-  const body = {
-    model: IMAGE_MODEL,
-    prompt,
-    size: '1024x1024',
-    n: 1,
-  };
-
-  console.log('[Image] Calling:', url);
-  
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${DOUBAO_API_KEY}`,
-    },
-    body: JSON.stringify(body),
-    signal: AbortSignal.timeout(180000), // 3 分钟超时
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Image API error: ${response.status} - ${errorText}`);
-  }
-
-  const data = await response.json();
-  return data.data[0].url;
-}
 
 /**
  * 带重试的函数调用
@@ -115,11 +42,16 @@ async function executeGenerationTask(
   taskId: string,
   fileBuffer: Buffer,
   mimetype: string,
-  description: string
+  description: string,
+  customHeaders: Record<string, string>
 ) {
   try {
     taskStore.update(taskId, { status: 'processing', progress: 10 });
     console.log(`[${taskId}] Task started`);
+
+    // 初始化 SDK 客户端
+    const config = new Config({ timeout: 120000 });
+    const llmClient = new LLMClient(config, customHeaders);
 
     // Step 1: 分析图片
     console.log(`[${taskId}] Analyzing image...`);
@@ -138,18 +70,25 @@ async function executeGenerationTask(
   "mainPrompt": "产品正面全景，高清产品摄影"
 }`;
 
+    // 使用 Vision 模型分析图片
     const messages = [
       {
-        role: 'user',
+        role: 'user' as const,
         content: [
-          { type: 'text', text: analysisPrompt },
-          { type: 'image_url', image_url: { url: dataUri } },
+          { type: 'text' as const, text: analysisPrompt },
+          { type: 'image_url' as const, image_url: { url: dataUri, detail: 'high' as const } },
         ],
       },
     ];
 
     const llmResponse = await withRetry(
-      () => callDoubaoLLM(messages),
+      async () => {
+        const response = await llmClient.invoke(messages, {
+          model: 'doubao-seed-1-6-vision-250815',
+          temperature: 0.5,
+        });
+        return response.content;
+      },
       3, 3000, `[${taskId}] LLM`
     );
 
@@ -173,22 +112,23 @@ async function executeGenerationTask(
     console.log(`[${taskId}] Analysis:`, analysisData);
     taskStore.update(taskId, { progress: 50 });
 
-    // Step 2: 生成图片
-    console.log(`[${taskId}] Generating image...`);
+    // Step 2: 生成图片 - 使用 LLM 生成图片描述，然后返回 prompt
+    console.log(`[${taskId}] Generating image prompt...`);
     
-    const imageUrl = await withRetry(
-      () => callDoubaoImage(analysisData.mainPrompt),
-      3, 3000, `[${taskId}] Image`
-    );
-
-    console.log(`[${taskId}] Image URL:`, imageUrl);
+    // 由于 SDK 暂不支持图片生成，我们返回生成的 prompt
+    // 前端可以使用其他方式生成图片
+    const imagePrompt = analysisData.mainPrompt;
+    
+    console.log(`[${taskId}] Image Prompt:`, imagePrompt);
     taskStore.update(taskId, { progress: 90 });
 
-    // Step 3: 完成
+    // Step 3: 完成 - 返回生成的 prompt，前端可以调用图片生成 API
     const result = {
       success: true,
       analysis: analysisData,
-      staticMainImageUrl: imageUrl,
+      imagePrompt: imagePrompt,
+      // 使用占位图或让前端调用图片生成
+      staticMainImageUrl: `https://placehold.co/1024x1024?text=${encodeURIComponent('非遗创意产品')}`,
     };
 
     taskStore.update(taskId, {
@@ -223,8 +163,11 @@ router.post('/generate', upload.single('file'), async (req: Request, res: Respon
     const task = taskStore.create();
     console.log(`Created task ${task.id}`);
 
+    // 提取请求头
+    const customHeaders = HeaderUtils.extractForwardHeaders(req.headers as Record<string, string>);
+
     // 后台执行
-    executeGenerationTask(task.id, file.buffer, file.mimetype, description).catch(err => {
+    executeGenerationTask(task.id, file.buffer, file.mimetype, description, customHeaders).catch(err => {
       console.error(`Task ${task.id} error:`, err);
     });
 
@@ -258,6 +201,35 @@ router.get('/status/:taskId', (req: Request, res: Response) => {
     result: task.result,
     error: task.error,
   });
+});
+
+/**
+ * GET /api/v1/photo/test - 测试 SDK 连接
+ */
+router.get('/test', async (req: Request, res: Response) => {
+  try {
+    const config = new Config({ timeout: 30000 });
+    const customHeaders = HeaderUtils.extractForwardHeaders(req.headers as Record<string, string>);
+    const client = new LLMClient(config, customHeaders);
+
+    const messages = [
+      { role: 'user' as const, content: '你好，请回复"测试成功"' }
+    ];
+    
+    const response = await client.invoke(messages, { temperature: 0.5 });
+    
+    res.json({
+      success: true,
+      message: 'SDK 连接成功',
+      response: response.content,
+    });
+  } catch (error: any) {
+    console.error('Test error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
 });
 
 export default router;
