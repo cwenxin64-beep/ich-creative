@@ -60,11 +60,10 @@ async function callVolcengineImage(prompt: string): Promise<string> {
   const body = {
     model: IMAGE_MODEL,
     prompt,
-    size: '1024x1024',
-    n: 1,
   };
 
-  console.log('[Image] Calling:', url);
+  console.log('[Image] Calling:', url, 'Model:', IMAGE_MODEL);
+  console.log('[Image] Request:', JSON.stringify(body).substring(0, 500));
 
   const response = await fetch(url, {
     method: 'POST',
@@ -78,11 +77,13 @@ async function callVolcengineImage(prompt: string): Promise<string> {
 
   if (!response.ok) {
     const errorText = await response.text();
+    console.error('[Image] Error Response:', errorText);
     throw new Error(`Image API error: ${response.status} - ${errorText}`);
   }
 
   const data = await response.json();
-  return data.data[0].url || data.data[0].b64_json;
+  console.log('[Image] Response keys:', Object.keys(data));
+  return data.data?.[0]?.url || data.data?.[0]?.b64_json || data.images?.[0]?.url || data.images?.[0]?.image_url;
 }
 
 /**
