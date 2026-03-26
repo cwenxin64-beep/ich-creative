@@ -83,42 +83,64 @@ async function callVolcengineImage(prompt: string): Promise<string> {
  * 直接调用火山引擎视频生成 API
  */
 async function callVolcengineVideo(prompt: string): Promise<string> {
-  const url = `${VOLCENGINE_BASE_URL}/videos/generations`;
+  // 尝试两种可能的 API 路径
+  const possibleUrls = [
+    `${VOLCENGINE_BASE_URL}/videos/generations`,
+    `${VOLCENGINE_BASE_URL}/contents/generations`,
+  ];
   
   const body = {
     model: VIDEO_MODEL,
     prompt,
   };
 
-  console.log('[Video] Calling:', url, 'Model:', VIDEO_MODEL);
+  console.log('[Video] Model:', VIDEO_MODEL);
   console.log('[Video] Request:', JSON.stringify(body).substring(0, 300));
 
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${VOLCENGINE_API_KEY}`,
-    },
-    body: JSON.stringify(body),
-    signal: AbortSignal.timeout(300000), // 5 分钟超时，视频生成较慢
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error('[Video] Error Response:', errorText);
-    throw new Error(`Video API error: ${response.status} - ${errorText}`);
-  }
-
-  const data = await response.json();
-  console.log('[Video] Response keys:', Object.keys(data));
+  let lastError: Error | null = null;
   
-  // 尝试多种可能的响应格式
-  return data.data?.[0]?.url || 
-         data.data?.[0]?.video_url || 
-         data.videos?.[0]?.url || 
-         data.videos?.[0]?.video_url ||
-         data.url ||
-         data.video_url;
+  for (const url of possibleUrls) {
+    try {
+      console.log('[Video] Trying:', url);
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${VOLCENGINE_API_KEY}`,
+        },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(300000), // 5 分钟超时
+      });
+
+      console.log('[Video] Response status:', response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[Video] Error Response:', errorText);
+        lastError = new Error(`Video API error: ${response.status} - ${errorText}`);
+        continue; // 尝试下一个 URL
+      }
+
+      const data = await response.json();
+      console.log('[Video] Response keys:', Object.keys(data));
+      console.log('[Video] Full response:', JSON.stringify(data).substring(0, 500));
+      
+      // 尝试多种可能的响应格式
+      return data.data?.[0]?.url || 
+             data.data?.[0]?.video_url || 
+             data.videos?.[0]?.url || 
+             data.videos?.[0]?.video_url ||
+             data.url ||
+             data.video_url ||
+             data.task_id; // 可能是异步任务，返回 task_id
+    } catch (error: any) {
+      console.error('[Video] Error:', error.message);
+      lastError = error;
+    }
+  }
+  
+  throw lastError || new Error('Video generation failed');
 }
 
 /**
