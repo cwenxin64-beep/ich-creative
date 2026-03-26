@@ -12,9 +12,9 @@ const upload = multer({
 const VOLCENGINE_API_KEY = process.env.COZE_API_KEY || process.env.VOLCENGINE_API_KEY || '';
 const VOLCENGINE_BASE_URL = process.env.VOLCENGINE_BASE_URL || 'https://ark.cn-beijing.volces.com/api/v3';
 
-// 模型 ID 配置（可通过环境变量覆盖）
-const TEXT_MODEL = process.env.VOLCENGINE_TEXT_MODEL || 'Doubao-Seed-2.0-pro';
-const IMAGE_MODEL = process.env.VOLCENGINE_IMAGE_MODEL || 'Doubao-Seedream-5.0-lite';
+// 模型 ID 配置（使用推理接入点 ID）
+const TEXT_MODEL = process.env.VOLCENGINE_TEXT_MODEL || 'ep-20260326185613-8d6lx';
+const IMAGE_MODEL = process.env.VOLCENGINE_IMAGE_MODEL || 'ep-20260326185459-8rt74';
 
 /**
  * 直接调用火山引擎 LLM API
