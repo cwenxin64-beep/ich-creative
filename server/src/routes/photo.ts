@@ -13,10 +13,14 @@ const upload = multer({
 const VOLCENGINE_API_KEY = process.env.COZE_API_KEY || process.env.VOLCENGINE_API_KEY || '';
 const VOLCENGINE_BASE_URL = process.env.VOLCENGINE_BASE_URL || 'https://ark.cn-beijing.volces.com/api/v3';
 
+// 模型 ID 配置（可通过环境变量覆盖）
+const VISION_MODEL = process.env.VOLCENGINE_VISION_MODEL || 'doubao-seed-1-6-vision-250815';
+const IMAGE_MODEL = process.env.VOLCENGINE_IMAGE_MODEL || 'doubao-seed-1-6-251015';
+
 /**
  * 直接调用火山引擎 LLM API
  */
-async function callVolcengineLLM(messages: any[], model: string = 'doubao-seed-1-6-vision-250815'): Promise<string> {
+async function callVolcengineLLM(messages: any[], model: string = VISION_MODEL): Promise<string> {
   const url = `${VOLCENGINE_BASE_URL}/chat/completions`;
   
   const body = {
@@ -54,7 +58,7 @@ async function callVolcengineImage(prompt: string): Promise<string> {
   const url = `${VOLCENGINE_BASE_URL}/images/generations`;
   
   const body = {
-    model: 'doubao-seed-1-6-251015',
+    model: IMAGE_MODEL,
     prompt,
     size: '1024x1024',
     n: 1,
@@ -168,7 +172,7 @@ async function executeGenerationTask(
     ];
 
     const llmResponse = await withRetry(
-      () => callVolcengineLLM(messages, 'doubao-seed-1-6-vision-250815'),
+      () => callVolcengineLLM(messages, VISION_MODEL),
       3, 3000, `[${taskId}] LLM`
     );
 
