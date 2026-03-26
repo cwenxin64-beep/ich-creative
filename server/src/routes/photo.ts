@@ -1,7 +1,6 @@
 import express, { type Request, type Response } from 'express';
 import multer from 'multer';
 import { taskStore } from '../task-queue';
-import { LLMClient, Config, ImageGenerationClient, HeaderUtils } from 'coze-coding-dev-sdk';
 
 const router = express.Router();
 
@@ -9,6 +8,78 @@ const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 50 * 1024 * 1024 },
 });
+
+// 火山引擎 API 配置
+const VOLCENGINE_API_KEY = process.env.COZE_API_KEY || process.env.VOLCENGINE_API_KEY || '';
+const VOLCENGINE_BASE_URL = process.env.VOLCENGINE_BASE_URL || 'https://ark.cn-beijing.volces.com/api/v3';
+
+/**
+ * 直接调用火山引擎 LLM API
+ */
+async function callVolcengineLLM(messages: any[], model: string = 'doubao-seed-1-6-vision-250815'): Promise<string> {
+  const url = `${VOLCENGINE_BASE_URL}/chat/completions`;
+  
+  const body = {
+    model,
+    messages,
+    temperature: 0.5,
+    max_tokens: 2000,
+  };
+
+  console.log('[LLM] Calling:', url, 'Model:', model);
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${VOLCENGINE_API_KEY}`,
+    },
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(120000), // 2 分钟超时
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`LLM API error: ${response.status} - ${errorText}`);
+  }
+
+  const data = await response.json();
+  return data.choices[0].message.content;
+}
+
+/**
+ * 直接调用火山引擎图片生成 API
+ */
+async function callVolcengineImage(prompt: string): Promise<string> {
+  const url = `${VOLCENGINE_BASE_URL}/images/generations`;
+  
+  const body = {
+    model: 'doubao-seed-1-6-251015',
+    prompt,
+    size: '1024x1024',
+    n: 1,
+  };
+
+  console.log('[Image] Calling:', url);
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${VOLCENGINE_API_KEY}`,
+    },
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(180000), // 3 分钟超时
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Image API error: ${response.status} - ${errorText}`);
+  }
+
+  const data = await response.json();
+  return data.data[0].url || data.data[0].b64_json;
+}
 
 /**
  * 带重试的函数调用
@@ -42,16 +113,11 @@ async function executeGenerationTask(
   taskId: string,
   fileBuffer: Buffer,
   mimetype: string,
-  description: string,
-  customHeaders: Record<string, string>
+  description: string
 ) {
   try {
     taskStore.update(taskId, { status: 'processing', progress: 10 });
     console.log(`[${taskId}] Task started`);
-
-    // 初始化 SDK 客户端
-    const config = new Config({ timeout: 120000 });
-    const llmClient = new LLMClient(config, customHeaders);
 
     // Step 1: 分析图片
     console.log(`[${taskId}] Analyzing image...`);
@@ -93,22 +159,16 @@ async function executeGenerationTask(
     // 使用 Vision 模型分析图片
     const messages = [
       {
-        role: 'user' as const,
+        role: 'user',
         content: [
-          { type: 'text' as const, text: analysisPrompt },
-          { type: 'image_url' as const, image_url: { url: dataUri, detail: 'high' as const } },
+          { type: 'text', text: analysisPrompt },
+          { type: 'image_url', image_url: { url: dataUri } },
         ],
       },
     ];
 
     const llmResponse = await withRetry(
-      async () => {
-        const response = await llmClient.invoke(messages, {
-          model: 'doubao-seed-1-6-vision-250815',
-          temperature: 0.5,
-        });
-        return response.content;
-      },
+      () => callVolcengineLLM(messages, 'doubao-seed-1-6-vision-250815'),
       3, 3000, `[${taskId}] LLM`
     );
 
@@ -138,50 +198,22 @@ async function executeGenerationTask(
     // Step 2: 生成图片
     console.log(`[${taskId}] Generating images...`);
     
-    const imageClient = new ImageGenerationClient(config, customHeaders);
-    
-    const [mainResponse, sub1Response, sub2Response] = await Promise.all([
+    const [mainImageUrl, subImageUrl1, subImageUrl2] = await Promise.all([
       withRetry(
-        () => imageClient.generate({
-          prompt: analysisData.mainPrompt,
-          size: '2K',
-          watermark: false,
-        }),
+        () => callVolcengineImage(analysisData.mainPrompt),
         3, 3000, `[${taskId}] Main Image`
       ),
       withRetry(
-        () => imageClient.generate({
-          prompt: analysisData.subPrompt1,
-          size: '2K',
-          watermark: false,
-        }),
+        () => callVolcengineImage(analysisData.subPrompt1),
         3, 3000, `[${taskId}] Sub Image 1`
       ),
       withRetry(
-        () => imageClient.generate({
-          prompt: analysisData.subPrompt2,
-          size: '2K',
-          watermark: false,
-        }),
+        () => callVolcengineImage(analysisData.subPrompt2),
         3, 3000, `[${taskId}] Sub Image 2`
       ),
     ]);
 
-    const mainHelper = imageClient.getResponseHelper(mainResponse);
-    const sub1Helper = imageClient.getResponseHelper(sub1Response);
-    const sub2Helper = imageClient.getResponseHelper(sub2Response);
-
-    const mainImageUrl = mainHelper.success && mainHelper.imageUrls.length > 0
-      ? mainHelper.imageUrls[0]
-      : '';
-    const subImageUrl1 = sub1Helper.success && sub1Helper.imageUrls.length > 0
-      ? sub1Helper.imageUrls[0]
-      : mainImageUrl;
-    const subImageUrl2 = sub2Helper.success && sub2Helper.imageUrls.length > 0
-      ? sub2Helper.imageUrls[0]
-      : mainImageUrl;
-
-    console.log(`[${taskId}] Images generated:`, { mainImageUrl, subImageUrl1, subImageUrl2 });
+    console.log(`[${taskId}] Images generated`);
     taskStore.update(taskId, { progress: 90 });
 
     // Step 3: 完成
@@ -226,11 +258,8 @@ router.post('/generate', upload.single('file'), async (req: Request, res: Respon
     const task = taskStore.create();
     console.log(`Created task ${task.id}`);
 
-    // 提取请求头
-    const customHeaders = HeaderUtils.extractForwardHeaders(req.headers as Record<string, string>);
-
     // 后台执行
-    executeGenerationTask(task.id, file.buffer, file.mimetype, description, customHeaders).catch(err => {
+    executeGenerationTask(task.id, file.buffer, file.mimetype, description).catch(err => {
       console.error(`Task ${task.id} error:`, err);
     });
 
@@ -267,24 +296,26 @@ router.get('/status/:taskId', (req: Request, res: Response) => {
 });
 
 /**
- * GET /api/v1/photo/test - 测试 SDK 连接
+ * GET /api/v1/photo/test - 测试 API 连接
  */
 router.get('/test', async (req: Request, res: Response) => {
   try {
-    const config = new Config({ timeout: 30000 });
-    const customHeaders = HeaderUtils.extractForwardHeaders(req.headers as Record<string, string>);
-    const client = new LLMClient(config, customHeaders);
+    if (!VOLCENGINE_API_KEY) {
+      return res.status(500).json({
+        success: false,
+        error: 'API Key 未配置，请设置环境变量 COZE_API_KEY 或 VOLCENGINE_API_KEY',
+      });
+    }
 
-    const messages = [
-      { role: 'user' as const, content: '你好，请回复"测试成功"' }
-    ];
-    
-    const response = await client.invoke(messages, { temperature: 0.5 });
+    // 测试简单对话
+    const testResponse = await callVolcengineLLM([
+      { role: 'user', content: '你好，请回复"测试成功"' }
+    ]);
     
     res.json({
       success: true,
-      message: 'SDK 连接成功',
-      response: response.content,
+      message: '火山引擎 API 连接成功',
+      response: testResponse,
     });
   } catch (error: any) {
     console.error('Test error:', error);
