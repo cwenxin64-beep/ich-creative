@@ -15,7 +15,7 @@ const VOLCENGINE_BASE_URL = process.env.VOLCENGINE_BASE_URL || 'https://ark.cn-b
 
 // 模型 ID 配置（可通过环境变量覆盖）
 const VISION_MODEL = process.env.VOLCENGINE_VISION_MODEL || 'Doubao-1.5-vision-pro-32k';
-const IMAGE_MODEL = process.env.VOLCENGINE_IMAGE_MODEL || 'doubao-seed-1-6-251015';
+const IMAGE_MODEL = process.env.VOLCENGINE_IMAGE_MODEL || 'Doubao-Seedream-5.0-lite';
 
 /**
  * 直接调用火山引擎 LLM API
