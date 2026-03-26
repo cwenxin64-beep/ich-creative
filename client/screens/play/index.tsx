@@ -173,12 +173,13 @@ export default function PlayScreen() {
     }
 
     setLoading(true);
+    setResults([]);
 
     try {
       /**
        * 服务端文件：server/src/routes/play.ts
-       * 接口：POST /api/v1/play/generate
-       * Body 参数：text: string, ichType: string, interactionType: string, productType: string, targetMarket: string, material?: any
+       * 接口：POST /api/v1/play/generate (创建任务)
+       * 接口：GET /api/v1/play/status/:taskId (查询状态)
        */
       const requestBody: any = {
         text,
@@ -198,41 +199,71 @@ export default function PlayScreen() {
         };
       }
 
-      const response = await fetch(buildApiUrl('/api/v1/play/generate'), {
+      // 创建任务
+      const createResponse = await fetch(buildApiUrl('/api/v1/play/generate'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(requestBody),
       });
 
-      const data = await response.json();
+      const createData = await createResponse.json();
 
-      if (data.success) {
+      if (!createData.taskId) {
+        Alert.alert('创建任务失败', createData.error || '请重试');
+        setLoading(false);
+        return;
+      }
+
+      const taskId = createData.taskId;
+      console.log('Task created:', taskId);
+
+      // 轮询任务状态
+      const pollTask = async (): Promise<any> => {
+        const statusResponse = await fetch(buildApiUrl(`/api/v1/play/status/${taskId}`));
+        const statusData = await statusResponse.json();
+
+        console.log('Task status:', statusData.status, 'Progress:', statusData.progress);
+
+        if (statusData.status === 'completed') {
+          return statusData.result;
+        } else if (statusData.status === 'failed') {
+          throw new Error(statusData.error || '生成失败');
+        } else {
+          // 继续轮询，每 2 秒一次
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          return pollTask();
+        }
+      };
+
+      const result = await pollTask();
+
+      if (result.success) {
         // 兼容旧数据结构，确保有 mainImageUrl
-        const normalizedResults = (data.results || []).map((result: any) => {
-          if (result.videoUrl) {
+        const normalizedResults = (result.results || []).map((item: any) => {
+          if (item.videoUrl) {
             return {
-              ...result,
-              mainImageUrl: result.mainImageUrl || (result.videoUrl + '?type=cover'),
-              subImageUrl1: result.subImageUrl1 || result.mainImageUrl || (result.videoUrl + '?type=cover'),
-              subImageUrl2: result.subImageUrl2 || result.mainImageUrl || (result.videoUrl + '?type=cover'),
+              ...item,
+              mainImageUrl: item.mainImageUrl || (item.videoUrl + '?type=cover'),
+              subImageUrl1: item.subImageUrl1 || item.mainImageUrl || (item.videoUrl + '?type=cover'),
+              subImageUrl2: item.subImageUrl2 || item.mainImageUrl || (item.videoUrl + '?type=cover'),
             };
-          } else if (result.imageUrl) {
+          } else if (item.imageUrl) {
             return {
-              ...result,
-              mainImageUrl: result.mainImageUrl || result.imageUrl,
-              subImageUrl1: result.subImageUrl1 || result.mainImageUrl || result.imageUrl,
-              subImageUrl2: result.subImageUrl2 || result.mainImageUrl || result.imageUrl,
+              ...item,
+              mainImageUrl: item.mainImageUrl || item.imageUrl,
+              subImageUrl1: item.subImageUrl1 || item.mainImageUrl || item.imageUrl,
+              subImageUrl2: item.subImageUrl2 || item.mainImageUrl || item.imageUrl,
             };
           }
-          return result;
+          return item;
         });
         setResults(normalizedResults);
       } else {
-        Alert.alert('生成失败', data.message || '请重试');
+        Alert.alert('生成失败', result.message || '请重试');
       }
     } catch (error) {
       console.error('Generation error:', error);
-      Alert.alert('错误', '生成失败，请检查网络连接');
+      Alert.alert('错误', error instanceof Error ? error.message : '生成失败，请检查网络连接');
     } finally {
       setLoading(false);
     }
