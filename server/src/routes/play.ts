@@ -80,67 +80,110 @@ async function callVolcengineImage(prompt: string): Promise<string> {
 }
 
 /**
- * 直接调用火山引擎视频生成 API
+ * 创建视频生成任务
  */
-async function callVolcengineVideo(prompt: string): Promise<string> {
-  // 尝试两种可能的 API 路径
-  const possibleUrls = [
-    `${VOLCENGINE_BASE_URL}/videos/generations`,
-    `${VOLCENGINE_BASE_URL}/contents/generations`,
-  ];
+async function createVideoTask(prompt: string): Promise<string> {
+  const url = `${VOLCENGINE_BASE_URL}/contents/generations/tasks`;
   
   const body = {
-    model: VIDEO_MODEL,
-    prompt,
+    model: 'doubao-seedance-1-5-pro-251215', // 使用正确的模型 ID
+    content: [
+      {
+        type: 'text',
+        text: `${prompt} --duration 5 --camerafixed false --watermark true`,
+      },
+    ],
   };
 
-  console.log('[Video] Model:', VIDEO_MODEL);
+  console.log('[Video] Creating task...');
+  console.log('[Video] URL:', url);
   console.log('[Video] Request:', JSON.stringify(body).substring(0, 300));
 
-  let lastError: Error | null = null;
-  
-  for (const url of possibleUrls) {
-    try {
-      console.log('[Video] Trying:', url);
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${VOLCENGINE_API_KEY}`,
+    },
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(60000),
+  });
 
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${VOLCENGINE_API_KEY}`,
-        },
-        body: JSON.stringify(body),
-        signal: AbortSignal.timeout(300000), // 5 分钟超时
-      });
-
-      console.log('[Video] Response status:', response.status);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('[Video] Error Response:', errorText);
-        lastError = new Error(`Video API error: ${response.status} - ${errorText}`);
-        continue; // 尝试下一个 URL
-      }
-
-      const data = await response.json();
-      console.log('[Video] Response keys:', Object.keys(data));
-      console.log('[Video] Full response:', JSON.stringify(data).substring(0, 500));
-      
-      // 尝试多种可能的响应格式
-      return data.data?.[0]?.url || 
-             data.data?.[0]?.video_url || 
-             data.videos?.[0]?.url || 
-             data.videos?.[0]?.video_url ||
-             data.url ||
-             data.video_url ||
-             data.task_id; // 可能是异步任务，返回 task_id
-    } catch (error: any) {
-      console.error('[Video] Error:', error.message);
-      lastError = error;
-    }
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('[Video] Create task error:', errorText);
+    throw new Error(`Video API error: ${response.status} - ${errorText}`);
   }
+
+  const data = await response.json();
+  console.log('[Video] Task created:', JSON.stringify(data).substring(0, 500));
   
-  throw lastError || new Error('Video generation failed');
+  // 返回任务 ID
+  return data.task_id || data.id || data.data?.task_id;
+}
+
+/**
+ * 查询视频任务状态
+ */
+async function getVideoTaskStatus(taskId: string): Promise<{ status: string; videoUrl?: string }> {
+  const url = `${VOLCENGINE_BASE_URL}/contents/generations/tasks/${taskId}`;
+
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${VOLCENGINE_API_KEY}`,
+    },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Video status API error: ${response.status} - ${errorText}`);
+  }
+
+  const data = await response.json();
+  console.log('[Video] Task status:', data.status);
+  
+  return {
+    status: data.status || data.task_status || 'unknown',
+    videoUrl: data.video_url || data.output?.video_url || data.data?.video_url,
+  };
+}
+
+/**
+ * 直接调用火山引擎视频生成 API（异步任务模式）
+ */
+async function callVolcengineVideo(prompt: string): Promise<string> {
+  // 1. 创建任务
+  const taskId = await createVideoTask(prompt);
+  console.log('[Video] Task ID:', taskId);
+
+  if (!taskId) {
+    throw new Error('Failed to get video task ID');
+  }
+
+  // 2. 轮询任务状态（最长等待 5 分钟）
+  const maxWaitTime = 5 * 60 * 1000; // 5 分钟
+  const pollInterval = 5000; // 5 秒
+  const startTime = Date.now();
+
+  while (Date.now() - startTime < maxWaitTime) {
+    const result = await getVideoTaskStatus(taskId);
+    
+    if (result.status === 'completed' || result.status === 'success' || result.status === 'succeeded') {
+      console.log('[Video] Task completed, video URL:', result.videoUrl);
+      return result.videoUrl!;
+    }
+    
+    if (result.status === 'failed' || result.status === 'error') {
+      throw new Error('Video generation task failed');
+    }
+
+    // 等待后继续轮询
+    console.log('[Video] Task still processing, waiting...');
+    await new Promise(resolve => setTimeout(resolve, pollInterval));
+  }
+
+  throw new Error('Video generation timeout after 5 minutes');
 }
 
 /**
@@ -284,9 +327,8 @@ ${productType || '生成所有类型：海报、节日卡、生日卡、新年�
     const results: any[] = [];
     const typesToGenerate = ['poster', 'festivalCard', 'birthdayCard', 'newYearCard', 'dynamicPoster', 'digitalAvatar', 'interactiveProduct'];
     
-    // 注意：视频生成 API 路径待确认，暂时全部使用图片生成
-    // const videoTypes = ['dynamicPoster', 'digitalAvatar'];
-    const videoTypes: string[] = []; // 暂时关闭视频生成
+    // 视频类型（使用视频生成模型）
+    const videoTypes = ['dynamicPoster', 'digitalAvatar'];
     
     // 串行生成，避免并发过多
     for (let i = 0; i < typesToGenerate.length; i++) {
