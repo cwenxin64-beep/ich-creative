@@ -86,6 +86,7 @@ async function callVolcengineImage(prompt: string): Promise<string> {
 
 // 火山引擎 ASR 极速版配置
 const VOLC_ASR_API_KEY = process.env.VOLC_ASR_API_KEY || '';
+const VOLC_ASR_APP_KEY = process.env.VOLC_ASR_APP_KEY || '';
 const VOLC_ASR_RESOURCE_ID = 'volc.bigasr.auc_turbo';
 
 /**
@@ -98,7 +99,7 @@ async function callASRFlash(buffer: Buffer): Promise<string> {
   const base64Audio = buffer.toString('base64');
   
   const body = {
-    user: { uid: 'ich-user' },
+    user: { uid: VOLC_ASR_APP_KEY },
     audio: { data: base64Audio },
     request: { model_name: 'bigmodel', enable_itn: true },
   };
@@ -120,8 +121,9 @@ async function callASRFlash(buffer: Buffer): Promise<string> {
 
   const statusCode = response.headers.get('X-Api-Status-Code');
   const message = response.headers.get('X-Api-Message');
+  const logid = response.headers.get('X-Tt-Logid');
   
-  console.log('[ASR] Response - statusCode:', statusCode, 'message:', message);
+  console.log('[ASR] Response - statusCode:', statusCode, 'message:', message, 'logid:', logid);
 
   if (statusCode !== '20000000') {
     throw new Error(`ASR failed: ${statusCode} - ${message}`);
