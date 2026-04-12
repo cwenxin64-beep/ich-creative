@@ -1,5 +1,6 @@
 import express, { type Request, type Response } from 'express';
 import multer from 'multer';
+import crypto from 'crypto';
 
 const router = express.Router();
 
@@ -83,36 +84,53 @@ async function callVolcengineImage(prompt: string): Promise<string> {
   return data.data?.[0]?.url || data.data?.[0]?.b64_json || data.images?.[0]?.url || data.images?.[0]?.image_url;
 }
 
+// 火山引擎 ASR 极速版配置
+const VOLC_ASR_API_KEY = process.env.VOLC_ASR_API_KEY || '';
+const VOLC_ASR_RESOURCE_ID = 'volc.bigasr.auc_turbo';
+
 /**
- * 直接调用火山引擎 ASR API（语音识别）
+ * 火山引擎 ASR 极速版 API（一次请求返回结果）
  */
-async function callVolcengineASR(base64Audio: string): Promise<string> {
-  const url = `${VOLCENGINE_BASE_URL}/audio/transcriptions`;
+async function callASRFlash(buffer: Buffer): Promise<string> {
+  const url = 'https://openspeech.bytedance.com/api/v3/auc/bigmodel/recognize/flash';
+  const taskId = crypto.randomUUID();
+  
+  const base64Audio = buffer.toString('base64');
   
   const body = {
-    model: 'doubao-asr',
-    audio: base64Audio,
+    user: { uid: 'ich-user' },
+    audio: { data: base64Audio },
+    request: { model_name: 'bigmodel', enable_itn: true },
   };
 
-  console.log('[ASR] Calling:', url);
+  console.log('[ASR] Submitting request, taskId:', taskId);
 
   const response = await fetch(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${VOLCENGINE_API_KEY}`,
+      'X-Api-Key': VOLC_ASR_API_KEY,
+      'X-Api-Resource-Id': VOLC_ASR_RESOURCE_ID,
+      'X-Api-Request-Id': taskId,
+      'X-Api-Sequence': '-1',
     },
     body: JSON.stringify(body),
-    signal: AbortSignal.timeout(60000),
+    signal: AbortSignal.timeout(120000),
   });
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`ASR API error: ${response.status} - ${errorText}`);
+  const statusCode = response.headers.get('X-Api-Status-Code');
+  const message = response.headers.get('X-Api-Message');
+  
+  console.log('[ASR] Response - statusCode:', statusCode, 'message:', message);
+
+  if (statusCode !== '20000000') {
+    throw new Error(`ASR failed: ${statusCode} - ${message}`);
   }
 
   const data = await response.json();
-  return data.text || '';
+  console.log('[ASR] Result:', JSON.stringify(data).substring(0, 500));
+  
+  return data.result?.text || '';
 }
 
 /**
@@ -130,12 +148,10 @@ router.post('/generate', upload.single('file'), async (req: Request, res: Respon
 
     console.log(`Audio generation request: ${file.originalname}, keywords: ${keywords}`);
 
-    // Step 1: Transcribe audio using ASR
-    const base64Audio = file.buffer.toString('base64');
-    
+    // Step 1: Transcribe audio using ASR (极速版)
     let transcription = '';
     try {
-      transcription = await callVolcengineASR(base64Audio);
+      transcription = await callASRFlash(file.buffer);
       console.log('Transcription:', transcription);
     } catch (error: any) {
       console.error('ASR failed, using fallback:', error.message);
