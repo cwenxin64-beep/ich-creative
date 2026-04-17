@@ -121,6 +121,10 @@ async function callVolcengineImage(prompt: string): Promise<string> {
         console.log('[Image] Using public URL:', actualUrl.substring(0, 100));
         imageUrl = actualUrl;
       }
+    } else {
+      // 如果找不到公开 URL，说明图片存储在沙箱内部，不可访问
+      console.error('[Image] No public URL found, only internal proxy URL');
+      throw new Error(`Image API only returned internal URL (code.coze.cn). All URLs: ${JSON.stringify(allUrls)}`);
     }
   }
   
