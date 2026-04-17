@@ -68,8 +68,8 @@ async function callCozeBot(userMessage: string): Promise<string> {
 async function pollCozeResult(chatId: string, conversationId: string): Promise<string> {
   const url = `https://api.coze.cn/v3/chat/retrieve?chat_id=${chatId}&conversation_id=${conversationId}`;
   
-  const maxRetries = 30;
-  const retryInterval = 2000;
+  const maxRetries = 60;  // 增加次数
+  const retryInterval = 3000;  // 增加间隔到3秒
 
   for (let i = 0; i < maxRetries; i++) {
     console.log(`[Coze Bot] Polling... ${i + 1}/${maxRetries}`);
