@@ -101,12 +101,29 @@ async function callVolcengineImage(prompt: string): Promise<string> {
   console.log('[Image] All URLs found:', allUrls);
   
   // 尝试多种可能的返回格式
-  const imageUrl = data.data?.[0]?.url 
+  let imageUrl = data.data?.[0]?.url 
     || data.data?.[0]?.b64_json
     || data.images?.[0]?.url 
     || data.images?.[0]?.image_url
     || data.url
     || data.result?.url;
+    
+  // 过滤掉内部代理 URL，只保留公开可访问的 URL
+  if (imageUrl && imageUrl.includes('code.coze.cn')) {
+    console.log('[Image] Filtered out internal proxy URL, searching for public URL...');
+    // 在返回数据中查找公开 URL
+    const publicUrl = allUrls.find(url => 
+      url.includes('volcengine') || 
+      url.includes('volccdn') ||
+      url.includes('bytedance') ||
+      url.includes('image.mjtime') ||
+      url.includes('arkos') ||
+      (!url.includes('code.coze.cn') && url.startsWith('http'))
+    );
+    if (publicUrl) {
+      imageUrl = publicUrl.split(': ')[1];
+    }
+  }
     
   console.log('[Image] Extracted URL:', imageUrl);
   
