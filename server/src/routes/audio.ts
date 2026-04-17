@@ -81,48 +81,7 @@ async function callVolcengineImage(prompt: string): Promise<string> {
   }
 
   const data = await response.json();
-  console.log('[Image] Response keys:', Object.keys(data));
-  console.log('[Image] Response:', JSON.stringify(data));
-  
-  // 递归查找所有可能的 URL
-  const findAllUrls = (obj: any, path = ''): string[] => {
-    const urls: string[] = [];
-    if (typeof obj === 'string' && (obj.startsWith('http') || obj.startsWith('data:'))) {
-      urls.push(`${path}: ${obj.substring(0, 200)}`);
-    } else if (Array.isArray(obj)) {
-      obj.forEach((item, i) => urls.push(...findAllUrls(item, `${path}[${i}]`)));
-    } else if (obj && typeof obj === 'object') {
-      Object.entries(obj).forEach(([key, val]) => urls.push(...findAllUrls(val, `${path}.${key}`)));
-    }
-    return urls;
-  };
-  
-  const allUrls = findAllUrls(data);
-  console.log('[Image] All URLs found:', allUrls);
-  
-  // 尝试多种可能的返回格式
-  let imageUrl = data.data?.[0]?.url 
-    || data.data?.[0]?.b64_json
-    || data.images?.[0]?.url 
-    || data.images?.[0]?.image_url
-    || data.url
-    || data.result?.url;
-    
-  console.log('[Image] Extracted URL:', imageUrl);
-  
-  // 检查是否是内部代理 URL，如果是则报错
-  if (imageUrl && imageUrl.includes('code.coze.cn')) {
-    console.error('[Image] ERROR: Image API returned internal proxy URL (code.coze.cn)');
-    console.error('[Image] All URLs found:', JSON.stringify(allUrls));
-    console.error('[Image] Full response:', JSON.stringify(data));
-    throw new Error(`Image API returned inaccessible internal URL: ${imageUrl}`);
-  }
-  
-  if (!imageUrl) {
-    throw new Error(`Image API returned no URL. Response: ${JSON.stringify(data).substring(0, 500)}`);
-  }
-  
-  return imageUrl;
+  return data.data?.[0]?.url || data.data?.[0]?.b64_json || data.images?.[0]?.url || data.images?.[0]?.image_url;
 }
 
 // 火山引擎 ASR 极速版配置
