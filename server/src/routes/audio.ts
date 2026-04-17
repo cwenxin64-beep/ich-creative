@@ -81,7 +81,24 @@ async function callVolcengineImage(prompt: string): Promise<string> {
   }
 
   const data = await response.json();
-  return data.data?.[0]?.url || data.data?.[0]?.b64_json || data.images?.[0]?.url || data.images?.[0]?.image_url;
+  console.log('[Image] Response keys:', Object.keys(data));
+  console.log('[Image] Response:', JSON.stringify(data).substring(0, 1000));
+  
+  // 尝试多种可能的返回格式
+  const imageUrl = data.data?.[0]?.url 
+    || data.data?.[0]?.b64_json
+    || data.images?.[0]?.url 
+    || data.images?.[0]?.image_url
+    || data.url
+    || data.result?.url;
+    
+  console.log('[Image] Extracted URL:', imageUrl ? imageUrl.substring(0, 100) : 'undefined');
+  
+  if (!imageUrl) {
+    throw new Error(`Image API returned no URL. Response: ${JSON.stringify(data).substring(0, 500)}`);
+  }
+  
+  return imageUrl;
 }
 
 // 火山引擎 ASR 极速版配置
