@@ -77,7 +77,23 @@ async function callVolcengineImage(prompt: string): Promise<string> {
 
   const data = await response.json();
   console.log('[Image] Response keys:', Object.keys(data));
-  console.log('[Image] Response:', JSON.stringify(data).substring(0, 1000));
+  console.log('[Image] Response:', JSON.stringify(data));
+  
+  // 递归查找所有可能的 URL
+  const findAllUrls = (obj: any, path = ''): string[] => {
+    const urls: string[] = [];
+    if (typeof obj === 'string' && (obj.startsWith('http') || obj.startsWith('data:'))) {
+      urls.push(`${path}: ${obj.substring(0, 200)}`);
+    } else if (Array.isArray(obj)) {
+      obj.forEach((item, i) => urls.push(...findAllUrls(item, `${path}[${i}]`)));
+    } else if (obj && typeof obj === 'object') {
+      Object.entries(obj).forEach(([key, val]) => urls.push(...findAllUrls(val, `${path}.${key}`)));
+    }
+    return urls;
+  };
+  
+  const allUrls = findAllUrls(data);
+  console.log('[Image] All URLs found:', allUrls);
   
   // 尝试多种可能的返回格式
   const imageUrl = data.data?.[0]?.url 
