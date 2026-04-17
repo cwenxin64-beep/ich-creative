@@ -108,24 +108,14 @@ async function callVolcengineImage(prompt: string): Promise<string> {
     || data.url
     || data.result?.url;
     
-  console.log('[Image] Extracted URL:', imageUrl ? imageUrl.substring(0, 100) : 'undefined');
+  console.log('[Image] Extracted URL:', imageUrl);
   
-  // 如果提取到的 URL 是内部代理 URL，尝试查找公开 URL
+  // 检查是否是内部代理 URL，如果是则报错
   if (imageUrl && imageUrl.includes('code.coze.cn')) {
-    console.log('[Image] Found internal proxy URL, checking for public URL...');
-    // 查找第一个非 coze.cn 的公开 URL
-    const publicUrlEntry = allUrls.find(u => !u.includes('code.coze.cn') && u.includes('http'));
-    if (publicUrlEntry) {
-      const actualUrl = publicUrlEntry.split(': ')[1];
-      if (actualUrl) {
-        console.log('[Image] Using public URL:', actualUrl.substring(0, 100));
-        imageUrl = actualUrl;
-      }
-    } else {
-      // 如果找不到公开 URL，说明图片存储在沙箱内部，不可访问
-      console.error('[Image] No public URL found, only internal proxy URL');
-      throw new Error(`Image API only returned internal URL (code.coze.cn). All URLs: ${JSON.stringify(allUrls)}`);
-    }
+    console.error('[Image] ERROR: Image API returned internal proxy URL (code.coze.cn)');
+    console.error('[Image] All URLs found:', JSON.stringify(allUrls));
+    console.error('[Image] Full response:', JSON.stringify(data));
+    throw new Error(`Image API returned inaccessible internal URL: ${imageUrl}`);
   }
   
   if (!imageUrl) {
