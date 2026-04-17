@@ -142,7 +142,7 @@ async function getVideoTaskStatus(taskId: string): Promise<{ status: string; vid
 
   const data = await response.json();
   console.log('[Video] Task status:', data.status);
-  console.log('[Video] Response data:', JSON.stringify(data).substring(0, 500));
+  console.log('[Video] Full response:', JSON.stringify(data));
   
   // 尝试多种可能的返回格式
   const videoUrl = data.video_url 
@@ -150,7 +150,10 @@ async function getVideoTaskStatus(taskId: string): Promise<{ status: string; vid
     || data.data?.video_url
     || data.data?.url
     || data.output?.url
-    || data.url;
+    || data.url
+    || data.data?.task_status;
+  
+  console.log('[Video] Extracted videoUrl:', videoUrl);
   
   return {
     status: data.status || data.task_status || 'unknown',
