@@ -103,7 +103,15 @@ async function callVolcengineImage(prompt: string): Promise<string> {
     || data.url
     || data.result?.url;
     
-  console.log('[Image] Extracted URL:', imageUrl ? imageUrl.substring(0, 100) : 'undefined');
+  console.log('[Image] Extracted URL:', imageUrl);
+  
+  // 检查是否是内部代理 URL，如果是则报错
+  if (imageUrl && imageUrl.includes('code.coze.cn')) {
+    console.error('[Image] ERROR: Image API returned internal proxy URL (code.coze.cn)');
+    console.error('[Image] All URLs found:', JSON.stringify(allUrls));
+    console.error('[Image] Full response:', JSON.stringify(data));
+    throw new Error(`Image API returned inaccessible internal URL: ${imageUrl}`);
+  }
   
   if (!imageUrl) {
     throw new Error(`Image API returned no URL. Response: ${JSON.stringify(data).substring(0, 500)}`);
