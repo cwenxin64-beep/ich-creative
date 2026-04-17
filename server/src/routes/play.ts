@@ -146,12 +146,12 @@ async function getVideoTaskStatus(taskId: string): Promise<{ status: string; vid
   
   // 尝试多种可能的返回格式
   const videoUrl = data.video_url 
+    || data.content?.video_url  // 火山引擎返回格式
     || data.output?.video_url 
     || data.data?.video_url
     || data.data?.url
     || data.output?.url
-    || data.url
-    || data.data?.task_status;
+    || data.url;
   
   console.log('[Video] Extracted videoUrl:', videoUrl);
   
