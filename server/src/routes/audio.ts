@@ -108,24 +108,21 @@ async function callVolcengineImage(prompt: string): Promise<string> {
     || data.url
     || data.result?.url;
     
-  // 过滤掉内部代理 URL，只保留公开可访问的 URL
+  console.log('[Image] Extracted URL:', imageUrl ? imageUrl.substring(0, 100) : 'undefined');
+  
+  // 如果提取到的 URL 是内部代理 URL，尝试查找公开 URL
   if (imageUrl && imageUrl.includes('code.coze.cn')) {
-    console.log('[Image] Filtered out internal proxy URL, searching for public URL...');
-    // 在返回数据中查找公开 URL
-    const publicUrl = allUrls.find(url => 
-      url.includes('volcengine') || 
-      url.includes('volccdn') ||
-      url.includes('bytedance') ||
-      url.includes('image.mjtime') ||
-      url.includes('arkos') ||
-      (!url.includes('code.coze.cn') && url.startsWith('http'))
-    );
-    if (publicUrl) {
-      imageUrl = publicUrl.split(': ')[1];
+    console.log('[Image] Found internal proxy URL, checking for public URL...');
+    // 查找第一个非 coze.cn 的公开 URL
+    const publicUrlEntry = allUrls.find(u => !u.includes('code.coze.cn') && u.includes('http'));
+    if (publicUrlEntry) {
+      const actualUrl = publicUrlEntry.split(': ')[1];
+      if (actualUrl) {
+        console.log('[Image] Using public URL:', actualUrl.substring(0, 100));
+        imageUrl = actualUrl;
+      }
     }
   }
-    
-  console.log('[Image] Extracted URL:', imageUrl);
   
   if (!imageUrl) {
     throw new Error(`Image API returned no URL. Response: ${JSON.stringify(data).substring(0, 500)}`);
