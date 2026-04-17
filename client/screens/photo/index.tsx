@@ -46,7 +46,12 @@ export default function PhotoScreen() {
   const [sharing, setSharing] = useState(false);
 
   const handleFavorite = async () => {
-    if (!result) return;
+    console.log('[Favorite] Button pressed, result:', result);
+    
+    if (!result) {
+      Alert.alert('提示', '请先生成作品');
+      return;
+    }
 
     // 如果已收藏，则取消收藏
     if (isFavorited && favoriteId) {
@@ -82,12 +87,21 @@ export default function PhotoScreen() {
        * 接口：POST /api/v1/favorites
        * Body 参数：type: string, imageUrl?: string, videoUrl?: string, title: string, metadata?: any
        */
+      const imageUrl = result.staticMainImageUrl || result.videoMainImageUrl;
+      
+      if (!imageUrl) {
+        console.log('[Favorite] No image URL available, result keys:', Object.keys(result));
+        Alert.alert('提示', '没有可收藏的内容');
+        return;
+      }
+
+      console.log('[Favorite] Sending request with imageUrl:', imageUrl);
       const response = await fetch(buildApiUrl('/api/v1/favorites'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           type: 'photo',
-          imageUrl: result.staticMainImageUrl,
+          imageUrl,
           videoUrl: result.videoUrl,
           title: '非遗创意作品',
           metadata: {
@@ -100,7 +114,9 @@ export default function PhotoScreen() {
         }),
       });
 
+      console.log('[Favorite] Response status:', response.status);
       const data = await response.json();
+      console.log('[Favorite] Response data:', data);
 
       if (data.success) {
         setIsFavorited(true);
@@ -116,20 +132,33 @@ export default function PhotoScreen() {
   };
 
   const handleShare = async () => {
-    if (!result) return;
+    console.log('[Share] Button pressed, result:', result);
+    
+    if (!result) {
+      Alert.alert('提示', '请先生成作品');
+      return;
+    }
 
     try {
       const url = result.staticMainImageUrl || result.videoUrl || result.videoMainImageUrl;
 
       if (!url) {
+        console.log('[Share] No URL available, result keys:', Object.keys(result));
         Alert.alert('提示', '没有可分享的内容');
         return;
       }
 
+      console.log('[Share] Sharing URL:', url);
+
       if (Platform.OS === 'web') {
         // Web 端复制链接
-        await navigator.clipboard.writeText(url);
-        Alert.alert('成功', '链接已复制到剪贴板');
+        try {
+          await navigator.clipboard.writeText(url);
+          Alert.alert('成功', '链接已复制到剪贴板');
+        } catch (clipboardError) {
+          console.error('[Share] Clipboard error:', clipboardError);
+          Alert.alert('提示', '链接: ' + url);
+        }
         return;
       }
 
@@ -143,6 +172,7 @@ export default function PhotoScreen() {
 
       // 下载文件到本地
       const downloadResult = await (FileSystem as any).downloadAsync(url, localUri);
+      console.log('[Share] Download result status:', downloadResult.status);
 
       if (downloadResult.status !== 200) {
         throw new Error('下载文件失败');
@@ -150,6 +180,7 @@ export default function PhotoScreen() {
 
       // 检查是否支持分享
       const isAvailable = await Sharing.isAvailableAsync();
+      console.log('[Share] Sharing available:', isAvailable);
 
       if (!isAvailable) {
         Alert.alert('提示', '当前设备不支持分享功能');
