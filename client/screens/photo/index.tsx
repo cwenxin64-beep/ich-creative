@@ -584,6 +584,19 @@ export default function PhotoScreen() {
             </View>
           </ThemedView>
         )}
+
+        {/* Debug: Test Favorite Button */}
+        {result && (
+          <TouchableOpacity
+            style={{ backgroundColor: '#EF4444', padding: 16, marginTop: 20, borderRadius: 8, alignItems: 'center' }}
+            onPress={() => {
+              console.log('[DEBUG] Test favorite button pressed');
+              handleFavorite();
+            }}
+          >
+            <ThemedText variant="title" color="#fff">测试收藏功能</ThemedText>
+          </TouchableOpacity>
+        )}
       </ScrollView>
     </Screen>
   );
