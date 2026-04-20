@@ -31,14 +31,14 @@ export default function PhotoScreen() {
   const [outputType, setOutputType] = useState<OutputType>('static');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<{
-    staticMainImageUrl: string;
-    staticSubImageUrl1: string;
-    staticSubImageUrl2: string;
-    videoUrl: string;
-    videoMainImageUrl: string;
-    videoSubImageUrl1: string;
-    videoSubImageUrl2: string;
-    analysis: any;
+    staticMainImageUrl?: string;
+    staticSubImageUrl1?: string;
+    staticSubImageUrl2?: string;
+    videoUrl?: string;
+    videoMainImageUrl?: string;
+    videoSubImageUrl1?: string;
+    videoSubImageUrl2?: string;
+    analysis?: any;
   } | null>(null);
 
   const [isFavorited, setIsFavorited] = useState(false);
@@ -498,10 +498,10 @@ export default function PhotoScreen() {
                   </TouchableOpacity>
                   <View style={styles.resultSubImages}>
                     <TouchableOpacity onPress={() => router.push('/detail', { imageUrl: result.staticSubImageUrl1 })}>
-                      <Image source={{ uri: result.staticSubImageUrl1 }} style={styles.resultSubImage} />
+                      <Image source={{ uri: result.staticSubImageUrl1 } as any} style={styles.resultSubImage} />
                     </TouchableOpacity>
                     <TouchableOpacity onPress={() => router.push('/detail', { imageUrl: result.staticSubImageUrl2 })}>
-                      <Image source={{ uri: result.staticSubImageUrl2 }} style={styles.resultSubImage} />
+                      <Image source={{ uri: result.staticSubImageUrl2 } as any} style={styles.resultSubImage} />
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -509,7 +509,7 @@ export default function PhotoScreen() {
             )}
 
             {/* Video Result */}
-            {outputType === 'dynamic' && result.videoUrl && (
+            {outputType === 'dynamic' && result.videoMainImageUrl && (
               <ThemedView level="root" style={styles.resultCard}>
                 <View style={styles.resultHeader}>
                   <ThemedText variant="smallMedium" color={theme.textSecondary} style={styles.resultLabel}>
@@ -544,10 +544,10 @@ export default function PhotoScreen() {
                   </TouchableOpacity>
                   <View style={styles.resultSubImages}>
                     <TouchableOpacity onPress={() => router.push('/detail', { imageUrl: result.videoSubImageUrl1 })}>
-                      <Image source={{ uri: result.videoSubImageUrl1 }} style={styles.resultSubImage} />
+                      <Image source={{ uri: result.videoSubImageUrl1 } as any} style={styles.resultSubImage} />
                     </TouchableOpacity>
                     <TouchableOpacity onPress={() => router.push('/detail', { imageUrl: result.videoSubImageUrl2 })}>
-                      <Image source={{ uri: result.videoSubImageUrl2 }} style={styles.resultSubImage} />
+                      <Image source={{ uri: result.videoSubImageUrl2 } as any} style={styles.resultSubImage} />
                     </TouchableOpacity>
                   </View>
                 </View>
