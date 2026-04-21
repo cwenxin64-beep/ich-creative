@@ -1,7 +1,15 @@
 import express, { type Request, type Response } from 'express';
 import { taskStore } from '../task-queue';
+import { S3Storage } from 'coze-coding-dev-sdk';
 
 const router = express.Router();
+
+// 初始化对象存储
+const storage = new S3Storage({
+  endpointUrl: process.env.COZE_BUCKET_ENDPOINT_URL,
+  bucketName: process.env.COZE_BUCKET_NAME,
+  region: 'cn-beijing',
+});
 
 // 火山引擎 API 配置
 const VOLCENGINE_API_KEY = process.env.COZE_API_KEY || process.env.VOLCENGINE_API_KEY || '';
@@ -105,12 +113,41 @@ async function callVolcengineImage(prompt: string): Promise<string> {
     
   console.log('[Image] Extracted URL:', imageUrl);
   
-  // 检查是否是内部代理 URL，如果是则报错
+  // 检查是否是内部代理 URL，如果是则下载并上传到对象存储
   if (imageUrl && imageUrl.includes('code.coze.cn')) {
-    console.error('[Image] ERROR: Image API returned internal proxy URL (code.coze.cn)');
-    console.error('[Image] All URLs found:', JSON.stringify(allUrls));
-    console.error('[Image] Full response:', JSON.stringify(data));
-    throw new Error(`Image API returned inaccessible internal URL: ${imageUrl}`);
+    console.log('[Image] Detected internal proxy URL, downloading and re-uploading...');
+    try {
+      // 下载图片
+      const downloadResponse = await fetch(imageUrl, {
+        signal: AbortSignal.timeout(60000),
+      });
+      
+      if (!downloadResponse.ok) {
+        throw new Error(`Failed to download image: ${downloadResponse.status}`);
+      }
+      
+      const imageBuffer = Buffer.from(await downloadResponse.arrayBuffer());
+      const fileName = `generated_images/image_${Date.now()}_${Math.random().toString(36).substring(7)}.png`;
+      
+      // 上传到对象存储
+      const fileKey = await storage.uploadFile({
+        fileContent: imageBuffer,
+        fileName,
+        contentType: 'image/png',
+      });
+      
+      // 生成可访问的签名 URL
+      const publicUrl = await storage.generatePresignedUrl({
+        key: fileKey,
+        expireTime: 86400 * 30, // 30 天有效期
+      });
+      
+      console.log('[Image] Successfully re-uploaded to storage, new URL:', publicUrl.substring(0, 100));
+      return publicUrl;
+    } catch (uploadError: any) {
+      console.error('[Image] Failed to re-upload image:', uploadError.message);
+      throw new Error(`Image API returned inaccessible URL and re-upload failed: ${imageUrl}`);
+    }
   }
   
   if (!imageUrl) {
