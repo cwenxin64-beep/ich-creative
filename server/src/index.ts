@@ -6,10 +6,12 @@ import audioRouter from "./routes/audio";
 import playRouter from "./routes/play";
 import useRouter from "./routes/use";
 import favoritesRouter from "./routes/favorites";
-import https from "https";
 
 const app = express();
-const port = process.env.PORT || 9091;
+const port = Number(process.env.PORT) || 5000;
+
+// 立即输出启动信息
+console.log(`[STARTUP] Starting server on port ${port}...`);
 
 // CORS 配置 - 允许前端域名访问
 const corsOptions = {
