@@ -46,22 +46,26 @@ export default function RegisterScreen() {
     setLoading(true);
 
     try {
-      // TODO: 实现真实的注册 API 调用
-      // const response = await fetch(`${process.env.EXPO_PUBLIC_BACKEND_BASE_URL}/api/v1/register`, {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({
-      //     username: formData.username,
-      //     email: formData.email,
-      //     password: formData.password,
-      //   }),
-      // });
+      const baseUrl = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || 'http://localhost:5000';
+      const response = await fetch(`${baseUrl}/api/v1/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: formData.username,
+          email: formData.email,
+          password: formData.password,
+        }),
+      });
 
-      // 模拟注册成功
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      Alert.alert('注册成功', '欢迎加入智能非遗！', [
-        { text: '确定', onPress: () => router.push('/home') }
-      ]);
+      const data = await response.json();
+
+      if (data.success) {
+        Alert.alert('注册成功', '欢迎加入智能非遗！', [
+          { text: '确定', onPress: () => router.push('/home') }
+        ]);
+      } else {
+        Alert.alert('注册失败', data.error || '请稍后重试');
+      }
     } catch (error) {
       console.error('Register error:', error);
       Alert.alert('注册失败', '请检查网络连接');

@@ -6,6 +6,7 @@ import audioRouter from "./routes/audio";
 import playRouter from "./routes/play";
 import useRouter from "./routes/use";
 import favoritesRouter from "./routes/favorites";
+import authRouter from "./routes/auth";
 
 const app = express();
 const port = Number(process.env.PORT) || 5000;
@@ -43,6 +44,7 @@ app.use('/api/v1/audio', audioRouter);
 app.use('/api/v1/play', playRouter);
 app.use('/api/v1/use', useRouter);
 app.use('/api/v1/favorites', favoritesRouter);
+app.use('/api/v1/auth', authRouter);
 
 app.listen(port, () => {
   console.log(`Server listening at http://localhost:${port}/`);
