@@ -221,7 +221,7 @@ export default function PhotoScreen() {
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images', 'videos'],
+        mediaTypes: ['images'],
         allowsEditing: false,
         quality: 1,
       });
