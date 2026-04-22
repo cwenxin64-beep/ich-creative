@@ -115,7 +115,20 @@ async function callVolcengineImage(prompt: string): Promise<string> {
   
   // 检查是否是内部代理 URL，如果是则下载并上传到对象存储
   if (imageUrl && imageUrl.includes('code.coze.cn')) {
-    console.log('[Image] Detected internal proxy URL, downloading and re-uploading...');
+    console.log('[Image] Detected internal proxy URL');
+    
+    // 检查是否在沙箱环境（通过环境变量）
+    const isSandbox = process.env.COZE_PROJECT_DOMAIN_DEFAULT?.includes('coze.site') || 
+                       process.env.COZE_WORKSPACE_PATH?.includes('/workspace/');
+    
+    if (isSandbox) {
+      // 沙箱环境：直接返回 URL（浏览器也在沙箱内，可以访问）
+      console.log('[Image] Sandbox environment detected, using internal URL directly');
+      return imageUrl;
+    }
+    
+    // 云服务器：尝试下载并上传到对象存储
+    console.log('[Image] Cloud server detected, downloading and re-uploading to object storage...');
     try {
       // 下载图片
       const downloadResponse = await fetch(imageUrl, {
@@ -145,8 +158,9 @@ async function callVolcengineImage(prompt: string): Promise<string> {
       console.log('[Image] Successfully re-uploaded to storage, new URL:', publicUrl.substring(0, 100));
       return publicUrl;
     } catch (uploadError: any) {
-      console.error('[Image] Failed to re-upload image:', uploadError.message);
-      throw new Error(`Image API returned inaccessible URL and re-upload failed: ${imageUrl}`);
+      // 下载或上传失败时，返回原始 URL（至少沙箱内可以访问）
+      console.error('[Image] Failed to re-upload image, returning original URL:', uploadError.message);
+      return imageUrl;
     }
   }
   
