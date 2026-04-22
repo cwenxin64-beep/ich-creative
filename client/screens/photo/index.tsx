@@ -358,7 +358,7 @@ export default function PhotoScreen() {
               >
                 <FontAwesome6 name="images" size={32} color={theme.primary} />
                 <ThemedText variant="body" color={theme.textPrimary} style={styles.uploadButtonText}>
-                  选择图片/视频
+                  选择图片
                 </ThemedText>
               </TouchableOpacity>
 
