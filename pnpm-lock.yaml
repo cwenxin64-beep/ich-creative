@@ -260,7 +260,7 @@ importers:
         specifier: ^1.13.5
         version: 1.13.5
       cors:
-        specifier: ^2.8.5
+        specifier: ^2.8.6
         version: 2.8.6
       coze-coding-dev-sdk:
         specifier: ^0.7.16
