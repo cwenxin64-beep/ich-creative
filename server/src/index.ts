@@ -9,7 +9,7 @@ import favoritesRouter from "./routes/favorites";
 import authRouter from "./routes/auth";
 
 const app = express();
-const port = Number(process.env.PORT) || 5000;
+const port = Number(process.env.PORT) || 9091;
 
 // 立即输出启动信息
 console.log(`[STARTUP] Starting server on port ${port}...`);
