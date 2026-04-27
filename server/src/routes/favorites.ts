@@ -15,27 +15,41 @@ function getUserIdentity(req: Request): string {
 // 获取或创建用户
 async function getOrCreateUser(client: any, deviceId: string): Promise<number> {
   // 先查询用户
-  const { data: existingUser } = await client
+  console.log(`[Favorites] Looking up user with device_id: ${deviceId.substring(0, 50)}...`);
+  const { data: existingUser, error: selectError } = await client
     .from('users')
     .select('id')
     .eq('device_id', deviceId)
     .single();
 
+  if (selectError) {
+    console.error(`[Favorites] Select user error:`, selectError);
+  }
+
   if (existingUser) {
+    console.log(`[Favorites] Found existing user: ${existingUser.id}`);
     return existingUser.id;
   }
 
   // 创建新用户
+  console.log(`[Favorites] Creating new user with device_id: ${deviceId.substring(0, 50)}...`);
   const { data: newUser, error } = await client
     .from('users')
     .insert({ device_id: deviceId })
     .select('id')
     .single();
 
-  if (error || !newUser) {
-    throw new Error('Failed to create user');
+  if (error) {
+    console.error(`[Favorites] Insert user error:`, error);
+    throw new Error(`Failed to create user: ${error.message}`);
   }
 
+  if (!newUser) {
+    console.error(`[Favorites] Insert succeeded but no data returned`);
+    throw new Error('Failed to create user: no data returned');
+  }
+
+  console.log(`[Favorites] Created new user: ${newUser.id}`);
   return newUser.id;
 }
 
