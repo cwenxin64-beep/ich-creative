@@ -65,9 +65,15 @@ router.post('/', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
+    console.log(`[Favorites] Initializing Supabase client...`);
     const client = getSupabaseClient();
+    console.log(`[Favorites] Supabase client initialized`);
+    
     const deviceId = getUserIdentity(req);
+    console.log(`[Favorites] Device ID: ${deviceId.substring(0, 50)}...`);
+    
     const userId = await getOrCreateUser(client, deviceId);
+    console.log(`[Favorites] User ID: ${userId}`);
 
     const { data: favorite, error } = await client
       .from('favorites')

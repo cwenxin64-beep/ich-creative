@@ -73,6 +73,11 @@ function getSupabaseCredentials(): SupabaseCredentials {
   const url = process.env.COZE_SUPABASE_URL;
   const anonKey = process.env.COZE_SUPABASE_ANON_KEY;
 
+  console.log(`[Supabase] URL loaded: ${url ? 'yes' : 'NO - undefined'}`);
+  console.log(`[Supabase] URL value: ${url}`);
+  console.log(`[Supabase] AnonKey loaded: ${anonKey ? 'yes' : 'NO - undefined'}`);
+  console.log(`[Supabase] AnonKey length: ${anonKey ? anonKey.length : 0}`);
+
   if (!url) {
     throw new Error('COZE_SUPABASE_URL is not set');
   }
