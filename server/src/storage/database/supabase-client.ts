@@ -70,13 +70,19 @@ except Exception as e:
 function getSupabaseCredentials(): SupabaseCredentials {
   loadEnv();
 
-  const url = process.env.COZE_SUPABASE_URL;
-  const anonKey = process.env.COZE_SUPABASE_ANON_KEY;
+  let url = process.env.COZE_SUPABASE_URL || process.env.SUPABASE_URL;
+  const anonKey = process.env.COZE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
 
-  console.log(`[Supabase] URL loaded: ${url ? 'yes' : 'NO - undefined'}`);
-  console.log(`[Supabase] URL value: ${url}`);
-  console.log(`[Supabase] AnonKey loaded: ${anonKey ? 'yes' : 'NO - undefined'}`);
-  console.log(`[Supabase] AnonKey length: ${anonKey ? anonKey.length : 0}`);
+  // 修正常见的 URL 拼写错误
+  if (url) {
+    // 修正 snrhzflklujckheqwmjt -> snrhzflklujckheqwmt
+    url = url.replace(/snrhzflklujckheqwmjt\.supabase\.co/g, 'snrhzflklujckheqwmt.supabase.co');
+    console.log(`[Supabase] URL (corrected): "${url}"`);
+  } else {
+    console.log(`[Supabase] URL: not set`);
+  }
+  
+  console.log(`[Supabase] AnonKey: ${anonKey ? 'set' : 'NOT SET'}`);
 
   if (!url) {
     throw new Error('COZE_SUPABASE_URL is not set');
