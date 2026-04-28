@@ -73,11 +73,9 @@ function getSupabaseCredentials(): SupabaseCredentials {
   let url = process.env.COZE_SUPABASE_URL || process.env.SUPABASE_URL;
   const anonKey = process.env.COZE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
 
-  // 修正常见的 URL 拼写错误
+  // 保留原始 URL（不需要修正）
   if (url) {
-    // 修正 snrhzflklujckheqwmjt -> snrhzflklujckheqwmt
-    url = url.replace(/snrhzflklujckheqwmjt\.supabase\.co/g, 'snrhzflklujckheqwmt.supabase.co');
-    console.log(`[Supabase] URL (corrected): "${url}"`);
+    console.log(`[Supabase] URL: "${url}"`);
   } else {
     console.log(`[Supabase] URL: not set`);
   }
