@@ -13,6 +13,7 @@ import { createFormDataFile } from '@/utils';
 import { buildApiUrl } from '@/utils/api';
 import { FontAwesome6 } from '@expo/vector-icons';
 import { createStyles } from './styles';
+import { useAuth } from '../../contexts/AuthContext';
 
 type OutputType = 'static' | 'dynamic';
 
@@ -44,6 +45,10 @@ export default function PhotoScreen() {
   const [isFavorited, setIsFavorited] = useState(false);
   const [favoriteId, setFavoriteId] = useState<string | null>(null);
   const [sharing, setSharing] = useState(false);
+
+  // 用户身份判断：手艺人才能用视频功能
+  const { user } = useAuth();
+  const isCraftsman = user?.role === 'craftsman';
 
   const handleFavorite = async () => {
     console.log('[Favorite] Button pressed, result:', result);
@@ -419,28 +424,35 @@ export default function PhotoScreen() {
             生成类型
           </ThemedText>
           <View style={styles.typeButtons}>
-            {(['static', 'dynamic'] as OutputType[]).map((type) => (
-              <TouchableOpacity
-                key={type}
-                style={[
-                  styles.typeButton,
-                  outputType === type && { backgroundColor: theme.primary, borderColor: theme.primary },
-                ]}
-                onPress={() => setOutputType(type)}
-              >
-                <FontAwesome6
-                  name={type === 'static' ? 'image' : 'video'}
-                  size={16}
-                  color={outputType === type ? theme.buttonPrimaryText : theme.textSecondary}
-                />
-                <ThemedText
-                  variant="small"
-                  color={outputType === type ? theme.buttonPrimaryText : theme.textSecondary}
+            {(['static', 'dynamic'] as OutputType[]).map((type) => {
+              const isVideo = type === 'dynamic';
+              const isDisabled = isVideo && !isCraftsman;
+              return (
+                <TouchableOpacity
+                  key={type}
+                  style={[
+                    styles.typeButton,
+                    outputType === type && { backgroundColor: theme.primary, borderColor: theme.primary },
+                    isDisabled && { opacity: 0.4 },
+                  ]}
+                  onPress={() => !isDisabled && setOutputType(type)}
+                  disabled={isDisabled}
                 >
-                  {type === 'static' ? '图片' : '视频'}
-                </ThemedText>
-              </TouchableOpacity>
-            ))}
+                  <FontAwesome6
+                    name={type === 'static' ? 'image' : 'video'}
+                    size={16}
+                    color={outputType === type ? theme.buttonPrimaryText : (isDisabled ? theme.textDisabled : theme.textSecondary)}
+                  />
+                  <ThemedText
+                    variant="small"
+                    color={outputType === type ? theme.buttonPrimaryText : (isDisabled ? theme.textDisabled : theme.textSecondary)}
+                  >
+                    {type === 'static' ? '图片' : '视频'}
+                    {isVideo && !isCraftsman && ' (手艺人专属)'}
+                  </ThemedText>
+                </TouchableOpacity>
+              );
+            })}
           </View>
         </ThemedView>
 
