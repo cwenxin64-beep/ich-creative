@@ -18,6 +18,7 @@ export default function RegisterScreen() {
     email: '',
     password: '',
     confirmPassword: '',
+    role: 'user',
   });
   const [loading, setLoading] = useState(false);
 
@@ -173,6 +174,47 @@ export default function RegisterScreen() {
                   secureTextEntry
                 />
               </View>
+            </View>
+          </ThemedView>
+
+          {/* Role Selection */}
+          <ThemedView style={styles.roleContainer}>
+            <ThemedText variant="smallMedium" color={theme.textSecondary} style={{ marginBottom: 12 }}>
+              选择身份
+            </ThemedText>
+            <View style={styles.roleButtons}>
+              <TouchableOpacity
+                style={[
+                  styles.roleButton,
+                  formData.role === 'craftsman' && { borderColor: theme.primary, backgroundColor: `${theme.primary}15` },
+                ]}
+                onPress={() => setFormData({ ...formData, role: 'craftsman' })}
+              >
+                <FontAwesome6 name="palette" size={18} color={formData.role === 'craftsman' ? theme.primary : theme.textMuted} />
+                <ThemedText
+                  variant="body"
+                  color={formData.role === 'craftsman' ? theme.primary : theme.textSecondary}
+                  style={styles.roleButtonText}
+                >
+                  我是手艺人
+                </ThemedText>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.roleButton,
+                  formData.role === 'user' && { borderColor: theme.primary, backgroundColor: `${theme.primary}15` },
+                ]}
+                onPress={() => setFormData({ ...formData, role: 'user' })}
+              >
+                <FontAwesome6 name="user" size={18} color={formData.role === 'user' ? theme.primary : theme.textMuted} />
+                <ThemedText
+                  variant="body"
+                  color={formData.role === 'user' ? theme.primary : theme.textSecondary}
+                  style={styles.roleButtonText}
+                >
+                  我是普通用户
+                </ThemedText>
+              </TouchableOpacity>
             </View>
           </ThemedView>
 
