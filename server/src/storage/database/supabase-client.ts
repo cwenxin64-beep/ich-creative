@@ -1,8 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { setDefaultResultOrder } from 'dns';
-
-// 设置 DNS 解析优先使用 IPv4
-setDefaultResultOrder('ipv4first');
+import fetch from 'node-fetch';
 
 const supabaseUrl = process.env.COZE_SUPABASE_URL;
 const supabaseKey = process.env.COZE_SUPABASE_ANON_KEY;
@@ -14,6 +11,7 @@ console.log('Supabase Key exists:', !!supabaseKey);
 export const supabase = createClient(supabaseUrl, supabaseKey, {
   schema: 'public',
   global: {
+    fetch: fetch as any,
     headers: {
       'apikey': supabaseKey,
     },
