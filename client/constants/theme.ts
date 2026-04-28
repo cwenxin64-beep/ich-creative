@@ -3,7 +3,6 @@ export const Colors = {
     // 莫兰迪色系 - 新拟态+毛玻璃风格
     textPrimary: "#5D5A58", // 温暖的深灰，替代纯黑
     textSecondary: "#8B8680", // 暖灰棕，柔和
-    textDisabled: "#C4BEB6", // 禁用状态 - 更浅的灰
     textMuted: "#A8A098", // 浅暖灰，柔和不刺眼
     primary: "#B8860B", // 古铜金 - 非遗传统色
     accent: "#D4A574", // 暖金棕 - 辅助色
@@ -22,7 +21,6 @@ export const Colors = {
   dark: {
     textPrimary: "#E8E3DC", // 暖白
     textSecondary: "#A8A098", // 暖灰
-    textDisabled: "#6B6560", // 禁用状态 - 深灰
     textMuted: "#78716C", // 深灰
     primary: "#D4A574", // 暖金棕
     accent: "#B8860B", // 古铜金
