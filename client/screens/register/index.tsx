@@ -18,6 +18,7 @@ export default function RegisterScreen() {
     email: '',
     password: '',
     confirmPassword: '',
+    role: 'user' as 'user' | 'craftsman',
   });
   const [loading, setLoading] = useState(false);
 
@@ -54,12 +55,15 @@ export default function RegisterScreen() {
           username: formData.username,
           email: formData.email,
           password: formData.password,
+          role: formData.role,
         }),
       });
 
       const data = await response.json();
 
       if (data.success) {
+        // 保存用户信息到 AuthContext
+        login(data.user.id, data.user.username, formData.role);
         Alert.alert('注册成功', '欢迎加入智能非遗！', [
           { text: '确定', onPress: () => router.push('/home') }
         ]);
@@ -174,6 +178,48 @@ export default function RegisterScreen() {
                 />
               </View>
             </View>
+          </ThemedView>
+
+          {/* Role Selection */}
+          <ThemedView style={styles.inputGroup}>
+            <ThemedText variant="smallMedium" color={theme.textSecondary} style={styles.inputLabel}>
+              选择身份
+            </ThemedText>
+            <View style={{ flexDirection: 'row', gap: 12 }}>
+              <TouchableOpacity
+                style={[
+                  styles.roleButton,
+                  formData.role === 'user' && { backgroundColor: theme.primary, borderColor: theme.primary },
+                ]}
+                onPress={() => setFormData({ ...formData, role: 'user' })}
+              >
+                <FontAwesome6 name="user" size={18} color={formData.role === 'user' ? '#fff' : theme.textSecondary} />
+                <ThemedText
+                  variant="smallMedium"
+                  color={formData.role === 'user' ? '#fff' : theme.textSecondary}
+                >
+                  普通用户
+                </ThemedText>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.roleButton,
+                  formData.role === 'craftsman' && { backgroundColor: theme.primary, borderColor: theme.primary },
+                ]}
+                onPress={() => setFormData({ ...formData, role: 'craftsman' })}
+              >
+                <FontAwesome6 name="palette" size={18} color={formData.role === 'craftsman' ? '#fff' : theme.textSecondary} />
+                <ThemedText
+                  variant="smallMedium"
+                  color={formData.role === 'craftsman' ? '#fff' : theme.textSecondary}
+                >
+                  手艺人
+                </ThemedText>
+              </TouchableOpacity>
+            </View>
+            <ThemedText variant="tiny" color={theme.textMuted} style={{ marginTop: 6 }}>
+              {formData.role === 'craftsman' ? '手艺人可使用视频生成功能' : '普通用户可浏览和收藏内容'}
+            </ThemedText>
           </ThemedView>
 
           {/* Register Button */}

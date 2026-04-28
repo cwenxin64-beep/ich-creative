@@ -98,5 +98,15 @@ export const createStyles = (theme: Theme) => {
       borderWidth: 2,
     },
     artisanButtonText: {},
+    roleButton: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: Spacing.sm,
+      paddingVertical: Spacing.lg,
+      borderRadius: BorderRadius.lg,
+      borderWidth: 2,
+    },
   });
 };
