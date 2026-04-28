@@ -19,3 +19,8 @@ export const supabase = createClient(supabaseUrl, supabaseKey, {
     },
   },
 });
+
+// 导出获取客户端的函数（兼容旧代码）
+export function getSupabaseClient() {
+  return supabase;
+}
