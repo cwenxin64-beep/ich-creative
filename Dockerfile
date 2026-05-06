@@ -1,6 +1,9 @@
 # 使用 Node.js 22
 FROM node:22-alpine
 
+# 设置 DNS 解析优先使用 IPv4（解决 Supabase 等外部服务 DNS 问题）
+ENV NODE_OPTIONS="--dns-result-order=ipv4first"
+
 WORKDIR /app
 
 # 安装 pnpm
