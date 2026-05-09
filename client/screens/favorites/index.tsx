@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { View, ScrollView, RefreshControl, Share, Alert, TouchableOpacity } from 'react-native';
 import { useSafeRouter } from '@/hooks/useSafeRouter';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { Screen } from '@/components/Screen';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -217,6 +217,9 @@ export default function FavoritesScreen() {
           style={styles.scrollView}
         >
           <View style={styles.header}>
+            <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+              <FontAwesome6 name="chevron-left" size={20} color={theme.textPrimary} />
+            </TouchableOpacity>
             <ThemedText variant="h2" color={theme.textPrimary} style={styles.headerTitle}>
               我的收藏
             </ThemedText>
