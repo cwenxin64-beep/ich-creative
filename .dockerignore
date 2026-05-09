@@ -6,7 +6,6 @@ node_modules
 eslint-plugins
 jiti
 node-compile-cache
-patches
 user
 *.log
 .env
