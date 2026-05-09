@@ -220,12 +220,14 @@ export default function FavoritesScreen() {
             <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
               <FontAwesome6 name="chevron-left" size={20} color={theme.textPrimary} />
             </TouchableOpacity>
-            <ThemedText variant="h2" color={theme.textPrimary} style={styles.headerTitle}>
-              我的收藏
-            </ThemedText>
-            <ThemedText variant="caption" color={theme.textMuted} style={styles.headerSubtitle}>
-              精选创意作品集
-            </ThemedText>
+            <View style={styles.headerText}>
+              <ThemedText variant="h2" color={theme.textPrimary} style={styles.headerTitle}>
+                我的收藏
+              </ThemedText>
+              <ThemedText variant="caption" color={theme.textMuted} style={styles.headerSubtitle}>
+                精选创意作品集
+              </ThemedText>
+            </View>
           </View>
 
           {favorites.length === 0 ? (

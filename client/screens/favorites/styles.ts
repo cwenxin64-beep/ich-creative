@@ -17,13 +17,20 @@ export const createStyles = (theme: Theme) => {
     },
     header: {
       marginBottom: Spacing["2xl"],
+      flexDirection: 'row',
       alignItems: 'center',
+    },
+    backButton: {
+      marginRight: Spacing.md,
+      padding: Spacing.xs,
+    },
+    headerText: {
+      flex: 1,
     },
     headerTitle: {
       marginBottom: Spacing.xs,
     },
     headerSubtitle: {
-      textAlign: 'center',
     },
     emptyContainer: {
       flex: 1,
