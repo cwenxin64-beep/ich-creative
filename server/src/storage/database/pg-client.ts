@@ -8,7 +8,7 @@ console.log('[DB] DATABASE_URL exists:', !!databaseUrl);
 // 创建连接池
 export const pool = new Pool(
   databaseUrl
-    ? { connectionString: databaseUrl, ssl: databaseUrl.includes('supabase') ? { rejectUnauthorized: false } : false }
+    ? { connectionString: databaseUrl, ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false }
     : {
         host: process.env.DB_HOST || 'localhost',
         port: parseInt(process.env.DB_PORT || '5432'),
