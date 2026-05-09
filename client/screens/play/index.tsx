@@ -85,6 +85,13 @@ export default function PlayScreen() {
 
       if (data.success) {
         setFavorites(data.favorites || []);
+        // 从已收藏列表填充 favoritedIds
+        const ids = new Set<string>();
+        (data.favorites || []).forEach((fav: any) => {
+          // 用 image_url 作为匹配 key，和 handleFavorite 中的 favKey 对应
+          if (fav.image_url) ids.add(fav.image_url);
+        });
+        setFavoritedIds(ids);
       }
     } catch (error) {
       console.error('Load favorites error:', error);
@@ -101,7 +108,35 @@ export default function PlayScreen() {
     }
   }, [showMaterialModal]);
 
+  const [favoritedIds, setFavoritedIds] = useState<Set<string>>(new Set());
+
   const handleFavorite = async (result: any) => {
+    const imageUrl = result.mainImageUrl || result.imageUrl;
+    const favKey = imageUrl || Math.random().toString();
+    
+    // 如果已收藏，则取消收藏
+    if (favoritedIds.has(favKey)) {
+      try {
+        const response = await fetch(buildApiUrl(`/api/v1/favorites/${encodeURIComponent(favKey)}`), {
+          method: 'DELETE',
+        });
+        const data = await response.json();
+        if (data.success) {
+          setFavoritedIds(prev => {
+            const next = new Set(prev);
+            next.delete(favKey);
+            return next;
+          });
+        } else {
+          Alert.alert('取消失败', data.message || '请重试');
+        }
+      } catch (error) {
+        console.error('Unfavorite error:', error);
+        Alert.alert('错误', '取消收藏失败，请检查网络连接');
+      }
+      return;
+    }
+
     try {
       /**
        * 服务端文件：server/src/routes/favorites.ts
@@ -127,7 +162,7 @@ export default function PlayScreen() {
       const data = await response.json();
 
       if (data.success) {
-        Alert.alert('成功', '已添加到收藏');
+        setFavoritedIds(prev => new Set(prev).add(favKey));
       } else {
         Alert.alert('收藏失败', data.message || '请重试');
       }
@@ -579,9 +614,9 @@ export default function PlayScreen() {
                     style={styles.actionButton}
                     onPress={() => handleFavorite(result)}
                   >
-                    <FontAwesome6 name="heart" size={16} color={theme.textSecondary} />
-                    <ThemedText variant="caption" color={theme.textSecondary} style={styles.actionButtonText}>
-                      收藏
+                    <FontAwesome6 name={favoritedIds.has(result.id || result.mainImageUrl || result.imageUrl || '') ? "heart" : "heart" } size={16} color={favoritedIds.has(result.id || result.mainImageUrl || result.imageUrl || '') ? theme.primary : theme.textSecondary} solid={favoritedIds.has(result.id || result.mainImageUrl || result.imageUrl || '')} />
+                    <ThemedText variant="caption" color={favoritedIds.has(result.id || result.mainImageUrl || result.imageUrl || '') ? theme.primary : theme.textSecondary} style={styles.actionButtonText}>
+                      {favoritedIds.has(result.id || result.mainImageUrl || result.imageUrl || '') ? '已收藏' : '收藏'}
                     </ThemedText>
                   </TouchableOpacity>
                   <TouchableOpacity
