@@ -11,12 +11,13 @@ RUN npm install -g pnpm@9
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY patches ./patches
 
-# 复制 client 的 package.json 和 scripts（postinstall 需要）
+# 复制所有 workspace 的 package.json（pnpm workspace 需要完整解析）
 COPY client/package.json ./client/
 COPY client/scripts ./client/scripts
+COPY server/package.json ./server/
 
-# 安装依赖（--ignore-scripts 跳过 postinstall 中的 depcheck，源码还没复制）
-RUN pnpm install --filter client --ignore-scripts
+# 安装全部依赖（--ignore-scripts 跳过 postinstall 中的 depcheck）
+RUN pnpm install --ignore-scripts
 
 # 复制 client 源代码
 COPY client/ ./client/
