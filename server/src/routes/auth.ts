@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getSupabaseClient } from '../storage/database/supabase-client';
+import { query } from '../storage/database/pg-client';
 import { hashPassword } from '../lib/password';
 
 const router = Router();
@@ -25,24 +25,13 @@ router.post('/register', async (req, res) => {
       });
     }
 
-    const supabase = getSupabaseClient();
-
     // 检查邮箱是否已注册
-    const { data: existingUsers, error: checkError } = await supabase
-      .from('users')
-      .select('id')
-      .eq('email', email)
-      .limit(1);
+    const existingResult = await query(
+      'SELECT id FROM users WHERE email = $1 LIMIT 1',
+      [email]
+    );
 
-    if (checkError) {
-      console.error('[AUTH] Check user error:', checkError);
-      return res.status(500).json({
-        success: false,
-        error: '检查用户失败',
-      });
-    }
-
-    if (existingUsers && existingUsers.length > 0) {
+    if (existingResult.rows.length > 0) {
       return res.status(409).json({
         success: false,
         error: '该邮箱已被注册',
@@ -53,24 +42,12 @@ router.post('/register', async (req, res) => {
     const hashedPassword = await hashPassword(password);
 
     // 创建用户
-    const { data, error } = await supabase
-      .from('users')
-      .insert({
-        username,
-        email,
-        password_hash: hashedPassword,
-      })
-      .select('id, username, email, created_at')
-      .single();
+    const insertResult = await query(
+      'INSERT INTO users (username, email, password_hash) VALUES ($1, $2, $3) RETURNING id, username, email, created_at',
+      [username, email, hashedPassword]
+    );
 
-    if (error) {
-      console.error('[AUTH] Create user error:', error);
-      return res.status(500).json({
-        success: false,
-        error: '创建用户失败',
-      });
-    }
-
+    const data = insertResult.rows[0];
     console.log(`[AUTH] New user registered: ${email}`);
 
     res.status(201).json({

@@ -7,6 +7,7 @@ import playRouter from "./routes/play";
 import useRouter from "./routes/use";
 import favoritesRouter from "./routes/favorites";
 import authRouter from "./routes/auth";
+import { initDatabase } from "./storage/database/init-tables";
 
 const app = express();
 const port = Number(process.env.PORT) || 9091;
@@ -46,6 +47,8 @@ app.use('/api/v1/use', useRouter);
 app.use('/api/v1/favorites', favoritesRouter);
 app.use('/api/v1/auth', authRouter);
 
-app.listen(port, () => {
+app.listen(port, async () => {
   console.log(`Server listening at http://localhost:${port}/`);
+  // 初始化数据库表
+  await initDatabase();
 });

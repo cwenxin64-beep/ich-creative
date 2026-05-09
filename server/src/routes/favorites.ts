@@ -1,5 +1,5 @@
 import express, { type Request, type Response } from 'express';
-import { getSupabaseClient } from '../storage/database/supabase-client';
+import { query } from '../storage/database/pg-client';
 
 const router = express.Router();
 
@@ -13,44 +13,32 @@ function getUserIdentity(req: Request): string {
 }
 
 // 获取或创建用户
-async function getOrCreateUser(client: any, deviceId: string): Promise<number> {
+async function getOrCreateUser(deviceId: string): Promise<number> {
   // 先查询用户
   console.log(`[Favorites] Looking up user with device_id: ${deviceId.substring(0, 50)}...`);
-  const { data: existingUser, error: selectError } = await client
-    .from('users')
-    .select('id')
-    .eq('device_id', deviceId)
-    .single();
+  const selectResult = await query(
+    'SELECT id FROM users WHERE device_id = $1',
+    [deviceId]
+  );
 
-  if (selectError) {
-    console.error(`[Favorites] Select user error:`, selectError);
-  }
-
-  if (existingUser) {
-    console.log(`[Favorites] Found existing user: ${existingUser.id}`);
-    return existingUser.id;
+  if (selectResult.rows.length > 0) {
+    console.log(`[Favorites] Found existing user: ${selectResult.rows[0].id}`);
+    return selectResult.rows[0].id;
   }
 
   // 创建新用户
   console.log(`[Favorites] Creating new user with device_id: ${deviceId.substring(0, 50)}...`);
-  const { data: newUser, error } = await client
-    .from('users')
-    .insert({ device_id: deviceId })
-    .select('id')
-    .single();
+  const insertResult = await query(
+    'INSERT INTO users (device_id) VALUES ($1) RETURNING id',
+    [deviceId]
+  );
 
-  if (error) {
-    console.error(`[Favorites] Insert user error:`, error);
-    throw new Error(`Failed to create user: ${error.message}`);
-  }
-
-  if (!newUser) {
-    console.error(`[Favorites] Insert succeeded but no data returned`);
+  if (insertResult.rows.length === 0) {
     throw new Error('Failed to create user: no data returned');
   }
 
-  console.log(`[Favorites] Created new user: ${newUser.id}`);
-  return newUser.id;
+  console.log(`[Favorites] Created new user: ${insertResult.rows[0].id}`);
+  return insertResult.rows[0].id;
 }
 
 /**
@@ -65,34 +53,20 @@ router.post('/', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    console.log(`[Favorites] Initializing Supabase client...`);
-    const client = getSupabaseClient();
-    console.log(`[Favorites] Supabase client initialized`);
-    
     const deviceId = getUserIdentity(req);
     console.log(`[Favorites] Device ID: ${deviceId.substring(0, 50)}...`);
-    
-    const userId = await getOrCreateUser(client, deviceId);
+
+    const userId = await getOrCreateUser(deviceId);
     console.log(`[Favorites] User ID: ${userId}`);
 
-    const { data: favorite, error } = await client
-      .from('favorites')
-      .insert({
-        user_id: userId,
-        type,
-        image_url: imageUrl,
-        video_url: videoUrl,
-        title: title || '非遗创意作品',
-        metadata: metadata || {},
-      })
-      .select()
-      .single();
+    const insertResult = await query(
+      `INSERT INTO favorites (user_id, type, image_url, video_url, title, metadata)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       RETURNING *`,
+      [userId, type, imageUrl || null, videoUrl || null, title || '非遗创意作品', JSON.stringify(metadata || {})]
+    );
 
-    if (error) {
-      console.error('Insert error:', error);
-      return res.status(500).json({ error: 'Failed to add favorite' });
-    }
-
+    const favorite = insertResult.rows[0];
     console.log(`Added to favorites: user=${userId}, type=${type}`);
 
     res.json({
@@ -115,24 +89,17 @@ router.post('/', async (req: Request, res: Response) => {
  */
 router.get('/', async (req: Request, res: Response) => {
   try {
-    const client = getSupabaseClient();
     const deviceId = getUserIdentity(req);
-    const userId = await getOrCreateUser(client, deviceId);
+    const userId = await getOrCreateUser(deviceId);
 
-    const { data: favorites, error } = await client
-      .from('favorites')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      console.error('Query error:', error);
-      return res.status(500).json({ error: 'Failed to get favorites' });
-    }
+    const result = await query(
+      'SELECT * FROM favorites WHERE user_id = $1 ORDER BY created_at DESC',
+      [userId]
+    );
 
     res.json({
       success: true,
-      favorites: favorites || [],
+      favorites: result.rows || [],
     });
   } catch (error) {
     console.error('Get favorites error:', error);
@@ -149,35 +116,25 @@ router.get('/', async (req: Request, res: Response) => {
  */
 router.delete('/:id', async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
-    const client = getSupabaseClient();
+    const id = req.params.id as string;
     const deviceId = getUserIdentity(req);
-    const userId = await getOrCreateUser(client, deviceId);
+    const userId = await getOrCreateUser(deviceId);
 
     // 先检查是否是该用户的收藏
-    const { data: favorite } = await client
-      .from('favorites')
-      .select('id, user_id')
-      .eq('id', id)
-      .single();
+    const checkResult = await query(
+      'SELECT id, user_id FROM favorites WHERE id = $1',
+      [parseInt(id)]
+    );
 
-    if (!favorite) {
+    if (checkResult.rows.length === 0) {
       return res.status(404).json({ error: 'Favorite not found' });
     }
 
-    if (favorite.user_id !== userId) {
+    if (checkResult.rows[0].user_id !== userId) {
       return res.status(403).json({ error: 'Not authorized to delete this favorite' });
     }
 
-    const { error } = await client
-      .from('favorites')
-      .delete()
-      .eq('id', id);
-
-    if (error) {
-      console.error('Delete error:', error);
-      return res.status(500).json({ error: 'Failed to delete favorite' });
-    }
+    await query('DELETE FROM favorites WHERE id = $1', [parseInt(id)]);
 
     console.log(`Removed from favorites: id=${id}, user=${userId}`);
 
