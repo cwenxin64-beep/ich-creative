@@ -74,22 +74,6 @@ export const createStyles = (theme: Theme) => {
       fontSize: 16,
       lineHeight: 24,
     },
-    typeButtons: {
-      flexDirection: 'row',
-      gap: Spacing.sm,
-    },
-    typeButton: {
-      flex: 1,
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: Spacing.xs,
-      paddingVertical: Spacing.md,
-      paddingHorizontal: Spacing.lg,
-      borderRadius: BorderRadius.lg,
-      borderWidth: 1.5,
-      borderColor: theme.border,
-    },
     fileInfo: {
       flex: 1,
     },
@@ -182,24 +166,6 @@ export const createStyles = (theme: Theme) => {
       justifyContent: 'center',
       alignItems: 'center',
     },
-    videoPreview: {
-      height: 240,
-      borderRadius: BorderRadius.lg,
-      backgroundColor: theme.backgroundTertiary,
-      justifyContent: 'center',
-      alignItems: 'center',
-      overflow: 'hidden',
-      position: 'relative',
-    },
-    videoThumbnail: {
-      width: '100%',
-      height: '100%',
-      resizeMode: 'cover',
-    },
-    playIcon: {
-      position: 'absolute',
-    },
-    videoText: {},
     analysisCard: {
       padding: Spacing.lg,
       borderRadius: BorderRadius.xl,

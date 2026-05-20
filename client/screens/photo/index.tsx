@@ -14,8 +14,6 @@ import { buildApiUrl } from '@/utils/api';
 import { FontAwesome6 } from '@expo/vector-icons';
 import { createStyles } from './styles';
 
-type OutputType = 'static' | 'dynamic';
-
 // 轮询配置
 const POLL_INTERVAL = 2000; // 2 秒轮询一次
 const MAX_POLL_ATTEMPTS = 120; // 最多轮询 120 次（4 分钟）
@@ -26,18 +24,14 @@ export default function PhotoScreen() {
   const router = useSafeRouter();
   const params = useSafeSearchParams<{ photoUri?: string; fromCamera?: string }>();
 
-  const [selectedMedia, setSelectedMedia] = useState<{ uri: string; type: 'image' | 'video' } | null>(null);
+  const [selectedMedia, setSelectedMedia] = useState<{ uri: string } | null>(null);
   const [description, setDescription] = useState('');
-  const [outputType, setOutputType] = useState<OutputType>('static');
+  const outputType = 'static' as const;
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<{
     staticMainImageUrl?: string;
     staticSubImageUrl1?: string;
     staticSubImageUrl2?: string;
-    videoUrl?: string;
-    videoMainImageUrl?: string;
-    videoSubImageUrl1?: string;
-    videoSubImageUrl2?: string;
     analysis?: any;
   } | null>(null);
 
@@ -87,7 +81,7 @@ export default function PhotoScreen() {
        * 接口：POST /api/v1/favorites
        * Body 参数：type: string, imageUrl?: string, videoUrl?: string, title: string, metadata?: any
        */
-      const imageUrl = result.staticMainImageUrl || result.videoMainImageUrl;
+      const imageUrl = result.staticMainImageUrl;
       
       if (!imageUrl) {
         console.log('[Favorite] No image URL available, result keys:', Object.keys(result));
@@ -102,14 +96,11 @@ export default function PhotoScreen() {
         body: JSON.stringify({
           type: 'photo',
           imageUrl,
-          videoUrl: result.videoUrl,
           title: '非遗创意作品',
           metadata: {
             ...result.analysis,
             staticSubImageUrl1: result.staticSubImageUrl1,
             staticSubImageUrl2: result.staticSubImageUrl2,
-            videoSubImageUrl1: result.videoSubImageUrl1,
-            videoSubImageUrl2: result.videoSubImageUrl2,
           },
         }),
       });
@@ -140,7 +131,7 @@ export default function PhotoScreen() {
     }
 
     try {
-      const url = result.staticMainImageUrl || result.videoUrl || result.videoMainImageUrl;
+      const url = result.staticMainImageUrl;
 
       if (!url) {
         console.log('[Share] No URL available, result keys:', Object.keys(result));
@@ -166,8 +157,7 @@ export default function PhotoScreen() {
       setSharing(true);
 
       // 生成临时文件名
-      const fileExtension = url.includes('.mp4') ? 'mp4' : 'jpg';
-      const fileName = `ich_art_${Date.now()}.${fileExtension}`;
+      const fileName = `ich_art_${Date.now()}.jpg`;
       const localUri = `${(FileSystem as any).cacheDirectory}${fileName}`;
 
       // 下载文件到本地
@@ -189,7 +179,7 @@ export default function PhotoScreen() {
 
       // 分享文件
       await Sharing.shareAsync(downloadResult.uri, {
-        mimeType: fileExtension === 'mp4' ? 'video/mp4' : 'image/jpeg',
+        mimeType: 'image/jpeg',
         dialogTitle: '分享非遗创意作品',
       });
     } catch (error) {
@@ -206,7 +196,6 @@ export default function PhotoScreen() {
       if (params.photoUri && params.fromCamera === 'true') {
         setSelectedMedia({
           uri: params.photoUri,
-          type: 'image',
         });
       }
     }, [params.photoUri, params.fromCamera])
@@ -216,7 +205,7 @@ export default function PhotoScreen() {
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('权限提示', '需要相册权限才能选择图片或视频');
+        Alert.alert('权限提示', '需要相册权限才能选择图片');
         return;
       }
 
@@ -230,7 +219,6 @@ export default function PhotoScreen() {
         const asset = result.assets[0];
         setSelectedMedia({
           uri: asset.uri,
-          type: asset.type === 'video' ? 'video' : 'image',
         });
       }
     } catch (error) {
@@ -245,7 +233,7 @@ export default function PhotoScreen() {
 
   const handleGenerate = async () => {
     if (!selectedMedia) {
-      Alert.alert('提示', '请先选择图片或视频');
+      Alert.alert('提示', '请先选择图片');
       return;
     }
 
@@ -258,8 +246,8 @@ export default function PhotoScreen() {
     setResult(null);
 
     try {
-      const fileName = selectedMedia.type === 'video' ? 'video.mp4' : 'image.jpg';
-      const mimeType = selectedMedia.type === 'video' ? 'video/mp4' : 'image/jpeg';
+      const fileName = 'image.jpg';
+      const mimeType = 'image/jpeg';
       const file = await createFormDataFile(selectedMedia.uri, fileName, mimeType);
 
       const formData = new FormData();
@@ -374,10 +362,10 @@ export default function PhotoScreen() {
             </View>
           ) : (
             <View style={styles.previewContainer}>
-              <FontAwesome6 name={selectedMedia.type === 'video' ? 'video' : 'image'} size={32} color={theme.primary} />
+              <FontAwesome6 name="image" size={32} color={theme.primary} />
               <View style={styles.fileInfo}>
                 <ThemedText variant="smallMedium" color={theme.textPrimary}>
-                  已选择{selectedMedia.type === 'video' ? '视频' : '图片'}
+                  已选择图片
                 </ThemedText>
                 <ThemedText variant="caption" color={theme.textMuted}>
                   点击下方按钮可重新选择
@@ -411,37 +399,6 @@ export default function PhotoScreen() {
             numberOfLines={4}
             textAlignVertical="top"
           />
-        </ThemedView>
-
-        {/* Output Type Selection */}
-        <ThemedView level="root" style={styles.inputSection}>
-          <ThemedText variant="title" color={theme.textPrimary} style={styles.inputLabel}>
-            生成类型
-          </ThemedText>
-          <View style={styles.typeButtons}>
-            {(['static', 'dynamic'] as OutputType[]).map((type) => (
-              <TouchableOpacity
-                key={type}
-                style={[
-                  styles.typeButton,
-                  outputType === type && { backgroundColor: theme.primary, borderColor: theme.primary },
-                ]}
-                onPress={() => setOutputType(type)}
-              >
-                <FontAwesome6
-                  name={type === 'static' ? 'image' : 'video'}
-                  size={16}
-                  color={outputType === type ? theme.buttonPrimaryText : theme.textSecondary}
-                />
-                <ThemedText
-                  variant="small"
-                  color={outputType === type ? theme.buttonPrimaryText : theme.textSecondary}
-                >
-                  {type === 'static' ? '图片' : '视频'}
-                </ThemedText>
-              </TouchableOpacity>
-            ))}
-          </View>
         </ThemedView>
 
         {/* Generate Button */}
@@ -508,52 +465,6 @@ export default function PhotoScreen() {
               </ThemedView>
             )}
 
-            {/* Video Result */}
-            {outputType === 'dynamic' && result.videoMainImageUrl && (
-              <ThemedView level="root" style={styles.resultCard}>
-                <View style={styles.resultHeader}>
-                  <ThemedText variant="smallMedium" color={theme.textSecondary} style={styles.resultLabel}>
-                    动态视频
-                  </ThemedText>
-                  <TouchableOpacity
-                    style={styles.favoriteButton}
-                    onPress={handleFavorite}
-                  >
-                    <FontAwesome6
-                      name={isFavorited ? "heart" : "heart"}
-                      size={20}
-                      solid={isFavorited}
-                      color={isFavorited ? "#EF4444" : theme.textSecondary}
-                    />
-                  </TouchableOpacity>
-                </View>
-                <View style={styles.resultImagesContainer}>
-                  <TouchableOpacity
-                    onPress={() => router.push('/detail', {
-                      videoUrl: result.videoUrl,
-                      mainImageUrl: result.videoMainImageUrl,
-                      subImageUrl1: result.videoSubImageUrl1,
-                      subImageUrl2: result.videoSubImageUrl2,
-                      description: result.analysis?.creativeDescription || description,
-                    })}
-                  >
-                    <View style={styles.videoPreview}>
-                      <Image source={{ uri: result.videoMainImageUrl }} style={styles.videoThumbnail} />
-                      <FontAwesome6 name="circle-play" size={48} color="#fff" style={styles.playIcon} />
-                    </View>
-                  </TouchableOpacity>
-                  <View style={styles.resultSubImages}>
-                    <TouchableOpacity onPress={() => router.push('/detail', { imageUrl: result.videoSubImageUrl1 })}>
-                      <Image source={{ uri: result.videoSubImageUrl1 } as any} style={styles.resultSubImage} />
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={() => router.push('/detail', { imageUrl: result.videoSubImageUrl2 })}>
-                      <Image source={{ uri: result.videoSubImageUrl2 } as any} style={styles.resultSubImage} />
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </ThemedView>
-            )}
-
             {/* Analysis Result */}
             {result.analysis && (
               <ThemedView level="root" style={styles.analysisCard}>
@@ -585,18 +496,6 @@ export default function PhotoScreen() {
           </ThemedView>
         )}
 
-        {/* Debug: Test Favorite Button */}
-        {result && (
-          <TouchableOpacity
-            style={{ backgroundColor: '#EF4444', padding: 16, marginTop: 20, borderRadius: 8, alignItems: 'center' }}
-            onPress={() => {
-              console.log('[DEBUG] Test favorite button pressed');
-              handleFavorite();
-            }}
-          >
-            <ThemedText variant="title" color="#fff">测试收藏功能</ThemedText>
-          </TouchableOpacity>
-        )}
       </ScrollView>
     </Screen>
   );
