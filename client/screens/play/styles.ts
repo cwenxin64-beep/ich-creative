@@ -14,6 +14,10 @@ export const createStyles = (theme: Theme) => {
       alignItems: 'center',
       marginBottom: Spacing.xl,
     },
+    headerText: {
+      marginLeft: Spacing.md,
+      flex: 1,
+    },
     backButton: {
       marginRight: Spacing.md,
       padding: Spacing.sm,

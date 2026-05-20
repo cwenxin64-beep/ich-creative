@@ -312,9 +312,14 @@ export default function PlayScreen() {
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
             <FontAwesome6 name="arrow-left" size={24} color={theme.textPrimary} />
           </TouchableOpacity>
-          <ThemedText variant="h2" color={theme.textPrimary}>
-            玩非遗
-          </ThemedText>
+          <View style={styles.headerText}>
+            <ThemedText variant="h2" color={theme.textPrimary}>
+              玩非遗
+            </ThemedText>
+            <ThemedText variant="caption" color={theme.textSecondary}>
+              选择非遗元素，AI 帮你生成交互体验
+            </ThemedText>
+          </View>
         </ThemedView>
 
         {/* 非遗类型选择 */}

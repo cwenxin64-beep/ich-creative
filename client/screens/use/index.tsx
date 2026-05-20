@@ -304,9 +304,14 @@ export default function UseScreen() {
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
             <FontAwesome6 name="arrow-left" size={24} color={theme.textPrimary} />
           </TouchableOpacity>
-          <ThemedText variant="h2" color={theme.textPrimary}>
-            用非遗
-          </ThemedText>
+          <View style={styles.headerText}>
+            <ThemedText variant="h2" color={theme.textPrimary}>
+              用非遗
+            </ThemedText>
+            <ThemedText variant="caption" color={theme.textSecondary}>
+              选择场景，AI 帮你定制非遗实用设计
+            </ThemedText>
+          </View>
         </ThemedView>
 
         {/* 非遗类型选择 */}

@@ -237,9 +237,14 @@ export default function AudioScreen() {
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
             <FontAwesome6 name="arrow-left" size={24} color={theme.textPrimary} />
           </TouchableOpacity>
-          <ThemedText variant="h2" color={theme.textPrimary}>
-            说非遗
-          </ThemedText>
+          <View style={styles.headerText}>
+            <ThemedText variant="h2" color={theme.textPrimary}>
+              说非遗
+            </ThemedText>
+            <ThemedText variant="caption" color={theme.textSecondary}>
+              录制语音，AI 帮你生成非遗口述内容
+            </ThemedText>
+          </View>
         </ThemedView>
 
         {/* Upload Area */}

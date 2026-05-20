@@ -331,9 +331,14 @@ export default function PhotoScreen() {
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
             <FontAwesome6 name="arrow-left" size={24} color={theme.textPrimary} />
           </TouchableOpacity>
-          <ThemedText variant="h2" color={theme.textPrimary}>
-            拍非遗
-          </ThemedText>
+          <View style={styles.headerText}>
+            <ThemedText variant="h2" color={theme.textPrimary}>
+              拍非遗
+            </ThemedText>
+            <ThemedText variant="caption" color={theme.textSecondary}>
+              上传照片，AI 帮你生成非遗风格创意图片
+            </ThemedText>
+          </View>
         </ThemedView>
 
         {/* Upload Area */}
