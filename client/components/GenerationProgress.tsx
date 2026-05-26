@@ -1,8 +1,8 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Animated, Easing } from 'react-native';
-import { ThemedText } from '../components/ThemedText';
-import { useTheme } from '../contexts/ThemeContext';
-import { Spacing } from '../constants/Theme';
+import { ThemedText } from '@/components/ThemedText';
+import { useTheme } from '@/hooks/useTheme';
+import { Spacing } from '@/constants/theme';
 
 interface GenerationProgressProps {
   progress: number;
@@ -13,7 +13,7 @@ export const GenerationProgress: React.FC<GenerationProgressProps> = ({
   progress,
   tip = 'AI 正在为你创作，请稍候...',
 }) => {
-  const theme = useTheme();
+  const { theme } = useTheme();
   const animatedWidth = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
@@ -98,10 +98,10 @@ export const GenerationProgress: React.FC<GenerationProgressProps> = ({
 
 function getStepText(progress: number): string {
   if (progress < 15) return '正在理解你的创意...';
-  if (progress < 30) return '正在构思非遗风格方案...';
-  if (progress < 50) return '正在融合非遗元素...';
-  if (progress < 70) return '正在生成作品中...';
-  if (progress < 90) return '正在精修细节...';
+  if (progress < 30) return '构思非遗风格方案...';
+  if (progress < 50) return '融合传统与现代元素...';
+  if (progress < 70) return '生成创作中...';
+  if (progress < 85) return '精修细节...';
   if (progress < 100) return '即将完成...';
   return '创作完成!';
 }
