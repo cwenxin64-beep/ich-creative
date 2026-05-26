@@ -25,11 +25,11 @@ export default function HomeScreen() {
     },
     {
       id: 'audio',
-      title: '说非遗',
-      subtitle: '音频创作',
-      icon: 'microphone',
+      title: '唱非遗',
+      subtitle: '音乐创作',
+      icon: 'music',
       color: '#D4A574',
-      description: '录制或上传音频，生成创意作品',
+      description: '输入创意或歌词，生成非遗风格音乐',
       route: '/audio'
     },
     {

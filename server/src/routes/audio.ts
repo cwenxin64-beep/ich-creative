@@ -1,274 +1,208 @@
 import express, { type Request, type Response } from 'express';
-import multer from 'multer';
 import crypto from 'crypto';
 
 const router = express.Router();
 
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 50 * 1024 * 1024 },
-});
-
-// 火山引擎 API 配置
-const VOLCENGINE_API_KEY = process.env.COZE_API_KEY || process.env.VOLCENGINE_API_KEY || '';
-const VOLCENGINE_BASE_URL = process.env.VOLCENGINE_BASE_URL || 'https://ark.cn-beijing.volces.com/api/v3';
-
-// 模型 ID 配置（使用推理接入点 ID）
-const TEXT_MODEL = process.env.VOLCENGINE_TEXT_MODEL || 'ep-20260326185613-8d6lx';
-const IMAGE_MODEL = process.env.VOLCENGINE_IMAGE_MODEL || 'ep-20260326185459-8rt74';
+// 火山引擎音乐 API 配置
+const VOLC_MUSIC_AK = process.env.VOLC_MUSIC_AK || '';
+const VOLC_MUSIC_SK = process.env.VOLC_MUSIC_SK || '';
+const VOLC_MUSIC_HOST = 'open.volcengineapi.com';
+const VOLC_MUSIC_REGION = 'cn-beijing';
+const VOLC_MUSIC_SERVICE = 'imagination';
+const VOLC_MUSIC_VERSION = '2024-08-12';
 
 /**
- * 直接调用火山引擎 LLM API
+ * HMAC-SHA256 签名工具函数
  */
-async function callVolcengineLLM(messages: any[], model: string = TEXT_MODEL): Promise<string> {
-  const url = `${VOLCENGINE_BASE_URL}/chat/completions`;
-  
-  const body = {
-    model,
-    messages,
-    temperature: 0.5,
-    max_tokens: 2000,
-  };
+function hmacSHA256(key: Buffer | string, content: string): Buffer {
+  return crypto.createHmac('sha256', key).update(content).digest();
+}
 
-  console.log('[LLM] Calling:', url, 'Model:', model);
-
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${VOLCENGINE_API_KEY}`,
-    },
-    body: JSON.stringify(body),
-    signal: AbortSignal.timeout(120000),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`LLM API error: ${response.status} - ${errorText}`);
-  }
-
-  const data = await response.json();
-  return data.choices[0].message.content;
+function hashSHA256(content: string): string {
+  return crypto.createHash('sha256').update(content).digest('hex');
 }
 
 /**
- * 直接调用火山引擎图片生成 API
+ * 生成火山引擎 API 签名
  */
-async function callVolcengineImage(prompt: string): Promise<string> {
-  const url = `${VOLCENGINE_BASE_URL}/images/generations`;
-  
-  const body = {
-    model: IMAGE_MODEL,
-    prompt,
-  };
+function signRequest(
+  method: string,
+  query: Record<string, string>,
+  body: string,
+  date: Date
+): { authorization: string; xDate: string } {
+  const xDate = date.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+  const shortDate = xDate.substring(0, 8);
 
-  console.log('[Image] Calling:', url, 'Model:', IMAGE_MODEL);
+  // Step 1: CanonicalQueryString
+  const sortedQuery = Object.keys(query).sort().map(key => {
+    const encodedKey = encodeURIComponent(key);
+    const encodedVal = encodeURIComponent(query[key]);
+    return `${encodedKey}=${encodedVal}`;
+  }).join('&');
 
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${VOLCENGINE_API_KEY}`,
-    },
-    body: JSON.stringify(body),
-    signal: AbortSignal.timeout(180000),
-  });
+  // Step 2: CanonicalHeaders
+  const canonicalHeaders =
+    `content-type:application/json\n` +
+    `host:${VOLC_MUSIC_HOST}\n` +
+    `x-content-sha256:${hashSHA256(body)}\n` +
+    `x-date:${xDate}\n`;
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error('[Image] Error Response:', errorText);
-    throw new Error(`Image API error: ${response.status} - ${errorText}`);
-  }
+  const signedHeaders = 'content-type;host;x-content-sha256;x-date';
 
-  const data = await response.json();
-  console.log('[Image] Response keys:', Object.keys(data));
-  console.log('[Image] Response:', JSON.stringify(data));
-  
-  // 递归查找所有可能的 URL
-  const findAllUrls = (obj: any, path = ''): string[] => {
-    const urls: string[] = [];
-    if (typeof obj === 'string' && (obj.startsWith('http') || obj.startsWith('data:'))) {
-      urls.push(`${path}: ${obj.substring(0, 200)}`);
-    } else if (Array.isArray(obj)) {
-      obj.forEach((item, i) => urls.push(...findAllUrls(item, `${path}[${i}]`)));
-    } else if (obj && typeof obj === 'object') {
-      Object.entries(obj).forEach(([key, val]) => urls.push(...findAllUrls(val, `${path}.${key}`)));
-    }
-    return urls;
-  };
-  
-  const allUrls = findAllUrls(data);
-  console.log('[Image] All URLs found:', allUrls);
-  
-  // 尝试多种可能的返回格式
-  const imageUrl = data.data?.[0]?.url 
-    || data.data?.[0]?.b64_json
-    || data.images?.[0]?.url 
-    || data.images?.[0]?.image_url
-    || data.url
-    || data.result?.url;
-    
-  console.log('[Image] Extracted URL:', imageUrl);
-  
-  // 检查是否是内部代理 URL，如果是则报错
-  if (imageUrl && imageUrl.includes('code.coze.cn')) {
-    console.error('[Image] ERROR: Image API returned internal proxy URL (code.coze.cn)');
-    console.error('[Image] All URLs found:', JSON.stringify(allUrls));
-    console.error('[Image] Full response:', JSON.stringify(data));
-    throw new Error(`Image API returned inaccessible internal URL: ${imageUrl}`);
-  }
-  
-  if (!imageUrl) {
-    throw new Error(`Image API returned no URL. Response: ${JSON.stringify(data).substring(0, 500)}`);
-  }
-  
-  return imageUrl;
+  // Step 3: CanonicalRequest
+  const hashedBody = hashSHA256(body);
+  const canonicalRequest = [
+    method,
+    '/',
+    sortedQuery,
+    canonicalHeaders,
+    signedHeaders,
+    hashedBody,
+  ].join('\n');
+
+  // Step 4: StringToSign
+  const credentialScope = `${shortDate}/${VOLC_MUSIC_REGION}/${VOLC_MUSIC_SERVICE}/request`;
+  const stringToSign = [
+    'HMAC-SHA256',
+    xDate,
+    credentialScope,
+    hashSHA256(canonicalRequest),
+  ].join('\n');
+
+  // Step 5: Signing Key
+  const kDate = hmacSHA256(VOLC_MUSIC_SK, shortDate);
+  const kRegion = hmacSHA256(kDate, VOLC_MUSIC_REGION);
+  const kService = hmacSHA256(kRegion, VOLC_MUSIC_SERVICE);
+  const kSigning = hmacSHA256(kService, 'request');
+
+  // Step 6: Signature
+  const signature = crypto.createHmac('sha256', kSigning).update(stringToSign).digest('hex');
+
+  // Step 7: Authorization
+  const authorization = `HMAC-SHA256 Credential=${VOLC_MUSIC_AK}/${credentialScope}, SignedHeaders=${signedHeaders}, Signature=${signature}`;
+
+  return { authorization, xDate };
 }
 
-// 火山引擎 ASR 极速版配置
-const VOLC_ASR_API_KEY = process.env.VOLC_ASR_API_KEY || '';
-const VOLC_ASR_APP_KEY = process.env.VOLC_ASR_APP_KEY || '';
-const VOLC_ASR_RESOURCE_ID = 'volc.bigasr.auc_turbo';
-
 /**
- * 火山引擎 ASR 极速版 API（一次请求返回结果）
+ * 调用火山引擎音乐 API
  */
-async function callASRFlash(buffer: Buffer): Promise<string> {
-  const url = 'https://openspeech.bytedance.com/api/v3/auc/bigmodel/recognize/flash';
-  const taskId = crypto.randomUUID();
-  
-  const base64Audio = buffer.toString('base64');
-  
-  const body = {
-    user: { uid: VOLC_ASR_APP_KEY },
-    audio: { data: base64Audio },
-    request: { model_name: 'bigmodel', enable_itn: true },
+async function callMusicAPI(action: string, body: Record<string, any>) {
+  const query: Record<string, string> = {
+    Action: action,
+    Version: VOLC_MUSIC_VERSION,
   };
 
-  console.log('[ASR] Submitting request, taskId:', taskId);
+  const bodyStr = JSON.stringify(body);
+  const { authorization, xDate } = signRequest('POST', query, bodyStr, new Date());
+
+  const queryString = Object.keys(query).sort().map(key => {
+    return `${encodeURIComponent(key)}=${encodeURIComponent(query[key])}`;
+  }).join('&');
+
+  const url = `https://${VOLC_MUSIC_HOST}/?${queryString}`;
+
+  console.log(`[Music] Calling ${action}, URL: ${url}`);
 
   const response = await fetch(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'X-Api-Key': VOLC_ASR_API_KEY,
-      'X-Api-Resource-Id': VOLC_ASR_RESOURCE_ID,
-      'X-Api-Request-Id': taskId,
-      'X-Api-Sequence': '-1',
+      'Host': VOLC_MUSIC_HOST,
+      'X-Date': xDate,
+      'X-Content-Sha256': hashSHA256(bodyStr),
+      'Authorization': authorization,
     },
-    body: JSON.stringify(body),
-    signal: AbortSignal.timeout(120000),
+    body: bodyStr,
+    signal: AbortSignal.timeout(60000),
   });
 
-  const statusCode = response.headers.get('X-Api-Status-Code');
-  const message = response.headers.get('X-Api-Message');
-  const logid = response.headers.get('X-Tt-Logid');
-  
-  console.log('[ASR] Response - statusCode:', statusCode, 'message:', message, 'logid:', logid);
+  const data = await response.json();
+  console.log(`[Music] ${action} response:`, JSON.stringify(data).substring(0, 500));
 
-  if (statusCode !== '20000000') {
-    throw new Error(`ASR failed: ${statusCode} - ${message}`);
+  if (data.Code !== undefined && data.Code !== 0) {
+    throw new Error(`Music API error: ${data.Code} - ${data.Message}`);
   }
 
-  const data = await response.json();
-  console.log('[ASR] Result:', JSON.stringify(data).substring(0, 500));
-  
-  return data.result?.text || '';
+  return data;
 }
 
 /**
  * POST /api/v1/audio/generate
- * Generate creative ICH products from audio input
+ * 使用火山引擎音乐 API (GenBGMForTime 后付费) 生成非遗风格纯音乐/BGM
  */
-router.post('/generate', upload.single('file'), async (req: Request, res: Response) => {
+router.post('/generate', async (req: Request, res: Response) => {
   try {
-    const file = req.file;
-    const keywords = req.body.keywords || '';
+    const { prompt, duration } = req.body;
 
-    if (!file) {
-      return res.status(400).json({ error: 'No audio file provided' });
+    if (!prompt) {
+      return res.status(400).json({ error: '请输入音乐描述' });
     }
 
-    console.log(`Audio generation request: ${file.originalname}, keywords: ${keywords}`);
+    console.log(`[Music] Generate request - prompt: ${prompt}, duration: ${duration}`);
 
-    // Step 1: Transcribe audio using ASR (极速版)
-    let transcription = '';
-    try {
-      transcription = await callASRFlash(file.buffer);
-      console.log('Transcription:', transcription);
-    } catch (error: any) {
-      console.error('ASR failed, using fallback:', error.message);
-      transcription = '语音识别失败，请重试';
+    // GenBGMForTime v5.0: 只需 Text 描述，无需单独传 Genre/Mood/Instrument
+    const requestBody: Record<string, any> = {
+      Text: prompt,
+      Duration: duration || 60,
+      Version: 'v5.0',
+      EnableInputRewrite: true,
+    };
+
+    // 后付费接口 Action=GenBGMForTime
+    const submitResult = await callMusicAPI('GenBGMForTime', requestBody);
+
+    const taskId = submitResult.Result?.TaskID;
+    if (!taskId) {
+      throw new Error('Failed to create music task: ' + JSON.stringify(submitResult));
     }
 
-    // Step 2: Analyze emotion and generate creative design using LLM
-    const designPrompt = `你是一位非物质文化遗产创意设计专家。请根据语音内容和用户关键词，生成精准的设计方案。
+    console.log(`[Music] Task created: ${taskId}, predicted wait: ${submitResult.Result?.PredictedWaitTime}s`);
 
-## 语音转写内容
-"${transcription}"
+    // 轮询查询任务状态
+    const maxPolls = 60;
+    const pollInterval = 5000;
 
-## 用户关键词
-"${keywords || '（未提供）'}"
+    for (let i = 0; i < maxPolls; i++) {
+      await new Promise(resolve => setTimeout(resolve, pollInterval));
 
-## 任务要求
-1. **情感分析**：识别语音中的情感基调
-2. **提取非遗元素**：根据内容提取相关的非遗元素
-3. **生成创意描述**：用20个汉字概括
-4. **生成图像生成Prompt**：用于AI生图
+      const queryResult = await callMusicAPI('QuerySong', { TaskID: taskId });
+      const status = queryResult.Result?.Status;
 
-## 输出格式（JSON）
-{
-  "emotion": "主要情感",
-  "ichElements": ["非遗元素"],
-  "mainPrompt": "产品正面全景描述",
-  "subPrompt1": "细节特写描述",
-  "subPrompt2": "侧面视角描述"
-}
+      console.log(`[Music] Task ${taskId} status: ${status}, progress: ${queryResult.Result?.Progress}%`);
 
-请严格按照以上要求输出JSON：`;
-
-    const llmResponse = await callVolcengineLLM([
-      { role: 'user', content: designPrompt }
-    ]);
-
-    // 解析 JSON
-    let analysisData;
-    try {
-      let content = llmResponse.trim();
-      if (content.startsWith('```')) {
-        content = content.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/,'').trim();
+      // Status: 0=等待中, 1=处理中, 2=成功, 3=失败
+      if (status === 2) {
+        const songDetail = queryResult.Result?.SongDetail || {};
+        return res.json({
+          success: true,
+          audioUrl: songDetail.AudioUrl,
+          captions: songDetail.Captions,
+          duration: songDetail.Duration,
+          genre: songDetail.Genre,
+          mood: songDetail.Mood,
+          taskId,
+        });
+      } else if (status === 3) {
+        const failureReason = queryResult.Result?.FailureReason;
+        return res.status(500).json({
+          error: '音乐生成失败',
+          message: failureReason?.Msg || '未知原因',
+          code: failureReason?.Code,
+        });
       }
-      analysisData = JSON.parse(content);
-    } catch {
-      analysisData = {
-        emotion: '温暖',
-        ichElements: ['传统工艺'],
-        mainPrompt: '非遗创意产品，传统工艺，高清产品摄影',
-        subPrompt1: '同一产品细节特写',
-        subPrompt2: '同一产品侧面视角',
-      };
+
+      // 继续轮询
     }
 
-    // Step 3: Generate images
-    const [mainImageUrl, subImageUrl1, subImageUrl2] = await Promise.all([
-      callVolcengineImage(analysisData.mainPrompt),
-      callVolcengineImage(analysisData.subPrompt1),
-      callVolcengineImage(analysisData.subPrompt2),
-    ]);
+    return res.status(500).json({ error: '音乐生成超时，请重试' });
 
-    res.json({
-      success: true,
-      mainImageUrl,
-      subImageUrl1,
-      subImageUrl2,
-      transcription,
-      analysis: analysisData,
-    });
   } catch (error) {
-    console.error('Audio generation error:', error);
+    console.error('[Music] Generation error:', error);
     res.status(500).json({
       error: 'Generation failed',
-      message: error instanceof Error ? error.message : 'Unknown error'
+      message: error instanceof Error ? error.message : 'Unknown error',
     });
   }
 });

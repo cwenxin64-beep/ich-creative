@@ -51,8 +51,8 @@ export default function TabLayout() {
       <Tabs.Screen
         name="audio"
         options={{
-          title: '说非遗',
-          tabBarIcon: ({ color }) => <FontAwesome6 name="microphone" size={24} color={color} />,
+          title: '唱非遗',
+          tabBarIcon: ({ color }) => <FontAwesome6 name="music" size={24} color={color} />,
         }}
       />
       <Tabs.Screen

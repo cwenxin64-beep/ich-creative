@@ -49,12 +49,12 @@ export default function WelcomeScreen() {
 
             <View style={styles.featureItem}>
               <View style={[styles.featureIcon, { backgroundColor: `${theme.accent}20` }]}>
-                <FontAwesome6 name="microphone" size={24} color={theme.accent} />
+                <FontAwesome6 name="music" size={24} color={theme.accent} />
               </View>
               <View style={styles.featureText}>
-                <ThemedText variant="title" color={theme.textPrimary}>说非遗</ThemedText>
+                <ThemedText variant="title" color={theme.textPrimary}>唱非遗</ThemedText>
                 <ThemedText variant="caption" color={theme.textSecondary}>
-                  语音输入，情感分析
+                  描述创意，生成非遗风格音乐
                 </ThemedText>
               </View>
             </View>

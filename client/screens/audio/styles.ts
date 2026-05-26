@@ -22,46 +22,31 @@ export const createStyles = (theme: Theme) => {
       marginRight: Spacing.md,
       padding: Spacing.sm,
     },
-    uploadSection: {
-      marginBottom: Spacing.xl,
+    section: {
+      marginBottom: Spacing.lg,
     },
-    uploadButtons: {
+    sectionTitle: {
+      marginBottom: Spacing.md,
+    },
+    modeToggle: {
       flexDirection: 'row',
-      gap: Spacing.lg,
+      backgroundColor: theme.backgroundTertiary,
+      borderRadius: BorderRadius.lg,
+      padding: 4,
+      marginBottom: Spacing.md,
     },
-    uploadButton: {
+    modeButton: {
       flex: 1,
-      padding: Spacing.lg,
-      borderRadius: BorderRadius.xl,
+      paddingVertical: Spacing.sm,
+      borderRadius: BorderRadius.md,
       alignItems: 'center',
       justifyContent: 'center',
-      minHeight: 140,
-      shadowColor: theme.shadow,
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 1,
-      shadowRadius: 12,
-      elevation: 8,
-    },
-    uploadButtonText: {
-      marginTop: Spacing.md,
-      marginBottom: Spacing.xs,
-    },
-    previewContainer: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      padding: Spacing.lg,
-      borderRadius: BorderRadius.xl,
-      backgroundColor: theme.backgroundTertiary,
-      gap: Spacing.md,
-    },
-    fileInfo: {
-      flex: 1,
     },
     inputSection: {
-      marginBottom: Spacing.xl,
+      marginTop: Spacing.sm,
     },
-    inputLabel: {
-      marginBottom: Spacing.md,
+    lyricsHint: {
+      marginBottom: Spacing.xs,
     },
     textInput: {
       minHeight: 100,
@@ -70,6 +55,32 @@ export const createStyles = (theme: Theme) => {
       fontSize: 16,
       lineHeight: 24,
     },
+    lyricsInput: {
+      minHeight: 160,
+    },
+    chipContainer: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: Spacing.sm,
+    },
+    chip: {
+      paddingHorizontal: Spacing.md,
+      paddingVertical: Spacing.sm,
+      borderRadius: BorderRadius.full,
+      borderWidth: 1,
+    },
+    durationContainer: {
+      flexDirection: 'row',
+      gap: Spacing.md,
+    },
+    durationButton: {
+      flex: 1,
+      paddingVertical: Spacing.md,
+      borderRadius: BorderRadius.lg,
+      borderWidth: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
     generateButton: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -77,7 +88,7 @@ export const createStyles = (theme: Theme) => {
       paddingVertical: Spacing.xl,
       paddingHorizontal: Spacing["2xl"],
       borderRadius: BorderRadius.xl,
-      marginBottom: Spacing["2xl"],
+      marginBottom: Spacing.md,
       gap: Spacing.sm,
       shadowColor: theme.shadow,
       shadowOffset: { width: 0, height: 4 },
@@ -86,6 +97,22 @@ export const createStyles = (theme: Theme) => {
       elevation: 8,
     },
     generateButtonText: {},
+    progressBarContainer: {
+      marginBottom: Spacing.xl,
+    },
+    progressBarBg: {
+      height: 6,
+      borderRadius: 3,
+      overflow: 'hidden',
+    },
+    progressBarFill: {
+      height: '100%',
+      borderRadius: 3,
+    },
+    progressText: {
+      marginTop: Spacing.sm,
+      textAlign: 'center',
+    },
     resultsSection: {
       gap: Spacing.lg,
     },
@@ -105,23 +132,13 @@ export const createStyles = (theme: Theme) => {
     resultLabel: {
       marginBottom: Spacing.sm,
     },
-    resultImage: {
-      width: '100%',
-      height: 200,
-      borderRadius: BorderRadius.lg,
-      resizeMode: 'cover',
-      marginBottom: Spacing.sm,
-    },
-    resultSubImages: {
+    audioPlayerHeader: {
       flexDirection: 'row',
-      gap: Spacing.sm,
-      marginBottom: Spacing.md,
+      alignItems: 'center',
+      gap: Spacing.md,
     },
-    resultSubImage: {
+    audioInfo: {
       flex: 1,
-      height: 100,
-      borderRadius: BorderRadius.lg,
-      resizeMode: 'cover',
     },
     resultActions: {
       flexDirection: 'row',
@@ -140,14 +157,6 @@ export const createStyles = (theme: Theme) => {
     },
     actionButtonText: {
       fontSize: 12,
-    },
-    imagePreview: {
-      height: 200,
-      borderRadius: BorderRadius.lg,
-      backgroundColor: theme.backgroundTertiary,
-      justifyContent: 'center',
-      alignItems: 'center',
-      gap: Spacing.sm,
     },
   });
 };
