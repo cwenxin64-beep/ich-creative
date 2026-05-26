@@ -246,7 +246,9 @@ router.get('/proxy', async (req: Request, res: Response) => {
     const response = await fetch(audioUrl, {
       headers: {
         'User-Agent': 'Mozilla/5.0',
+        'Accept': '*/*',
       },
+      redirect: 'follow',
     });
 
     if (!response.ok) {
@@ -255,12 +257,28 @@ router.get('/proxy', async (req: Request, res: Response) => {
     }
 
     const contentType = response.headers.get('content-type') || 'audio/mpeg';
+    const contentLength = response.headers.get('content-length');
     res.setHeader('Content-Type', contentType);
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Cache-Control', 'public, max-age=86400');
+    if (contentLength) {
+      res.setHeader('Content-Length', contentLength);
+    }
 
-    const buffer = await response.arrayBuffer();
-    res.send(Buffer.from(buffer));
+    // 流式传输，避免大文件占满内存
+    if (response.body) {
+      const reader = response.body.getReader();
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          res.write(value);
+        }
+      } finally {
+        reader.releaseLock();
+      }
+    }
+    res.end();
 
   } catch (error) {
     console.error('[Music] Proxy error:', error);
