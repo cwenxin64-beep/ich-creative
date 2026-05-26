@@ -229,4 +229,43 @@ router.post('/generate', async (req: Request, res: Response) => {
   }
 });
 
+/**
+ * GET /api/v1/audio/test
+ * 诊断接口 - 测试火山引擎音乐 API 连通性
+ */
+router.get('/test', async (_req: Request, res: Response) => {
+  const result: Record<string, any> = {
+    ak: VOLC_MUSIC_AK ? `${VOLC_MUSIC_AK.substring(0, 8)}...` : 'NOT SET',
+    sk: VOLC_MUSIC_SK ? `${VOLC_MUSIC_SK.substring(0, 4)}...` : 'NOT SET',
+    host: VOLC_MUSIC_HOST,
+    region: VOLC_MUSIC_REGION,
+    service: VOLC_MUSIC_SERVICE,
+  };
+
+  if (!VOLC_MUSIC_AK || !VOLC_MUSIC_SK) {
+    return res.json({ ...result, error: 'AK/SK 未配置' });
+  }
+
+  try {
+    // 用最简单的参数测试 GenBGMForTime
+    const testBody = {
+      Text: '测试纯音乐',
+      Duration: 30,
+      Version: 'v5.0',
+    };
+    const response = await callMusicAPI('GenBGMForTime', testBody);
+    result.apiResponse = response;
+    result.status = response.Code === 0 ? 'SUCCESS' : 'FAILED';
+    if (response.Code !== 0) {
+      result.errorCode = response.Code;
+      result.errorMessage = response.Message;
+    }
+  } catch (error) {
+    result.status = 'ERROR';
+    result.error = error instanceof Error ? error.message : String(error);
+  }
+
+  res.json(result);
+});
+
 export default router;
