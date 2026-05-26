@@ -10,6 +10,8 @@ import { ThemedView } from '@/components/ThemedView';
 import { FontAwesome6 } from '@expo/vector-icons';
 import { AnimatedFavoriteButton } from '@/components/AnimatedFavoriteButton';
 import { GenerationProgress } from '@/components/GenerationProgress';
+import Toast from '../../components/Toast';
+import { useToast } from '../../hooks/useToast';
 import { createStyles } from './styles';
 import { CustomizeOrderModal, CustomizeOrderData } from './CustomizeOrderModal';
 import { buildApiUrl } from '@/utils/api';
@@ -53,6 +55,7 @@ export default function UseScreen() {
   const { theme, isDark } = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const router = useSafeRouter();
+  const { toastVisible, toastMessage, showToast, hideToast } = useToast();
 
   const [selectedIchType, setSelectedIchType] = useState('');
   const [selectedInteractionType, setSelectedInteractionType] = useState('');
@@ -182,7 +185,7 @@ export default function UseScreen() {
       if (Platform.OS === 'web') {
         // Web 端复制链接
         await navigator.clipboard.writeText(url);
-        Alert.alert('分享成功', '图片链接已复制到剪贴板，可粘贴分享给好友');
+        showToast('链接已复制到剪贴板');
         return;
       }
 
@@ -742,6 +745,7 @@ export default function UseScreen() {
         onClose={() => setShowCustomizeModal(false)}
         onSubmit={handleSubmitCustomization}
       />
+      <Toast message={toastMessage} visible={toastVisible} onHide={hideToast} />
     </Screen>
   );
 }

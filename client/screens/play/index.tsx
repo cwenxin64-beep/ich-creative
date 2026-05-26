@@ -8,6 +8,8 @@ import { ThemedView } from '@/components/ThemedView';
 import { FontAwesome6 } from '@expo/vector-icons';
 import { AnimatedFavoriteButton } from '@/components/AnimatedFavoriteButton';
 import { GenerationProgress } from '@/components/GenerationProgress';
+import Toast from '../../components/Toast';
+import { useToast } from '../../hooks/useToast';
 import { createStyles } from './styles';
 import { buildApiUrl } from '@/utils/api';
 
@@ -59,6 +61,7 @@ export default function PlayScreen() {
   const { theme, isDark } = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const router = useSafeRouter();
+  const { toastVisible, toastMessage, showToast, hideToast } = useToast();
 
   const [selectedIchType, setSelectedIchType] = useState('');
   const [selectedInteractionTypes, setSelectedInteractionTypes] = useState<string[]>([]);
@@ -190,7 +193,7 @@ export default function PlayScreen() {
         // Web 端复制链接
         if (url) {
           await navigator.clipboard.writeText(url);
-          Alert.alert('分享成功', '图片链接已复制到剪贴板，可粘贴分享给好友');
+          showToast('链接已复制到剪贴板');
         }
       }
     } catch (error) {
@@ -773,6 +776,7 @@ export default function PlayScreen() {
           </View>
         </View>
       </Modal>
+      <Toast message={toastMessage} visible={toastVisible} onHide={hideToast} />
     </Screen>
   );
 }

@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { View, ScrollView, RefreshControl, Share, Alert, TouchableOpacity, Modal, Dimensions } from 'react-native';
+import { View, ScrollView, RefreshControl, Share, Alert, TouchableOpacity, Modal, Dimensions, Platform } from 'react-native';
 import { useSafeRouter } from '@/hooks/useSafeRouter';
 import { useFocusEffect } from 'expo-router';
 import { Screen } from '@/components/Screen';
@@ -8,6 +8,8 @@ import { ThemedView } from '@/components/ThemedView';
 import { Image } from 'expo-image';
 import { FontAwesome6 } from '@expo/vector-icons';
 import { useTheme } from '@/hooks/useTheme';
+import Toast from '../../components/Toast';
+import { useToast } from '../../hooks/useToast';
 import { buildApiUrl } from '@/utils/api';
 import { createStyles } from './styles';
 
@@ -39,6 +41,7 @@ export default function FavoritesScreen() {
   const router = useSafeRouter();
   const { theme, isDark } = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const { toastVisible, toastMessage, showToast, hideToast } = useToast();
   const [favorites, setFavorites] = useState<FavoriteItem[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [refreshing, setRefreshing] = useState(false);
@@ -112,9 +115,15 @@ export default function FavoritesScreen() {
       const message = isMusic
         ? `${item.title}\n曲风：${item.metadata?.genre || ''} | 情绪：${item.metadata?.mood || ''}\n\n由智能非遗创意平台创作`
         : `${item.title}\n${item.description}\n\n查看更多精彩作品！`;
-      await Share.share({ message });
+      if (Platform.OS === 'web') {
+        await navigator.clipboard.writeText(message);
+        showToast('内容已复制到剪贴板');
+      } else {
+        await Share.share({ message });
+        showToast('分享成功');
+      }
     } catch (error) {
-      Alert.alert('提示', '分享失败，请稍后重试');
+      showToast('分享失败，请稍后重试');
     }
   };
 
@@ -590,6 +599,7 @@ export default function FavoritesScreen() {
         {/* 详情弹窗 */}
         {renderDetailModal()}
       </View>
+      <Toast message={toastMessage} visible={toastVisible} onHide={hideToast} />
     </Screen>
   );
 }

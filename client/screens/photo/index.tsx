@@ -4,6 +4,8 @@ import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { GenerationProgress } from '../../components/GenerationProgress';
+import Toast from '../../components/Toast';
+import { useToast } from '../../hooks/useToast';
 import { useSafeRouter, useSafeSearchParams } from '@/hooks/useSafeRouter';
 import { useFocusEffect as useExpoFocusEffect } from 'expo-router';
 import { useTheme } from '@/hooks/useTheme';
@@ -29,6 +31,7 @@ export default function PhotoScreen() {
   const [selectedMedia, setSelectedMedia] = useState<{ uri: string } | null>(null);
   const [description, setDescription] = useState('');
   const outputType = 'static' as const;
+  const { toastVisible, toastMessage, showToast, hideToast } = useToast();
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [result, setResult] = useState<{
@@ -146,7 +149,7 @@ export default function PhotoScreen() {
         // Web 端复制链接
         try {
           await navigator.clipboard.writeText(url);
-          Alert.alert('分享成功', '图片链接已复制到剪贴板，可粘贴分享给好友');
+          showToast('链接已复制到剪贴板');
         } catch (clipboardError) {
           console.error('[Share] Clipboard error:', clipboardError);
           Alert.alert('提示', '链接: ' + url);
@@ -521,6 +524,7 @@ export default function PhotoScreen() {
         )}
 
       </ScrollView>
+      <Toast message={toastMessage} visible={toastVisible} onHide={hideToast} />
     </Screen>
   );
 }

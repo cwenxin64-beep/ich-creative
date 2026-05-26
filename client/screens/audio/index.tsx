@@ -3,6 +3,8 @@ import { View, TouchableOpacity, ScrollView, Alert, TextInput, Platform, Share a
 import { useSafeRouter } from '@/hooks/useSafeRouter';
 import { useTheme } from '@/hooks/useTheme';
 import { getApiBaseUrl } from '@/utils';
+import Toast from '../../components/Toast';
+import { useToast } from '../../hooks/useToast';
 import { Screen } from '@/components/Screen';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -36,6 +38,7 @@ export default function AudioScreen() {
   const { theme, isDark } = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const router = useSafeRouter();
+  const { toastVisible, toastMessage, showToast, hideToast } = useToast();
 
   const [prompt, setPrompt] = useState('');
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
@@ -138,7 +141,7 @@ export default function AudioScreen() {
       } else {
         if (audioLink) {
           await navigator.clipboard.writeText(shareText);
-          Alert.alert('分享成功', '内容已复制到剪贴板，可粘贴分享给好友');
+          showToast('内容已复制到剪贴板');
         } else {
           Alert.alert('提示', '没有可分享的内容');
         }
@@ -432,6 +435,7 @@ export default function AudioScreen() {
           </ThemedView>
         )}
       </ScrollView>
+      <Toast message={toastMessage} visible={toastVisible} onHide={hideToast} />
     </Screen>
   );
 }
