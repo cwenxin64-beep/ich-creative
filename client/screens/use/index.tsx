@@ -559,7 +559,7 @@ export default function UseScreen() {
                   <View style={styles.resultHeaderLeft}>
                     <FontAwesome6 name="tag" size={16} color={theme.primary} />
                     <ThemedText variant="smallMedium" color={theme.textSecondary} style={styles.resultCategory}>
-                      {result.category}
+                      {result.category === 'fashion' ? '时尚配饰' : result.category === 'home' ? '家居装饰' : result.category === 'art' ? '艺术品' : result.category === 'gifts' ? '礼品' : result.category}
                     </ThemedText>
                   </View>
                 </View>
