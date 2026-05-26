@@ -61,7 +61,7 @@ export default function WelcomeScreen() {
 
             <View style={styles.featureItem}>
               <View style={[styles.featureIcon, { backgroundColor: `${theme.success}20` }]}>
-                <FontAwesome6 name="wand-magic-sparkles" size={24} color={theme.success} />
+                <FontAwesome6 name="puzzle-piece" size={24} color={theme.success} />
               </View>
               <View style={styles.featureText}>
                 <ThemedText variant="title" color={theme.textPrimary}>玩非遗</ThemedText>

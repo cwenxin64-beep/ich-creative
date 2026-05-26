@@ -59,7 +59,7 @@ export default function TabLayout() {
         name="play"
         options={{
           title: '玩非遗',
-          tabBarIcon: ({ color }) => <FontAwesome6 name="wand-magic-sparkles" size={24} color={color} />,
+          tabBarIcon: ({ color }) => <FontAwesome6 name="puzzle-piece" size={24} color={color} />,
         }}
       />
       <Tabs.Screen

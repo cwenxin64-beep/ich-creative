@@ -36,7 +36,7 @@ export default function HomeScreen() {
       id: 'play',
       title: '玩非遗',
       subtitle: '交互创作',
-      icon: 'magic-wand-sparkles',
+      icon: 'puzzle-piece',
       color: '#7BA05B',
       description: '文字输入生成海报、卡片、数字人',
       route: '/play'
