@@ -49,7 +49,7 @@ router.post('/', async (req: Request, res: Response) => {
   try {
     const { type, imageUrl, videoUrl, title, metadata } = req.body;
 
-    if (!type || (!imageUrl && !videoUrl)) {
+    if (!type || (!imageUrl && !videoUrl && type !== 'music')) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
