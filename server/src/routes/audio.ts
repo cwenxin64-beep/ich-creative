@@ -142,7 +142,7 @@ async function callMusicAPI(action: string, body: Record<string, any>) {
 
 /**
  * POST /api/v1/audio/generate
- * 使用火山引擎音乐 API (GenBGM 预付费/套餐包) 生成非遗风格纯音乐/BGM
+ * 使用火山引擎音乐 API (GenBGMForTime 后付费) 生成非遗风格纯音乐/BGM
  */
 router.post('/generate', async (req: Request, res: Response) => {
   try {
@@ -163,7 +163,7 @@ router.post('/generate', async (req: Request, res: Response) => {
 
     console.log(`[Music] Generate request - prompt: ${prompt}, duration: ${duration}`);
 
-    // GenBGM v5.0: 只需 Text 描述，无需单独传 Genre/Mood/Instrument
+    // GenBGMForTime v5.0: 只需 Text 描述，无需单独传 Genre/Mood/Instrument
     const requestBody: Record<string, any> = {
       Text: prompt,
       Duration: duration || 60,
@@ -171,8 +171,8 @@ router.post('/generate', async (req: Request, res: Response) => {
       EnableInputRewrite: true,
     };
 
-    // 预付费/套餐包接口 Action=GenBGM
-    const submitResult = await callMusicAPI('GenBGM', requestBody);
+    // 后付费接口 Action=GenBGMForTime
+    const submitResult = await callMusicAPI('GenBGMForTime', requestBody);
 
     const taskId = submitResult.Result?.TaskID;
     if (!taskId) {
@@ -247,13 +247,13 @@ router.get('/test', async (_req: Request, res: Response) => {
   }
 
   try {
-    // 用最简单的参数测试 GenBGM
+    // 用最简单的参数测试 GenBGMForTime
     const testBody = {
       Text: '测试纯音乐',
       Duration: 30,
       Version: 'v5.0',
     };
-    const response = await callMusicAPI('GenBGM', testBody);
+    const response = await callMusicAPI('GenBGMForTime', testBody);
     result.apiResponse = response;
     result.status = response.Code === 0 ? 'SUCCESS' : 'FAILED';
     if (response.Code !== 0) {
