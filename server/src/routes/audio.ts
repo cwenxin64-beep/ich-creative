@@ -134,6 +134,15 @@ async function callMusicAPI(action: string, body: Record<string, any>) {
  */
 router.post('/generate', async (req: Request, res: Response) => {
   try {
+    // 检查环境变量
+    if (!VOLC_MUSIC_AK || !VOLC_MUSIC_SK) {
+      console.error('[Music] Missing VOLC_MUSIC_AK or VOLC_MUSIC_SK env vars');
+      return res.status(500).json({
+        error: '音乐服务未配置',
+        message: '请在环境变量中设置 VOLC_MUSIC_AK 和 VOLC_MUSIC_SK',
+      });
+    }
+
     const { prompt, duration } = req.body;
 
     if (!prompt) {
@@ -203,6 +212,7 @@ router.post('/generate', async (req: Request, res: Response) => {
     res.status(500).json({
       error: 'Generation failed',
       message: error instanceof Error ? error.message : 'Unknown error',
+      stack: process.env.NODE_ENV === 'development' && error instanceof Error ? error.stack : undefined,
     });
   }
 });
