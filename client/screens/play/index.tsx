@@ -7,6 +7,7 @@ import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { FontAwesome6 } from '@expo/vector-icons';
 import { AnimatedFavoriteButton } from '@/components/AnimatedFavoriteButton';
+import { GenerationProgress } from '@/components/GenerationProgress';
 import { createStyles } from './styles';
 import { buildApiUrl } from '@/utils/api';
 
@@ -65,6 +66,7 @@ export default function PlayScreen() {
   const [selectedMarket, setSelectedMarket] = useState('');
   const [text, setText] = useState('');
   const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState(0);
   const [results, setResults] = useState<any[]>([]);
 
   // 我的素材相关状态
@@ -209,7 +211,16 @@ export default function PlayScreen() {
     }
 
     setLoading(true);
+    setProgress(0);
     setResults([]);
+
+    // 模拟进度
+    const progressTimer = setInterval(() => {
+      setProgress(prev => {
+        if (prev >= 90) return prev;
+        return prev + Math.random() * 8;
+      });
+    }, 2000);
 
     try {
       /**
@@ -273,6 +284,8 @@ export default function PlayScreen() {
 
       const result = await pollTask();
 
+      setProgress(100);
+
       if (result.success) {
         // 兼容旧数据结构，确保有 mainImageUrl
         const normalizedResults = (result.results || []).map((item: any) => {
@@ -301,6 +314,7 @@ export default function PlayScreen() {
       console.error('Generation error:', error);
       Alert.alert('错误', error instanceof Error ? error.message : '生成失败，请检查网络连接');
     } finally {
+      clearInterval(progressTimer);
       setLoading(false);
     }
   };
@@ -526,9 +540,17 @@ export default function PlayScreen() {
         >
           <FontAwesome6 name="star" size={20} color={theme.buttonPrimaryText} />
           <ThemedText variant="title" color={theme.buttonPrimaryText} style={styles.generateButtonText}>
-            {loading ? '生成中...' : '开始创作'}
+            {loading ? `生成中... ${Math.round(progress)}%` : '开始创作'}
           </ThemedText>
         </TouchableOpacity>
+
+        {/* Progress Bar */}
+        {loading && (
+          <GenerationProgress
+            progress={progress}
+            tip="AI 正在为你生成非遗交互体验，通常需要 1-2 分钟..."
+          />
+        )}
 
         {/* Results */}
         {results.length > 0 && (

@@ -3,6 +3,7 @@ import { View, TouchableOpacity, ScrollView, Alert, TextInput, Platform, Image }
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
+import { GenerationProgress } from '../../components/GenerationProgress';
 import { useSafeRouter, useSafeSearchParams } from '@/hooks/useSafeRouter';
 import { useFocusEffect as useExpoFocusEffect } from 'expo-router';
 import { useTheme } from '@/hooks/useTheme';
@@ -29,6 +30,7 @@ export default function PhotoScreen() {
   const [description, setDescription] = useState('');
   const outputType = 'static' as const;
   const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState(0);
   const [result, setResult] = useState<{
     staticMainImageUrl?: string;
     staticSubImageUrl1?: string;
@@ -242,7 +244,16 @@ export default function PhotoScreen() {
     }
 
     setLoading(true);
+    setProgress(0);
     setResult(null);
+
+    // 模拟进度
+    const progressTimer = setInterval(() => {
+      setProgress(prev => {
+        if (prev >= 90) return prev;
+        return prev + Math.random() * 8;
+      });
+    }, 2000);
 
     try {
       const fileName = 'image.jpg';
@@ -282,6 +293,7 @@ export default function PhotoScreen() {
 
           if (statusData.status === 'completed') {
             // 任务完成
+            setProgress(100);
             setLoading(false);
             if (statusData.result) {
               setResult(statusData.result);
@@ -319,6 +331,8 @@ export default function PhotoScreen() {
       console.error('Generation error:', error);
       setLoading(false);
       Alert.alert('错误', '生成失败，请检查网络连接');
+    } finally {
+      clearInterval(progressTimer);
     }
   };
 
@@ -416,9 +430,17 @@ export default function PhotoScreen() {
         >
           <FontAwesome6 name="star" size={20} color={theme.buttonPrimaryText} />
           <ThemedText variant="title" color={theme.buttonPrimaryText} style={styles.generateButtonText}>
-            {loading ? '生成中...' : '开始创作'}
+            {loading ? `生成中... ${Math.round(progress)}%` : '开始创作'}
           </ThemedText>
         </TouchableOpacity>
+
+        {/* Progress Bar */}
+        {loading && (
+          <GenerationProgress
+            progress={progress}
+            tip="AI 正在为你生成非遗风格图片，通常需要 30-60 秒..."
+          />
+        )}
 
         {/* Results */}
         {result && (

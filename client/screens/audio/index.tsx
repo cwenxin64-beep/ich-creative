@@ -8,6 +8,7 @@ import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { buildApiUrl } from '@/utils/api';
 import { FontAwesome6 } from '@expo/vector-icons';
+import { GenerationProgress } from '@/components/GenerationProgress';
 import { AnimatedFavoriteButton } from '@/components/AnimatedFavoriteButton';
 import { createStyles } from './styles';
 
@@ -333,14 +334,10 @@ export default function AudioScreen() {
 
         {/* Loading Progress Bar */}
         {loading && (
-          <View style={styles.progressBarContainer}>
-            <View style={[styles.progressBarBg, { backgroundColor: theme.backgroundTertiary }]}>
-              <View style={[styles.progressBarFill, { width: `${progress}%`, backgroundColor: theme.primary }]} />
-            </View>
-            <ThemedText variant="caption" color={theme.textMuted} style={styles.progressText}>
-              AI 正在为你创作音乐，通常需要 1-3 分钟...
-            </ThemedText>
-          </View>
+          <GenerationProgress
+            progress={progress}
+            tip="AI 正在为你创作音乐，通常需要 1-3 分钟..."
+          />
         )}
 
         {/* Results */}

@@ -9,6 +9,7 @@ import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { FontAwesome6 } from '@expo/vector-icons';
 import { AnimatedFavoriteButton } from '@/components/AnimatedFavoriteButton';
+import { GenerationProgress } from '@/components/GenerationProgress';
 import { createStyles } from './styles';
 import { CustomizeOrderModal, CustomizeOrderData } from './CustomizeOrderModal';
 import { buildApiUrl } from '@/utils/api';
@@ -58,6 +59,7 @@ export default function UseScreen() {
   const [selectedScene, setSelectedScene] = useState('');
   const [keywords, setKeywords] = useState('');
   const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState(0);
   const [results, setResults] = useState<any[]>([]);
   const [favoriteMap, setFavoriteMap] = useState<Map<string, number>>(new Map());
 
@@ -243,6 +245,16 @@ export default function UseScreen() {
     }
 
     setLoading(true);
+    setProgress(0);
+    setResults([]);
+
+    // 模拟进度
+    const progressTimer = setInterval(() => {
+      setProgress(prev => {
+        if (prev >= 90) return prev;
+        return prev + Math.random() * 8;
+      });
+    }, 2000);
 
     try {
       /**
@@ -276,6 +288,7 @@ export default function UseScreen() {
       const data = await response.json();
 
       if (data.success) {
+        setProgress(100);
         setResults(data.results || []);
       } else {
         Alert.alert('生成失败', data.message || '请重试');
@@ -284,6 +297,7 @@ export default function UseScreen() {
       console.error('Generation error:', error);
       Alert.alert('错误', '生成失败，请检查网络连接');
     } finally {
+      clearInterval(progressTimer);
       setLoading(false);
     }
   };
@@ -503,7 +517,7 @@ export default function UseScreen() {
         >
           <FontAwesome6 name="wand-magic-sparkles" size={20} color={theme.buttonPrimaryText} />
           <ThemedText variant="title" color={theme.buttonPrimaryText} style={styles.generateButtonText}>
-            {loading ? '生成中...' : '定制生成'}
+            {loading ? `定制中... ${Math.round(progress)}%` : '定制生成'}
           </ThemedText>
         </TouchableOpacity>
 
@@ -521,6 +535,14 @@ export default function UseScreen() {
             非遗创意产品定制
           </ThemedText>
         </TouchableOpacity>
+
+        {/* Progress Bar */}
+        {loading && (
+          <GenerationProgress
+            progress={progress}
+            tip="AI 正在为你定制非遗实用设计，通常需要 1-2 分钟..."
+          />
+        )}
 
         {/* Results */}
         {results.length > 0 && (
