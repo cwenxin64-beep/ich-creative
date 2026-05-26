@@ -123,15 +123,23 @@ export default function AudioScreen() {
     if (!result) return;
 
     try {
+      // 构造可访问的音频链接（通过代理避免CORS）
+      const audioLink = result.audioUrl
+        ? `${getApiBaseUrl()}/api/v1/audio/proxy?url=${encodeURIComponent(result.audioUrl)}`
+        : '';
+      const shareText = `我创作了一首非遗风格音乐！\n曲风：${result.genre}\n情绪：${result.mood}${audioLink ? '\n🎵 收听: ' + audioLink : ''}`;
+
       if (Platform.OS !== 'web') {
         await RNShare.share({
-          message: `我创作了一首非遗风格音乐！\n曲风：${result.genre}\n情绪：${result.mood}`,
+          message: shareText,
           url: result.audioUrl,
         });
       } else {
-        if (result.audioUrl) {
-          await navigator.clipboard.writeText(result.audioUrl);
-          Alert.alert('成功', '链接已复制到剪贴板');
+        if (audioLink) {
+          await navigator.clipboard.writeText(shareText);
+          Alert.alert('分享成功', '内容已复制到剪贴板，可粘贴分享给好友');
+        } else {
+          Alert.alert('提示', '没有可分享的内容');
         }
       }
     } catch (error) {

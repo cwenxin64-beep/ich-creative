@@ -180,7 +180,7 @@ export default function UseScreen() {
       if (Platform.OS === 'web') {
         // Web 端复制链接
         await navigator.clipboard.writeText(url);
-        Alert.alert('成功', '链接已复制到剪贴板');
+        Alert.alert('分享成功', '图片链接已复制到剪贴板，可粘贴分享给好友');
         return;
       }
 

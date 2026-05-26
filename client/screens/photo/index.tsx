@@ -144,7 +144,7 @@ export default function PhotoScreen() {
         // Web 端复制链接
         try {
           await navigator.clipboard.writeText(url);
-          Alert.alert('成功', '链接已复制到剪贴板');
+          Alert.alert('分享成功', '图片链接已复制到剪贴板，可粘贴分享给好友');
         } catch (clipboardError) {
           console.error('[Share] Clipboard error:', clipboardError);
           Alert.alert('提示', '链接: ' + url);
