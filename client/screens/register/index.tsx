@@ -1,10 +1,13 @@
 import React, { useState, useMemo } from 'react';
-import { View, TouchableOpacity, ScrollView, Alert, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, TouchableOpacity, ScrollView, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import { useSafeRouter } from '@/hooks/useSafeRouter';
 import { useTheme } from '@/hooks/useTheme';
+import { useAuth } from '@/contexts/AuthContext';
 import { Screen } from '@/components/Screen';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
+import { Toast } from '@/components/Toast';
+import { useToast } from '@/hooks/useToast';
 import { FontAwesome6 } from '@expo/vector-icons';
 import { createStyles } from './styles';
 
@@ -12,6 +15,8 @@ export default function RegisterScreen() {
   const { theme, isDark } = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const router = useSafeRouter();
+  const { loginWithEmail } = useAuth();
+  const { toast, showToast, hideToast } = useToast();
 
   const [formData, setFormData] = useState({
     username: '',
@@ -24,23 +29,23 @@ export default function RegisterScreen() {
 
   const handleRegister = async () => {
     if (!formData.username.trim()) {
-      Alert.alert('提示', '请输入用户名');
+      showToast('请输入用户名');
       return;
     }
     if (!formData.email.trim()) {
-      Alert.alert('提示', '请输入邮箱');
+      showToast('请输入邮箱');
       return;
     }
     if (!formData.password) {
-      Alert.alert('提示', '请输入密码');
+      showToast('请输入密码');
       return;
     }
     if (formData.password.length < 6) {
-      Alert.alert('提示', '密码长度至少6位');
+      showToast('密码长度至少6位');
       return;
     }
     if (formData.password !== formData.confirmPassword) {
-      Alert.alert('提示', '两次密码不一致');
+      showToast('两次密码不一致');
       return;
     }
 
@@ -61,15 +66,15 @@ export default function RegisterScreen() {
       const data = await response.json();
 
       if (data.success) {
-        Alert.alert('注册成功', '欢迎加入智能非遗！', [
-          { text: '确定', onPress: () => router.push('/home') }
-        ]);
+        // Auto login after register
+        await loginWithEmail(formData.email, formData.password);
+        showToast('注册成功，欢迎加入！');
       } else {
-        Alert.alert('注册失败', data.error || '请稍后重试');
+        showToast(data.error || '注册失败，请稍后重试');
       }
     } catch (error) {
       console.error('Register error:', error);
-      Alert.alert('注册失败', '请检查网络连接');
+      showToast('注册失败，请检查网络连接');
     } finally {
       setLoading(false);
     }
@@ -260,8 +265,17 @@ export default function RegisterScreen() {
               </ThemedText>
             </ThemedText>
           </ThemedView>
+
+          {/* Login link */}
+          <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: 16 }}>
+            <ThemedText variant="body" color={theme.textSecondary}>已有账号？</ThemedText>
+            <TouchableOpacity onPress={() => router.push('/login')}>
+              <ThemedText variant="body" color={theme.primary} style={{ fontWeight: '600' }}> 立即登录</ThemedText>
+            </TouchableOpacity>
+          </View>
         </ScrollView>
       </Screen>
+      <Toast visible={toast.visible} message={toast.message} type={toast.type} onHide={hideToast} />
     </KeyboardAvoidingView>
   );
 }

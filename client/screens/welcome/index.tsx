@@ -105,6 +105,15 @@ export default function WelcomeScreen() {
               注册账号
             </ThemedText>
           </TouchableOpacity>
+
+          <TouchableOpacity
+            style={{ marginTop: 12, padding: 8 }}
+            onPress={() => router.push('/login')}
+          >
+            <ThemedText variant="body" color={theme.primary} style={{ fontWeight: '600', textAlign: 'center' }}>
+              已有账号？立即登录
+            </ThemedText>
+          </TouchableOpacity>
         </ThemedView>
 
         {/* Footer */}

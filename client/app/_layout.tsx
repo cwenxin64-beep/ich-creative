@@ -29,6 +29,7 @@ export default function RootLayout() {
             <Stack.Screen name="index" options={{ title: "" }} />
             <Stack.Screen name="welcome" options={{ title: "" }} />
             <Stack.Screen name="register" options={{ title: "" }} />
+            <Stack.Screen name="login" options={{ title: "" }} />
             <Stack.Screen name="artisan-register" options={{ title: "" }} />
             <Stack.Screen name="home" options={{ title: "" }} />
             <Stack.Screen name="favorites" options={{ title: "" }} />
