@@ -23,9 +23,10 @@ const MOOD_TAGS = [
 
 // 时长选项
 const DURATION_OPTIONS = [
-  { label: '30秒', value: 30 },
-  { label: '60秒', value: 60 },
-  { label: '120秒', value: 120 },
+  { label: '5秒', value: 5 },
+  { label: '10秒', value: 10 },
+  { label: '15秒', value: 15 },
+  { label: '20秒', value: 20 },
 ];
 
 export default function AudioScreen() {
@@ -36,7 +37,7 @@ export default function AudioScreen() {
   const [prompt, setPrompt] = useState('');
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [selectedMoods, setSelectedMoods] = useState<string[]>([]);
-  const [selectedDuration, setSelectedDuration] = useState(60);
+  const [selectedDuration, setSelectedDuration] = useState(10);
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [result, setResult] = useState<{
