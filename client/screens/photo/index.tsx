@@ -64,7 +64,6 @@ export default function PhotoScreen() {
         if (data.success) {
           setIsFavorited(false);
           setFavoriteId(null);
-          Alert.alert('成功', '已取消收藏');
         } else {
           Alert.alert('取消收藏失败', data.message || '请重试');
         }
@@ -113,7 +112,6 @@ export default function PhotoScreen() {
       if (data.success) {
         setIsFavorited(true);
         setFavoriteId(data.id);
-        Alert.alert('成功', '已添加到收藏');
       } else {
         Alert.alert('收藏失败', data.message || '请重试');
       }

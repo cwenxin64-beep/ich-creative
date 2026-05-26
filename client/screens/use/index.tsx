@@ -59,7 +59,7 @@ export default function UseScreen() {
   const [keywords, setKeywords] = useState('');
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<any[]>([]);
-  const [favoritedIds, setFavoritedIds] = useState<Set<string>>(new Set());
+  const [favoriteMap, setFavoriteMap] = useState<Map<string, number>>(new Map());
 
   // 定制相关状态（使用新的定制需求单）
   const [showCustomizeModal, setShowCustomizeModal] = useState(false);
@@ -83,7 +83,12 @@ export default function UseScreen() {
       const data = await response.json();
 
       if (data.success) {
-        setFavorites(data.favorites || []);
+        // 从已收藏列表填充 favoriteMap (imageUrl → dbId)
+        const map = new Map<string, number>();
+        (data.favorites || []).forEach((fav: any) => {
+          if (fav.image_url) map.set(fav.image_url, fav.id);
+        });
+        setFavoriteMap(map);
       }
     } catch (error) {
       console.error('Load favorites error:', error);
@@ -102,6 +107,30 @@ export default function UseScreen() {
 
   const handleFavorite = async (result: any) => {
     const resultId = result.mainImageUrl || result.id;
+
+    // 如果已收藏，则取消收藏
+    if (favoriteMap.has(resultId)) {
+      const dbId = favoriteMap.get(resultId)!;
+      try {
+        const response = await fetch(buildApiUrl(`/api/v1/favorites/${dbId}`), {
+          method: 'DELETE',
+        });
+        const data = await response.json();
+        if (data.success) {
+          setFavoriteMap(prev => {
+            const next = new Map(prev);
+            next.delete(resultId);
+            return next;
+          });
+        } else {
+          Alert.alert('取消失败', data.message || '请重试');
+        }
+      } catch (error) {
+        console.error('Unfavorite error:', error);
+        Alert.alert('错误', '取消收藏失败，请检查网络连接');
+      }
+      return;
+    }
 
     try {
       /**
@@ -127,8 +156,7 @@ export default function UseScreen() {
       const data = await response.json();
 
       if (data.success) {
-        setFavoritedIds(prev => new Set(prev).add(data.id));
-        Alert.alert('成功', '已添加到收藏');
+        setFavoriteMap(prev => new Map(prev).set(resultId, data.id));
       } else {
         Alert.alert('收藏失败', data.message || '请重试');
       }
@@ -510,7 +538,7 @@ export default function UseScreen() {
                     </ThemedText>
                   </View>
                   <AnimatedFavoriteButton
-                    isFavorited={favoritedIds.has(result.mainImageUrl || result.id)}
+                    isFavorited={favoriteMap.has(result.mainImageUrl || result.id)}
                     onPress={() => handleFavorite(result)}
                     size={20}
                     activeColor="#EF4444"

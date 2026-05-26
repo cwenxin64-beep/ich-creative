@@ -42,6 +42,7 @@ export default function AudioScreen() {
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [isFavorited, setIsFavorited] = useState(false);
+  const [favoriteId, setFavoriteId] = useState<number | null>(null);
   const [result, setResult] = useState<{
     id: number | null;
     audioUrl: string;
@@ -63,6 +64,26 @@ export default function AudioScreen() {
 
   const handleFavorite = async () => {
     if (!result) return;
+
+    // 如果已收藏，则取消收藏
+    if (isFavorited && favoriteId) {
+      try {
+        const response = await fetch(buildApiUrl(`/api/v1/favorites/${favoriteId}`), {
+          method: 'DELETE',
+        });
+        const data = await response.json();
+        if (data.success) {
+          setIsFavorited(false);
+          setFavoriteId(null);
+        } else {
+          Alert.alert('取消失败', data.message || '请重试');
+        }
+      } catch (error) {
+        console.error('Unfavorite error:', error);
+        Alert.alert('错误', '取消收藏失败，请检查网络连接');
+      }
+      return;
+    }
 
     try {
       const response = await fetch(buildApiUrl('/api/v1/favorites'), {
@@ -87,7 +108,7 @@ export default function AudioScreen() {
 
       if (data.success) {
         setIsFavorited(true);
-        Alert.alert('成功', '已添加到收藏');
+        setFavoriteId(data.id);
       } else {
         Alert.alert('收藏失败', data.message || '请重试');
       }
@@ -128,6 +149,7 @@ export default function AudioScreen() {
     setProgress(0);
     setResult(null);
     setIsFavorited(false);
+    setFavoriteId(null);
 
     // 模拟进度
     const progressTimer = setInterval(() => {

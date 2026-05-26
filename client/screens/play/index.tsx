@@ -86,13 +86,12 @@ export default function PlayScreen() {
 
       if (data.success) {
         setFavorites(data.favorites || []);
-        // 从已收藏列表填充 favoritedIds
-        const ids = new Set<string>();
+        // 从已收藏列表填充 favoriteMap (imageUrl → dbId)
+        const map = new Map<string, number>();
         (data.favorites || []).forEach((fav: any) => {
-          // 用 image_url 作为匹配 key，和 handleFavorite 中的 favKey 对应
-          if (fav.image_url) ids.add(fav.image_url);
+          if (fav.image_url) map.set(fav.image_url, fav.id);
         });
-        setFavoritedIds(ids);
+        setFavoriteMap(map);
       }
     } catch (error) {
       console.error('Load favorites error:', error);
@@ -109,22 +108,23 @@ export default function PlayScreen() {
     }
   }, [showMaterialModal]);
 
-  const [favoritedIds, setFavoritedIds] = useState<Set<string>>(new Set());
+  const [favoriteMap, setFavoriteMap] = useState<Map<string, number>>(new Map());
 
   const handleFavorite = async (result: any) => {
     const imageUrl = result.mainImageUrl || result.imageUrl;
     const favKey = imageUrl || Math.random().toString();
     
     // 如果已收藏，则取消收藏
-    if (favoritedIds.has(favKey)) {
+    if (favoriteMap.has(favKey)) {
+      const dbId = favoriteMap.get(favKey)!;
       try {
-        const response = await fetch(buildApiUrl(`/api/v1/favorites/${encodeURIComponent(favKey)}`), {
+        const response = await fetch(buildApiUrl(`/api/v1/favorites/${dbId}`), {
           method: 'DELETE',
         });
         const data = await response.json();
         if (data.success) {
-          setFavoritedIds(prev => {
-            const next = new Set(prev);
+          setFavoriteMap(prev => {
+            const next = new Map(prev);
             next.delete(favKey);
             return next;
           });
@@ -163,7 +163,7 @@ export default function PlayScreen() {
       const data = await response.json();
 
       if (data.success) {
-        setFavoritedIds(prev => new Set(prev).add(favKey));
+        setFavoriteMap(prev => new Map(prev).set(favKey, data.id));
       } else {
         Alert.alert('收藏失败', data.message || '请重试');
       }
@@ -617,7 +617,7 @@ export default function PlayScreen() {
                 {/* Action Buttons */}
                 <View style={styles.resultActions}>
                   <AnimatedFavoriteButton
-                    isFavorited={favoritedIds.has(result.id || result.mainImageUrl || result.imageUrl || '')}
+                    isFavorited={favoriteMap.has(result.id || result.mainImageUrl || result.imageUrl || '')}
                     onPress={() => handleFavorite(result)}
                     size={16}
                     activeColor={theme.primary}
