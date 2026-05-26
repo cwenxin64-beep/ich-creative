@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { View, TouchableOpacity, ScrollView, Alert, TextInput, Platform, Share as RNShare } from 'react-native';
 import { useSafeRouter } from '@/hooks/useSafeRouter';
 import { useTheme } from '@/hooks/useTheme';
+import { getApiBaseUrl } from '@/utils';
 import { Screen } from '@/components/Screen';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -398,9 +399,21 @@ export default function AudioScreen() {
               {result.audioUrl && (
                 <TouchableOpacity
                   style={styles.actionButton}
-                  onPress={() => {
+                  onPress={async () => {
                     if (Platform.OS === 'web') {
-                      window.open(result.audioUrl, '_blank');
+                      try {
+                        const proxyUrl = `${getApiBaseUrl()}/api/v1/audio/proxy?url=${encodeURIComponent(result.audioUrl)}`;
+                        const response = await fetch(proxyUrl);
+                        const blob = await response.blob();
+                        const blobUrl = window.URL.createObjectURL(blob);
+                        const link = document.createElement('a');
+                        link.href = blobUrl;
+                        link.download = `非遗音乐_${Date.now()}.mp3`;
+                        link.click();
+                        window.URL.revokeObjectURL(blobUrl);
+                      } catch (e) {
+                        Alert.alert('下载失败', '请重试');
+                      }
                     }
                   }}
                 >
