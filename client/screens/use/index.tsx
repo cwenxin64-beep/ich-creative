@@ -537,13 +537,6 @@ export default function UseScreen() {
                       {result.category}
                     </ThemedText>
                   </View>
-                  <AnimatedFavoriteButton
-                    isFavorited={favoriteMap.has(result.mainImageUrl || result.id)}
-                    onPress={() => handleFavorite(result)}
-                    size={20}
-                    activeColor="#EF4444"
-                    inactiveColor={theme.textSecondary}
-                  />
                 </View>
                 {result.mainImageUrl ? (
                   <View style={styles.resultImagesContainer}>
@@ -584,6 +577,15 @@ export default function UseScreen() {
 
                 {/* Action Buttons */}
                 <View style={styles.resultActions}>
+                  <AnimatedFavoriteButton
+                    isFavorited={favoriteMap.has(result.mainImageUrl || result.id)}
+                    onPress={() => handleFavorite(result)}
+                    size={16}
+                    activeColor={theme.primary}
+                    inactiveColor={theme.textSecondary}
+                    label={favoriteMap.has(result.mainImageUrl || result.id) ? '已收藏' : '收藏'}
+                    labelStyle={styles.actionButtonText}
+                  />
                   <TouchableOpacity
                     style={[styles.actionButton, sharingResults.has(result.mainImageUrl || result.imageUrl) && { opacity: 0.5 }]}
                     onPress={() => handleShare(result)}

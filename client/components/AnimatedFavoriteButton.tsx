@@ -95,7 +95,7 @@ export function AnimatedFavoriteButton({
 
   return (
     <TouchableOpacity
-      style={[styles.container, style]}
+      style={[label ? styles.containerWithLabel : styles.container, style]}
       onPress={handlePress}
       activeOpacity={0.6}
     >
@@ -137,6 +137,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
+  },
+  containerWithLabel: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    paddingVertical: 8,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.08)',
   },
   label: {
     fontSize: 12,

@@ -434,13 +434,6 @@ export default function PhotoScreen() {
                   <ThemedText variant="smallMedium" color={theme.textSecondary} style={styles.resultLabel}>
                     静态图片
                   </ThemedText>
-                  <AnimatedFavoriteButton
-                    isFavorited={isFavorited}
-                    onPress={handleFavorite}
-                    size={20}
-                    activeColor="#EF4444"
-                    inactiveColor={theme.textSecondary}
-                  />
                 </View>
                 <View style={styles.resultImagesContainer}>
                   <TouchableOpacity
@@ -482,6 +475,15 @@ export default function PhotoScreen() {
 
             {/* Action Buttons */}
             <View style={styles.resultActions}>
+              <AnimatedFavoriteButton
+                isFavorited={isFavorited}
+                onPress={handleFavorite}
+                size={16}
+                activeColor="#EF4444"
+                inactiveColor={theme.textSecondary}
+                label={isFavorited ? '已收藏' : '收藏'}
+                labelStyle={styles.actionButtonText}
+              />
               <TouchableOpacity
                 style={[styles.actionButton, sharing && { opacity: 0.5 }]}
                 onPress={handleShare}
