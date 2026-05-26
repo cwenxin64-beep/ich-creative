@@ -622,7 +622,7 @@ export default function PlayScreen() {
                     size={16}
                     activeColor={theme.primary}
                     inactiveColor={theme.textSecondary}
-                    label={favoritedIds.has(result.id || result.mainImageUrl || result.imageUrl || '') ? '已收藏' : '收藏'}
+                    label={favoriteMap.has(result.mainImageUrl || result.imageUrl || '') ? '已收藏' : '收藏'}
                     labelStyle={styles.actionButtonText}
                   />
                   <TouchableOpacity
