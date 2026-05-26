@@ -1,5 +1,7 @@
 import express, { type Request, type Response } from 'express';
 import crypto from 'crypto';
+import { S3Storage } from 'coze-coding-dev-sdk';
+import { query } from '../storage/database/pg-client';
 
 const router = express.Router();
 
@@ -10,6 +12,15 @@ const VOLC_MUSIC_HOST = 'open.volcengineapi.com';
 const VOLC_MUSIC_REGION = 'cn-beijing';
 const VOLC_MUSIC_SERVICE = 'imagination';
 const VOLC_MUSIC_VERSION = '2024-08-12';
+
+// 初始化对象存储
+const storage = new S3Storage({
+  endpointUrl: process.env.COZE_BUCKET_ENDPOINT_URL,
+  accessKey: '',
+  secretKey: '',
+  bucketName: process.env.COZE_BUCKET_NAME,
+  region: 'cn-beijing',
+});
 
 /**
  * HMAC-SHA256 签名工具函数
@@ -89,16 +100,16 @@ function signRequest(
  * 调用火山引擎音乐 API
  */
 async function callMusicAPI(action: string, body: Record<string, any>) {
-  const query: Record<string, string> = {
+  const queryParams: Record<string, string> = {
     Action: action,
     Version: VOLC_MUSIC_VERSION,
   };
 
   const bodyStr = JSON.stringify(body);
-  const { authorization, xDate } = signRequest('POST', query, bodyStr, new Date());
+  const { authorization, xDate } = signRequest('POST', queryParams, bodyStr, new Date());
 
-  const queryString = Object.keys(query).sort().map(key => {
-    return `${encodeURIComponent(key)}=${encodeURIComponent(query[key])}`;
+  const queryString = Object.keys(queryParams).sort().map(key => {
+    return `${encodeURIComponent(key)}=${encodeURIComponent(queryParams[key])}`;
   }).join('&');
 
   const url = `https://${VOLC_MUSIC_HOST}/?${queryString}`;
@@ -120,8 +131,7 @@ async function callMusicAPI(action: string, body: Record<string, any>) {
 
   const responseText = await response.text();
   console.log(`[Music] ${action} HTTP status: ${response.status}`);
-  console.log(`[Music] ${action} response headers:`, JSON.stringify(Object.fromEntries(response.headers.entries())));
-  console.log(`[Music] ${action} response body:`, responseText.substring(0, 1000));
+  console.log(`[Music] ${action} response body: ${responseText.substring(0, 1000)}`);
 
   let data;
   try {
@@ -141,8 +151,35 @@ async function callMusicAPI(action: string, body: Record<string, any>) {
 }
 
 /**
+ * 将火山引擎 CDN 音频转存到对象存储
+ * 返回对象存储 key 和签名 URL
+ */
+async function storeAudioToObjectStorage(cdnUrl: string, taskId: string): Promise<{ key: string; url: string }> {
+  console.log(`[Music] Uploading audio to object storage from CDN URL...`);
+
+  // 使用 uploadFromUrl 从 CDN 下载并上传到对象存储
+  const fileKey = await storage.uploadFromUrl({
+    url: cdnUrl,
+    timeout: 120000, // 2 分钟超时，音频文件可能较大
+  });
+
+  console.log(`[Music] Audio uploaded to object storage, key: ${fileKey}`);
+
+  // 生成签名 URL（有效期 7 天）
+  const signedUrl = await storage.generatePresignedUrl({
+    key: fileKey,
+    expireTime: 7 * 24 * 3600,
+  });
+
+  console.log(`[Music] Generated signed URL (7 days): ${signedUrl.substring(0, 80)}...`);
+
+  return { key: fileKey, url: signedUrl };
+}
+
+/**
  * POST /api/v1/audio/generate
  * 使用火山引擎音乐 API (GenBGMForTime 后付费) 生成非遗风格纯音乐/BGM
+ * 生成成功后将音频转存到对象存储，并记录到数据库
  */
 router.post('/generate', async (req: Request, res: Response) => {
   try {
@@ -196,17 +233,62 @@ router.post('/generate', async (req: Request, res: Response) => {
       // Status: 0=等待中, 1=处理中, 2=成功, 3=失败
       if (status === 2) {
         const songDetail = queryResult.Result?.SongDetail || {};
+        const cdnAudioUrl = songDetail.AudioUrl;
+
+        // 将音频转存到对象存储
+        let audioUrl = cdnAudioUrl;
+        let storageKey = '';
+        try {
+          if (cdnAudioUrl) {
+            const storeResult = await storeAudioToObjectStorage(cdnAudioUrl, taskId);
+            audioUrl = storeResult.url;
+            storageKey = storeResult.key;
+          }
+        } catch (storeError) {
+          console.error('[Music] Failed to store audio to object storage, falling back to CDN URL:', storeError);
+          // 转存失败时回退到 CDN URL（仍可通过 proxy 接口播放）
+        }
+
+        // 存储生成记录到数据库
+        let dbId: number | null = null;
+        try {
+          const insertResult = await query(
+            `INSERT INTO music_generations (task_id, prompt, duration, genre, mood, captions, audio_url, storage_key, status)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+             RETURNING id`,
+            [taskId, prompt, songDetail.Duration || duration, songDetail.Genre, songDetail.Mood, songDetail.Captions, audioUrl, storageKey, 'completed']
+          );
+          dbId = insertResult.rows[0]?.id || null;
+          console.log(`[Music] Saved to database, id: ${dbId}`);
+        } catch (dbError) {
+          console.error('[Music] Failed to save to database (non-fatal):', dbError);
+        }
+
         return res.json({
           success: true,
-          audioUrl: songDetail.AudioUrl,
+          id: dbId,
+          audioUrl,
           captions: songDetail.Captions,
           duration: songDetail.Duration,
           genre: songDetail.Genre,
           mood: songDetail.Mood,
           taskId,
+          storageKey,
         });
       } else if (status === 3) {
         const failureReason = queryResult.Result?.FailureReason;
+
+        // 记录失败到数据库
+        try {
+          await query(
+            `INSERT INTO music_generations (task_id, prompt, duration, status, error_message)
+             VALUES ($1, $2, $3, $4, $5)`,
+            [taskId, prompt, duration, 'failed', failureReason?.Msg || '未知原因']
+          );
+        } catch (dbError) {
+          console.error('[Music] Failed to save failure record (non-fatal):', dbError);
+        }
+
         return res.status(500).json({
           error: '音乐生成失败',
           message: failureReason?.Msg || '未知原因',
@@ -230,9 +312,59 @@ router.post('/generate', async (req: Request, res: Response) => {
 });
 
 /**
+ * GET /api/v1/audio/file/:id
+ * 获取音乐生成记录的签名 URL（用于播放）
+ * 签名 URL 过期后可重新获取
+ */
+router.get('/file/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const result = await query(
+      'SELECT * FROM music_generations WHERE id = $1',
+      [parseInt(id)]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: '音乐记录不存在' });
+    }
+
+    const record = result.rows[0];
+
+    // 如果有 storage_key，生成新的签名 URL
+    if (record.storage_key) {
+      const signedUrl = await storage.generatePresignedUrl({
+        key: record.storage_key,
+        expireTime: 7 * 24 * 3600,
+      });
+      return res.json({
+        success: true,
+        audioUrl: signedUrl,
+        genre: record.genre,
+        mood: record.mood,
+        duration: record.duration,
+        captions: record.captions,
+      });
+    }
+
+    // 没有 storage_key，返回原始 URL
+    return res.json({
+      success: true,
+      audioUrl: record.audio_url,
+      genre: record.genre,
+      mood: record.mood,
+      duration: record.duration,
+      captions: record.captions,
+    });
+  } catch (error) {
+    console.error('[Music] Get file error:', error);
+    res.status(500).json({ error: '获取音乐记录失败' });
+  }
+});
+
+/**
  * GET /api/v1/audio/proxy
- * 音频代理接口 - 解决前端跨域播放问题
- * 火山引擎返回的音频 URL (douyinvod.com) 存在 CORS 限制，前端无法直接播放
+ * 音频代理接口 - 备用方案，当对象存储转存失败时使用
  */
 router.get('/proxy', async (req: Request, res: Response) => {
   try {
@@ -249,6 +381,7 @@ router.get('/proxy', async (req: Request, res: Response) => {
         'Accept': '*/*',
       },
       redirect: 'follow',
+      signal: AbortSignal.timeout(60000),
     });
 
     if (!response.ok) {

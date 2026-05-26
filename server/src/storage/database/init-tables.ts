@@ -37,6 +37,28 @@ export async function initDatabase() {
     await query(`CREATE INDEX IF NOT EXISTS idx_users_device_id ON users(device_id);`);
     await query(`CREATE INDEX IF NOT EXISTS idx_favorites_user_id ON favorites(user_id);`);
 
+    // 创建音乐生成记录表
+    await query(`
+      CREATE TABLE IF NOT EXISTS music_generations (
+        id SERIAL PRIMARY KEY,
+        task_id VARCHAR(255) UNIQUE,
+        prompt TEXT,
+        duration FLOAT,
+        genre VARCHAR(255),
+        mood VARCHAR(255),
+        captions TEXT,
+        audio_url TEXT,
+        storage_key VARCHAR(500),
+        status VARCHAR(50) DEFAULT 'processing',
+        error_message TEXT,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+      );
+    `);
+
+    // 创建音乐生成记录索引
+    await query(`CREATE INDEX IF NOT EXISTS idx_music_generations_task_id ON music_generations(task_id);`);
+    await query(`CREATE INDEX IF NOT EXISTS idx_music_generations_status ON music_generations(status);`);
+
     console.log('[DB] Database tables initialized successfully');
   } catch (err) {
     console.error('[DB] Failed to initialize tables:', err);

@@ -41,12 +41,14 @@ export default function AudioScreen() {
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [result, setResult] = useState<{
+    id: number | null;
     audioUrl: string;
     captions: string;
     duration: number;
     genre: string;
     mood: string;
     taskId: string;
+    storageKey?: string;
   } | null>(null);
 
   const toggleTag = (tag: string, selected: string[], setSelected: (v: string[]) => void) => {
@@ -73,6 +75,8 @@ export default function AudioScreen() {
             genre: result.genre,
             mood: result.mood,
             duration: result.duration,
+            storageKey: result.storageKey,
+            musicId: result.id,
           },
         }),
       });
@@ -97,11 +101,11 @@ export default function AudioScreen() {
       if (Platform.OS !== 'web') {
         await RNShare.share({
           message: `我创作了一首非遗风格音乐！\n曲风：${result.genre}\n情绪：${result.mood}`,
-          url: `${API_BASE}/api/v1/audio/proxy?url=${encodeURIComponent(result.audioUrl)}`,
+          url: result.audioUrl,
         });
       } else {
         if (result.audioUrl) {
-          await navigator.clipboard.writeText(`${API_BASE}/api/v1/audio/proxy?url=${encodeURIComponent(result.audioUrl)}`);
+          await navigator.clipboard.writeText(result.audioUrl);
           Alert.alert('成功', '链接已复制到剪贴板');
         }
       }
@@ -329,7 +333,7 @@ export default function AudioScreen() {
                 {typeof window !== 'undefined' && 'Audio' in window && (
                   <audio
                     controls
-                    src={`${API_BASE}/api/v1/audio/proxy?url=${encodeURIComponent(result.audioUrl)}`}
+                    src={result.audioUrl}
                     style={{ width: '100%', marginTop: 12, borderRadius: 8 }}
                   />
                 )}
@@ -367,7 +371,7 @@ export default function AudioScreen() {
                   style={styles.actionButton}
                   onPress={() => {
                     if (Platform.OS === 'web') {
-                      window.open(`${API_BASE}/api/v1/audio/proxy?url=${encodeURIComponent(result.audioUrl)}`, '_blank');
+                      window.open(result.audioUrl, '_blank');
                     }
                   }}
                 >
