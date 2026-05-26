@@ -7,6 +7,7 @@ import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { buildApiUrl } from '@/utils/api';
 import { FontAwesome6 } from '@expo/vector-icons';
+import { AnimatedFavoriteButton } from '@/components/AnimatedFavoriteButton';
 import { createStyles } from './styles';
 
 // 快捷标签 - 曲风
@@ -40,6 +41,7 @@ export default function AudioScreen() {
   const [selectedDuration, setSelectedDuration] = useState(30);
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [isFavorited, setIsFavorited] = useState(false);
   const [result, setResult] = useState<{
     id: number | null;
     audioUrl: string;
@@ -84,6 +86,7 @@ export default function AudioScreen() {
       const data = await response.json();
 
       if (data.success) {
+        setIsFavorited(true);
         Alert.alert('成功', '已添加到收藏');
       } else {
         Alert.alert('收藏失败', data.message || '请重试');
@@ -124,6 +127,7 @@ export default function AudioScreen() {
     setLoading(true);
     setProgress(0);
     setResult(null);
+    setIsFavorited(false);
 
     // 模拟进度
     const progressTimer = setInterval(() => {
@@ -354,12 +358,15 @@ export default function AudioScreen() {
 
             {/* Action Buttons */}
             <View style={styles.resultActions}>
-              <TouchableOpacity style={styles.actionButton} onPress={handleFavorite}>
-                <FontAwesome6 name="heart" size={16} color={theme.textSecondary} />
-                <ThemedText variant="caption" color={theme.textSecondary} style={styles.actionButtonText}>
-                  收藏
-                </ThemedText>
-              </TouchableOpacity>
+              <AnimatedFavoriteButton
+                isFavorited={isFavorited}
+                onPress={handleFavorite}
+                size={16}
+                activeColor="#EF4444"
+                inactiveColor={theme.textSecondary}
+                label={isFavorited ? '已收藏' : '收藏'}
+                labelStyle={styles.actionButtonText}
+              />
               <TouchableOpacity style={styles.actionButton} onPress={handleShare}>
                 <FontAwesome6 name="share-nodes" size={16} color={theme.textSecondary} />
                 <ThemedText variant="caption" color={theme.textSecondary} style={styles.actionButtonText}>

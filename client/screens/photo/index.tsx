@@ -12,6 +12,7 @@ import { ThemedView } from '@/components/ThemedView';
 import { createFormDataFile } from '@/utils';
 import { buildApiUrl } from '@/utils/api';
 import { FontAwesome6 } from '@expo/vector-icons';
+import { AnimatedFavoriteButton } from '@/components/AnimatedFavoriteButton';
 import { createStyles } from './styles';
 
 // 轮询配置
@@ -435,17 +436,13 @@ export default function PhotoScreen() {
                   <ThemedText variant="smallMedium" color={theme.textSecondary} style={styles.resultLabel}>
                     静态图片
                   </ThemedText>
-                  <TouchableOpacity
-                    style={styles.favoriteButton}
+                  <AnimatedFavoriteButton
+                    isFavorited={isFavorited}
                     onPress={handleFavorite}
-                  >
-                    <FontAwesome6
-                      name={isFavorited ? "heart" : "heart"}
-                      size={20}
-                      solid={isFavorited}
-                      color={isFavorited ? "#EF4444" : theme.textSecondary}
-                    />
-                  </TouchableOpacity>
+                    size={20}
+                    activeColor="#EF4444"
+                    inactiveColor={theme.textSecondary}
+                  />
                 </View>
                 <View style={styles.resultImagesContainer}>
                   <TouchableOpacity

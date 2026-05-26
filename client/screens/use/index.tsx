@@ -8,6 +8,7 @@ import { Screen } from '@/components/Screen';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { FontAwesome6 } from '@expo/vector-icons';
+import { AnimatedFavoriteButton } from '@/components/AnimatedFavoriteButton';
 import { createStyles } from './styles';
 import { CustomizeOrderModal, CustomizeOrderData } from './CustomizeOrderModal';
 import { buildApiUrl } from '@/utils/api';
@@ -508,17 +509,13 @@ export default function UseScreen() {
                       {result.category}
                     </ThemedText>
                   </View>
-                  <TouchableOpacity
-                    style={styles.favoriteButton}
+                  <AnimatedFavoriteButton
+                    isFavorited={favoritedIds.has(result.mainImageUrl || result.id)}
                     onPress={() => handleFavorite(result)}
-                  >
-                    <FontAwesome6
-                      name={favoritedIds.has(result.mainImageUrl || result.id) ? "heart" : "heart"}
-                      size={20}
-                      solid={favoritedIds.has(result.mainImageUrl || result.id)}
-                      color={favoritedIds.has(result.mainImageUrl || result.id) ? "#EF4444" : theme.textSecondary}
-                    />
-                  </TouchableOpacity>
+                    size={20}
+                    activeColor="#EF4444"
+                    inactiveColor={theme.textSecondary}
+                  />
                 </View>
                 {result.mainImageUrl ? (
                   <View style={styles.resultImagesContainer}>

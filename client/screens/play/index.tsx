@@ -6,6 +6,7 @@ import { Screen } from '@/components/Screen';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { FontAwesome6 } from '@expo/vector-icons';
+import { AnimatedFavoriteButton } from '@/components/AnimatedFavoriteButton';
 import { createStyles } from './styles';
 import { buildApiUrl } from '@/utils/api';
 
@@ -615,15 +616,15 @@ export default function PlayScreen() {
 
                 {/* Action Buttons */}
                 <View style={styles.resultActions}>
-                  <TouchableOpacity
-                    style={styles.actionButton}
+                  <AnimatedFavoriteButton
+                    isFavorited={favoritedIds.has(result.id || result.mainImageUrl || result.imageUrl || '')}
                     onPress={() => handleFavorite(result)}
-                  >
-                    <FontAwesome6 name={favoritedIds.has(result.id || result.mainImageUrl || result.imageUrl || '') ? "heart" : "heart" } size={16} color={favoritedIds.has(result.id || result.mainImageUrl || result.imageUrl || '') ? theme.primary : theme.textSecondary} solid={favoritedIds.has(result.id || result.mainImageUrl || result.imageUrl || '')} />
-                    <ThemedText variant="caption" color={favoritedIds.has(result.id || result.mainImageUrl || result.imageUrl || '') ? theme.primary : theme.textSecondary} style={styles.actionButtonText}>
-                      {favoritedIds.has(result.id || result.mainImageUrl || result.imageUrl || '') ? '已收藏' : '收藏'}
-                    </ThemedText>
-                  </TouchableOpacity>
+                    size={16}
+                    activeColor={theme.primary}
+                    inactiveColor={theme.textSecondary}
+                    label={favoritedIds.has(result.id || result.mainImageUrl || result.imageUrl || '') ? '已收藏' : '收藏'}
+                    labelStyle={styles.actionButtonText}
+                  />
                   <TouchableOpacity
                     style={styles.actionButton}
                     onPress={() => handleShare(result)}
