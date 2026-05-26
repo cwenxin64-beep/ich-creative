@@ -118,10 +118,22 @@ async function callMusicAPI(action: string, body: Record<string, any>) {
     signal: AbortSignal.timeout(60000),
   });
 
-  const data = await response.json();
-  console.log(`[Music] ${action} response:`, JSON.stringify(data).substring(0, 500));
+  const responseText = await response.text();
+  console.log(`[Music] ${action} HTTP status: ${response.status}`);
+  console.log(`[Music] ${action} response headers:`, JSON.stringify(Object.fromEntries(response.headers.entries())));
+  console.log(`[Music] ${action} response body:`, responseText.substring(0, 1000));
+
+  let data;
+  try {
+    data = JSON.parse(responseText);
+  } catch {
+    throw new Error(`Music API returned non-JSON: ${responseText.substring(0, 200)}`);
+  }
 
   if (data.Code !== undefined && data.Code !== 0) {
+    const errDetail = `Code=${data.Code}, Message=${data.Message}, RequestId=${data.ResponseMetadata?.RequestId || 'N/A'}`;
+    console.error(`[Music] ${action} error detail: ${errDetail}`);
+    console.error(`[Music] Using AK: ${VOLC_MUSIC_AK ? VOLC_MUSIC_AK.substring(0, 8) + '...' : 'EMPTY'}`);
     throw new Error(`Music API error: ${data.Code} - ${data.Message}`);
   }
 
