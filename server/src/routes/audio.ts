@@ -230,6 +230,45 @@ router.post('/generate', async (req: Request, res: Response) => {
 });
 
 /**
+ * GET /api/v1/audio/proxy
+ * 音频代理接口 - 解决前端跨域播放问题
+ * 火山引擎返回的音频 URL (douyinvod.com) 存在 CORS 限制，前端无法直接播放
+ */
+router.get('/proxy', async (req: Request, res: Response) => {
+  try {
+    const audioUrl = req.query.url as string;
+    if (!audioUrl) {
+      return res.status(400).json({ error: '缺少音频 URL' });
+    }
+
+    console.log(`[Music] Proxying audio: ${audioUrl.substring(0, 80)}...`);
+
+    const response = await fetch(audioUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0',
+      },
+    });
+
+    if (!response.ok) {
+      console.error(`[Music] Proxy fetch failed: ${response.status}`);
+      return res.status(response.status).json({ error: `音频下载失败: ${response.status}` });
+    }
+
+    const contentType = response.headers.get('content-type') || 'audio/mpeg';
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+
+    const buffer = await response.arrayBuffer();
+    res.send(Buffer.from(buffer));
+
+  } catch (error) {
+    console.error('[Music] Proxy error:', error);
+    res.status(500).json({ error: '音频代理失败' });
+  }
+});
+
+/**
  * GET /api/v1/audio/test
  * 诊断接口 - 测试火山引擎音乐 API 连通性
  */

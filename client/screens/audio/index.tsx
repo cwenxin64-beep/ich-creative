@@ -97,11 +97,11 @@ export default function AudioScreen() {
       if (Platform.OS !== 'web') {
         await RNShare.share({
           message: `我创作了一首非遗风格音乐！\n曲风：${result.genre}\n情绪：${result.mood}`,
-          url: result.audioUrl,
+          url: `${API_BASE}/api/v1/audio/proxy?url=${encodeURIComponent(result.audioUrl)}`,
         });
       } else {
         if (result.audioUrl) {
-          await navigator.clipboard.writeText(result.audioUrl);
+          await navigator.clipboard.writeText(`${API_BASE}/api/v1/audio/proxy?url=${encodeURIComponent(result.audioUrl)}`);
           Alert.alert('成功', '链接已复制到剪贴板');
         }
       }
@@ -329,7 +329,7 @@ export default function AudioScreen() {
                 {typeof window !== 'undefined' && 'Audio' in window && (
                   <audio
                     controls
-                    src={result.audioUrl}
+                    src={`${API_BASE}/api/v1/audio/proxy?url=${encodeURIComponent(result.audioUrl)}`}
                     style={{ width: '100%', marginTop: 12, borderRadius: 8 }}
                   />
                 )}
@@ -367,7 +367,7 @@ export default function AudioScreen() {
                   style={styles.actionButton}
                   onPress={() => {
                     if (Platform.OS === 'web') {
-                      window.open(result.audioUrl, '_blank');
+                      window.open(`${API_BASE}/api/v1/audio/proxy?url=${encodeURIComponent(result.audioUrl)}`, '_blank');
                     }
                   }}
                 >
