@@ -238,6 +238,7 @@ router.post('/generate', async (req: Request, res: Response) => {
         // 将音频转存到对象存储
         let audioUrl = cdnAudioUrl;
         let storageKey = '';
+        let useProxy = false;
         try {
           if (cdnAudioUrl) {
             const storeResult = await storeAudioToObjectStorage(cdnAudioUrl, taskId);
@@ -245,8 +246,14 @@ router.post('/generate', async (req: Request, res: Response) => {
             storageKey = storeResult.key;
           }
         } catch (storeError) {
-          console.error('[Music] Failed to store audio to object storage, falling back to CDN URL:', storeError);
-          // 转存失败时回退到 CDN URL（仍可通过 proxy 接口播放）
+          console.error('[Music] Failed to store audio to object storage, falling back to proxy URL:', storeError);
+          // 对象存储不可用时，使用后端代理 URL 解决 CORS 问题
+          if (cdnAudioUrl) {
+            const protocol = req.protocol || 'https';
+            const host = req.get('host') || '';
+            audioUrl = `${protocol}://${host}/api/v1/audio/proxy?url=${encodeURIComponent(cdnAudioUrl)}`;
+            useProxy = true;
+          }
         }
 
         // 存储生成记录到数据库
@@ -347,10 +354,18 @@ router.get('/file/:id', async (req: Request, res: Response) => {
       });
     }
 
-    // 没有 storage_key，返回原始 URL
+    // 没有 storage_key，使用代理 URL 或返回原始 URL
+    let audioUrl = record.audio_url;
+    // 如果原始 URL 是 CDN URL（不是代理 URL 也不是签名 URL），则用代理包装
+    if (audioUrl && !audioUrl.includes('/api/v1/audio/proxy') && !audioUrl.includes('X-Amz-Signature')) {
+      const protocol = req.protocol || 'https';
+      const host = req.get('host') || '';
+      audioUrl = `${protocol}://${host}/api/v1/audio/proxy?url=${encodeURIComponent(audioUrl)}`;
+    }
+
     return res.json({
       success: true,
-      audioUrl: record.audio_url,
+      audioUrl,
       genre: record.genre,
       mood: record.mood,
       duration: record.duration,
