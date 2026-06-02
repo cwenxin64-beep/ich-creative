@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { View, TouchableOpacity, ScrollView, Alert, TextInput, Image, Platform, Share as RNShare, Modal, FlatList } from 'react-native';
+import { View, TouchableOpacity, ScrollView, Alert, TextInput, Image, Platform, Modal, FlatList } from 'react-native';
 import { useSafeRouter } from '@/hooks/useSafeRouter';
 import { useTheme } from '@/hooks/useTheme';
 import { Screen } from '@/components/Screen';
@@ -181,24 +181,50 @@ export default function PlayScreen() {
   const handleShare = async (result: any) => {
     try {
       const url = result.imageUrl || result.videoUrl;
+      if (!url) {
+        showToast('没有可分享的内容');
+        return;
+      }
 
-      if (Platform.OS !== 'web') {
-        const message = `我创造了一个${result.type}，快来看看吧！`;
-
-        await RNShare.share({
-          message,
-          url,
-        });
-      } else {
-        // Web 端复制链接
-        if (url) {
-          await navigator.clipboard.writeText(url);
-          showToast('链接已复制到剪贴板');
+      // 优先使用 Web Share API（支持直接分享到微信）
+      if (navigator.share) {
+        try {
+          // 尝试分享图片文件
+          try {
+            const response = await fetch(url);
+            const blob = await response.blob();
+            const isImage = url.includes('.jpg') || url.includes('.png') || url.includes('.jpeg') || url.includes('.webp');
+            const file = new File([blob], isImage ? 'ich_art.jpg' : 'ich_art.mp4', { type: isImage ? 'image/jpeg' : 'video/mp4' });
+            await navigator.share({
+              title: '非遗交互作品',
+              text: `我创造了一个${result.type}，快来看看吧！`,
+              files: [file],
+            });
+            return;
+          } catch {
+            // files 不支持时回退
+          }
+          await navigator.share({
+            title: '非遗交互作品',
+            text: `我创造了一个${result.type}，快来看看吧！`,
+            url: url,
+          });
+          return;
+        } catch (shareError: any) {
+          if (shareError?.name === 'AbortError') return;
         }
+      }
+
+      // 回退：复制链接
+      try {
+        await navigator.clipboard.writeText(url);
+        showToast('链接已复制到剪贴板');
+      } catch {
+        showToast('分享失败');
       }
     } catch (error) {
       console.error('Share error:', error);
-      Alert.alert('分享失败', '请重试');
+      showToast('分享失败，请重试');
     }
   };
 

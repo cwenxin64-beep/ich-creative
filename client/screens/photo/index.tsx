@@ -2,7 +2,6 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { View, TouchableOpacity, ScrollView, Alert, TextInput, Platform, Image } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
-import * as Sharing from 'expo-sharing';
 import { GenerationProgress } from '../../components/GenerationProgress';
 import Toast from '../../components/Toast';
 import { useToast } from '../../hooks/useToast';
@@ -138,59 +137,55 @@ export default function PhotoScreen() {
       const url = result.staticMainImageUrl;
 
       if (!url) {
-        console.log('[Share] No URL available, result keys:', Object.keys(result));
-        Alert.alert('提示', '没有可分享的内容');
+        showToast('没有可分享的内容');
         return;
       }
 
-      console.log('[Share] Sharing URL:', url);
-
-      if (Platform.OS === 'web') {
-        // Web 端复制链接
+      // 优先使用 Web Share API（支持直接分享到微信）
+      if (navigator.share) {
         try {
-          await navigator.clipboard.writeText(url);
-          showToast('链接已复制到剪贴板');
-        } catch (clipboardError) {
-          console.error('[Share] Clipboard error:', clipboardError);
-          Alert.alert('提示', '链接: ' + url);
+          // 获取图片 blob 用于微信分享
+          const response = await fetch(url);
+          const blob = await response.blob();
+          const file = new File([blob], 'ich_art.jpg', { type: 'image/jpeg' });
+
+          await navigator.share({
+            title: '非遗创意作品',
+            text: '我用智能非遗创作了一幅非遗风格作品，快来看看！',
+            files: [file],
+          });
+          return;
+        } catch (shareError: any) {
+          // 用户取消分享不提示错误
+          if (shareError?.name === 'AbortError') return;
+          // Web Share API files 不支持时回退到链接分享
         }
-        return;
       }
 
-      // 移动端：下载图片并分享
-      setSharing(true);
-
-      // 生成临时文件名
-      const fileName = `ich_art_${Date.now()}.jpg`;
-      const localUri = `${(FileSystem as any).cacheDirectory}${fileName}`;
-
-      // 下载文件到本地
-      const downloadResult = await (FileSystem as any).downloadAsync(url, localUri);
-      console.log('[Share] Download result status:', downloadResult.status);
-
-      if (downloadResult.status !== 200) {
-        throw new Error('下载文件失败');
+      // 回退：尝试 Web Share 文字链接
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title: '非遗创意作品',
+            text: '我用智能非遗创作了一幅非遗风格作品，快来看看！',
+            url: url,
+          });
+          return;
+        } catch (shareError: any) {
+          if (shareError?.name === 'AbortError') return;
+        }
       }
 
-      // 检查是否支持分享
-      const isAvailable = await Sharing.isAvailableAsync();
-      console.log('[Share] Sharing available:', isAvailable);
-
-      if (!isAvailable) {
-        Alert.alert('提示', '当前设备不支持分享功能');
-        return;
+      // 最终回退：复制链接
+      try {
+        await navigator.clipboard.writeText(url);
+        showToast('链接已复制到剪贴板');
+      } catch {
+        showToast('分享链接: ' + url);
       }
-
-      // 分享文件
-      await Sharing.shareAsync(downloadResult.uri, {
-        mimeType: 'image/jpeg',
-        dialogTitle: '分享非遗创意作品',
-      });
     } catch (error) {
       console.error('Share error:', error);
-      Alert.alert('分享失败', '请检查网络连接后重试');
-    } finally {
-      setSharing(false);
+      showToast('分享失败，请重试');
     }
   };
 

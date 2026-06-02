@@ -166,63 +166,51 @@ export default function UseScreen() {
       const url = result.mainImageUrl || result.imageUrl;
 
       if (!url) {
-        Alert.alert('提示', '没有可分享的内容');
+        showToast('没有可分享的内容');
         return;
       }
 
-      const resultId = result.mainImageUrl || result.imageUrl || JSON.stringify(result);
+      const categoryName = result.category || '非遗';
 
-      if (Platform.OS === 'web') {
-        // Web 端复制链接
+      // 优先使用 Web Share API（支持直接分享到微信）
+      if (navigator.share) {
+        try {
+          // 尝试分享图片文件
+          try {
+            const response = await fetch(url);
+            const blob = await response.blob();
+            const isImage = url.includes('.jpg') || url.includes('.png') || url.includes('.jpeg') || url.includes('.webp');
+            const file = new File([blob], isImage ? 'ich_art.jpg' : 'ich_art.mp4', { type: isImage ? 'image/jpeg' : 'video/mp4' });
+            await navigator.share({
+              title: `${categoryName}非遗作品`,
+              text: `我用智能非遗定制了${categoryName}作品，快来看看！`,
+              files: [file],
+            });
+            return;
+          } catch {
+            // files 不支持时回退
+          }
+          await navigator.share({
+            title: `${categoryName}非遗作品`,
+            text: `我用智能非遗定制了${categoryName}作品，快来看看！`,
+            url: url,
+          });
+          return;
+        } catch (shareError: any) {
+          if (shareError?.name === 'AbortError') return;
+        }
+      }
+
+      // 回退：复制链接
+      try {
         await navigator.clipboard.writeText(url);
         showToast('链接已复制到剪贴板');
-        return;
+      } catch {
+        showToast('分享失败');
       }
-
-      // 移动端：下载图片并分享
-      setSharingResults(prev => new Set(prev).add(resultId));
-
-      // 生成临时文件名
-      const fileExtension = url.includes('.mp4') ? 'mp4' : 'jpg';
-      const fileName = `ich_custom_${Date.now()}.${fileExtension}`;
-      const localUri = `${(FileSystem as any).cacheDirectory}${fileName}`;
-
-      // 下载文件到本地
-      const downloadResult = await (FileSystem as any).downloadAsync(url, localUri);
-
-      if (downloadResult.status !== 200) {
-        throw new Error('下载文件失败');
-      }
-
-      // 检查是否支持分享
-      const isAvailable = await Sharing.isAvailableAsync();
-
-      if (!isAvailable) {
-        Alert.alert('提示', '当前设备不支持分享功能');
-        setSharingResults(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(resultId);
-          return newSet;
-        });
-        return;
-      }
-
-      // 分享文件
-      const categoryName = result.category || '非遗';
-      await Sharing.shareAsync(downloadResult.uri, {
-        mimeType: fileExtension === 'mp4' ? 'video/mp4' : 'image/jpeg',
-        dialogTitle: `分享${categoryName}非遗作品`,
-      });
     } catch (error) {
       console.error('Share error:', error);
-      Alert.alert('分享失败', '请检查网络连接后重试');
-    } finally {
-      const resultId = result.mainImageUrl || result.imageUrl || JSON.stringify(result);
-      setSharingResults(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(resultId);
-        return newSet;
-      });
+      showToast('分享失败，请重试');
     }
   };
 

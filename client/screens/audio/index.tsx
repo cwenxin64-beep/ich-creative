@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { View, TouchableOpacity, ScrollView, Alert, TextInput, Platform, Share as RNShare } from 'react-native';
+import { View, TouchableOpacity, ScrollView, Alert, TextInput, Platform } from 'react-native';
 import { useSafeRouter } from '@/hooks/useSafeRouter';
 import { useTheme } from '@/hooks/useTheme';
 import { getApiBaseUrl } from '@/utils';
@@ -127,28 +127,51 @@ export default function AudioScreen() {
     if (!result) return;
 
     try {
-      // 构造可访问的音频链接（通过代理避免CORS）
       const audioLink = result.audioUrl
         ? `${getApiBaseUrl()}/api/v1/audio/proxy?url=${encodeURIComponent(result.audioUrl)}`
         : '';
-      const shareText = `我创作了一首非遗风格音乐！\n曲风：${result.genre}\n情绪：${result.mood}${audioLink ? '\n🎵 收听: ' + audioLink : ''}`;
+      const shareText = `我创作了一首非遗风格音乐！\n曲风：${result.genre}\n情绪：${result.mood}`;
 
-      if (Platform.OS !== 'web') {
-        await RNShare.share({
-          message: shareText,
-          url: result.audioUrl,
-        });
-      } else {
-        if (audioLink) {
-          await navigator.clipboard.writeText(shareText);
-          showToast('内容已复制到剪贴板');
-        } else {
-          Alert.alert('提示', '没有可分享的内容');
+      // 优先使用 Web Share API（支持直接分享到微信）
+      if (navigator.share) {
+        try {
+          if (audioLink) {
+            try {
+              const response = await fetch(audioLink);
+              const blob = await response.blob();
+              const file = new File([blob], 'ich_music.mp3', { type: 'audio/mpeg' });
+              await navigator.share({
+                title: '非遗风格音乐',
+                text: shareText,
+                files: [file],
+              });
+              return;
+            } catch {
+              // files 不支持时回退
+            }
+          }
+          await navigator.share({
+            title: '非遗风格音乐',
+            text: shareText + (audioLink ? '\n🎵 收听: ' + audioLink : ''),
+            url: audioLink || undefined,
+          });
+          return;
+        } catch (shareError: any) {
+          if (shareError?.name === 'AbortError') return;
         }
+      }
+
+      // 回退：复制链接
+      const fullText = shareText + (audioLink ? '\n🎵 收听: ' + audioLink : '');
+      try {
+        await navigator.clipboard.writeText(fullText);
+        showToast('内容已复制到剪贴板');
+      } catch {
+        showToast('分享失败');
       }
     } catch (error) {
       console.error('Share error:', error);
-      Alert.alert('分享失败', '请重试');
+      showToast('分享失败，请重试');
     }
   };
 

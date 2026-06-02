@@ -115,12 +115,44 @@ export default function FavoritesScreen() {
       const message = isMusic
         ? `${item.title}\n曲风：${item.metadata?.genre || ''} | 情绪：${item.metadata?.mood || ''}\n\n由智能非遗创意平台创作`
         : `${item.title}\n${item.description}\n\n查看更多精彩作品！`;
-      if (Platform.OS === 'web') {
+
+      // 优先使用 Web Share API（支持直接分享到微信）
+      if (navigator.share) {
+        try {
+          // 尝试分享图片/音频文件
+          const contentUrl = isMusic ? item.audioUrl : (item.imageUrl || item.sourceUrl);
+          if (contentUrl) {
+            try {
+              const response = await fetch(contentUrl);
+              const blob = await response.blob();
+              const file = new File([blob], isMusic ? 'ich_music.mp3' : 'ich_art.jpg', { type: isMusic ? 'audio/mpeg' : 'image/jpeg' });
+              await navigator.share({
+                title: item.title,
+                text: message,
+                files: [file],
+              });
+              return;
+            } catch {
+              // files 不支持时回退
+            }
+          }
+          await navigator.share({
+            title: item.title,
+            text: message,
+            url: contentUrl || undefined,
+          });
+          return;
+        } catch (shareError: any) {
+          if (shareError?.name === 'AbortError') return;
+        }
+      }
+
+      // 回退：复制到剪贴板
+      try {
         await navigator.clipboard.writeText(message);
         showToast('内容已复制到剪贴板');
-      } else {
-        await Share.share({ message });
-        showToast('分享成功');
+      } catch {
+        showToast('分享失败');
       }
     } catch (error) {
       showToast('分享失败，请稍后重试');
@@ -132,9 +164,21 @@ export default function FavoritesScreen() {
     const items = favorites.filter(f => selectedIds.has(f.id));
     try {
       const message = items.map(item => `${item.title}: ${item.description}`).join('\n\n');
-      await Share.share({ message: `${message}\n\n查看更多精彩作品！` });
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title: '我的非遗收藏',
+            text: `${message}\n\n查看更多精彩作品！`,
+          });
+          return;
+        } catch (shareError: any) {
+          if (shareError?.name === 'AbortError') return;
+        }
+      }
+      await navigator.clipboard.writeText(message);
+      showToast('内容已复制到剪贴板');
     } catch (error) {
-      Alert.alert('提示', '分享失败，请稍后重试');
+      showToast('分享失败，请稍后重试');
     }
   };
 
