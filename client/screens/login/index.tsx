@@ -15,7 +15,7 @@ export default function LoginScreen() {
   const styles = useMemo(() => createStyles(theme), [theme]);
   const router = useSafeRouter();
   const { loginWithEmail } = useAuth();
-  const { toast, showToast, hideToast } = useToast();
+  const { toastVisible, toastMessage, showToast, hideToast } = useToast();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

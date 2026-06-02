@@ -16,7 +16,7 @@ export default function RegisterScreen() {
   const styles = useMemo(() => createStyles(theme), [theme]);
   const router = useSafeRouter();
   const { loginWithEmail } = useAuth();
-  const { toast, showToast, hideToast } = useToast();
+  const { toastVisible, toastMessage, showToast, hideToast } = useToast();
 
   const [formData, setFormData] = useState({
     username: '',
