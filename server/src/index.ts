@@ -52,7 +52,8 @@ app.get('/api/v1/health', (req, res) => {
 });
 
 // Image proxy - for canvas cross-origin access
-app.get('/api/v1/image/proxy', async (req, res) => {
+app.get('/api/v1/imageproxy', async (req, res) => {
+  console.log('[IMAGEPROXY] query:', JSON.stringify(req.query), 'path:', req.path, 'originalUrl:', req.originalUrl);
   try {
     const imageUrl = req.query.url as string;
     if (!imageUrl) {

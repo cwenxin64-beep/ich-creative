@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Modal, View, Text, TouchableOpacity, Image, ActivityIndicator, Alert, ScrollView } from 'react-native';
+import { Modal, View, Text, TouchableOpacity, Image, ActivityIndicator, ScrollView } from 'react-native';
 import QRCode from 'qrcode';
 import { useToast } from '@/hooks/useToast';
 
@@ -25,34 +25,59 @@ export default function SharePanel({
   const { showToast } = useToast();
   const [qrCodeUri, setQrCodeUri] = useState<string>('');
   const [saving, setSaving] = useState(false);
-  const [qrLoading, setQrLoading] = useState(false);
 
-  // 生成二维码 — 编码网站首页URL，而不是图片URL
+  // 生成二维码
   useEffect(() => {
     if (visible) {
-      // 用网站首页作为二维码内容，这样别人扫码可以看到应用
       const qrContent = window.location.origin || 'https://ich-client-204193-6-1388119917.sh.run.tcloudbase.com';
-      generateQRCode(qrContent);
-    }
-  }, [visible]);
-
-  const generateQRCode = async (url: string) => {
-    try {
-      setQrLoading(true);
-      const dataUrl = await QRCode.toDataURL(url, {
+      QRCode.toDataURL(qrContent, {
         width: 200,
         margin: 2,
         color: { dark: '#000000', light: '#ffffff' },
-      });
-      setQrCodeUri(dataUrl);
-    } catch {
-      setQrCodeUri('');
-    } finally {
-      setQrLoading(false);
+      })
+        .then(setQrCodeUri)
+        .catch(() => setQrCodeUri(''));
     }
+  }, [visible]);
+
+  // 将图片URL转为base64 data URL（解决canvas跨域问题）
+  const imageToBase64 = async (url: string): Promise<string | null> => {
+    try {
+      // 先尝试通过当前域名代理
+      const proxyUrl = `${window.location.origin}/api/v1/imageproxy?url=${encodeURIComponent(url)}`;
+      const resp = await fetch(proxyUrl);
+      if (resp.ok) {
+        const blob = await resp.blob();
+        return await blobToDataUrl(blob);
+      }
+    } catch {
+      // 代理失败，尝试直接 fetch
+    }
+
+    try {
+      // 直接 fetch（同源图片可行）
+      const resp = await fetch(url);
+      if (resp.ok) {
+        const blob = await resp.blob();
+        return await blobToDataUrl(blob);
+      }
+    } catch {
+      // 直接 fetch 也失败
+    }
+
+    return null;
   };
 
-  // 保存/下载图片（Web端 fetch+blob方式）
+  const blobToDataUrl = (blob: Blob): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  };
+
+  // 保存原图/音频
   const saveImageToAlbum = useCallback(async () => {
     const urlToSave = imageUrl || audioUrl;
     if (!urlToSave) {
@@ -62,23 +87,19 @@ export default function SharePanel({
     try {
       setSaving(true);
 
-      // 构建完整URL
       let fullUrl = urlToSave;
       if (!fullUrl.startsWith('http')) {
-        const base = window.location.origin || '';
-        fullUrl = `${base}${fullUrl}`;
+        fullUrl = `${window.location.origin}${fullUrl}`;
       }
 
-      // 音频文件走代理
+      // 音频走代理
       if (audioUrl && fullUrl.includes('volces.com')) {
-        const base = window.location.origin || '';
-        fullUrl = `${base}/api/v1/audio/proxy?url=${encodeURIComponent(audioUrl!)}`;
+        fullUrl = `${window.location.origin}/api/v1/audio/proxy?url=${encodeURIComponent(audioUrl!)}`;
       }
 
-      // 图片也走代理避免跨域
+      // 图片走代理
       if (imageUrl && !fullUrl.includes('/api/v1/')) {
-        const base = window.location.origin || '';
-        fullUrl = `${base}/api/v1/image/proxy?url=${encodeURIComponent(fullUrl)}`;
+        fullUrl = `${window.location.origin}/api/v1/imageproxy?url=${encodeURIComponent(fullUrl)}`;
       }
 
       const response = await fetch(fullUrl);
@@ -149,21 +170,29 @@ export default function SharePanel({
       ctx.font = '16px sans-serif';
       ctx.fillText(description, canvasW / 2, 78);
 
-      // 图片 — 通过代理加载避免跨域
+      // 图片 — 转base64避免跨域
+      let imageDrawn = false;
       if (imageUrl) {
         try {
           let fullUrl = imageUrl;
           if (!fullUrl.startsWith('http')) {
             fullUrl = `${window.location.origin}${fullUrl}`;
           }
-          // 走代理加载图片
-          const proxyUrl = `${window.location.origin}/api/v1/image/proxy?url=${encodeURIComponent(fullUrl)}`;
+
+          // 尝试将图片转为 base64 data URL
+          const base64 = await imageToBase64(fullUrl);
           const img = new Image();
-          img.crossOrigin = 'anonymous';
+
+          if (base64) {
+            img.src = base64; // base64 没有跨域问题
+          } else {
+            img.crossOrigin = 'anonymous';
+            img.src = fullUrl; // 最后尝试直接加载
+          }
+
           await new Promise<void>((resolve, reject) => {
             img.onload = () => resolve();
             img.onerror = () => reject(new Error('Image load failed'));
-            img.src = proxyUrl;
           });
 
           const maxImgW = 500;
@@ -179,34 +208,20 @@ export default function SharePanel({
           roundRect(ctx, imgX - 10, imgY - 10, drawW + 20, drawH + 20, 12);
           ctx.fill();
           ctx.drawImage(img, imgX, imgY, drawW, drawH);
+          imageDrawn = true;
         } catch {
-          // 代理也失败，尝试直接加载
-          try {
-            const img = new Image();
-            await new Promise<void>((resolve, reject) => {
-              img.onload = () => resolve();
-              img.onerror = () => reject(new Error('Image load failed'));
-              img.src = imageUrl!;
-            });
-            const maxImgW = 500;
-            const maxImgH = 520;
-            const scale = Math.min(maxImgW / img.width, maxImgH / img.height, 1);
-            const drawW = img.width * scale;
-            const drawH = img.height * scale;
-            const imgX = (canvasW - drawW) / 2;
-            const imgY = 100;
-            ctx.fillStyle = '#ffffff';
-            roundRect(ctx, imgX - 10, imgY - 10, drawW + 20, drawH + 20, 12);
-            ctx.fill();
-            ctx.drawImage(img, imgX, imgY, drawW, drawH);
-          } catch {
-            ctx.fillStyle = '#555';
-            ctx.fillRect(75, 100, 450, 350);
-            ctx.fillStyle = '#999';
-            ctx.font = '16px sans-serif';
-            ctx.fillText('（图片加载失败）', canvasW / 2, 280);
-          }
+          // 图片加载失败
         }
+      }
+
+      if (imageUrl && !imageDrawn) {
+        // 图片加载失败，显示占位
+        ctx.fillStyle = '#2a2a4e';
+        roundRect(ctx, 75, 100, 450, 350, 12);
+        ctx.fill();
+        ctx.fillStyle = '#999';
+        ctx.font = '16px sans-serif';
+        ctx.fillText('（图片加载失败）', canvasW / 2, 280);
       }
 
       // 音频图标
@@ -243,7 +258,7 @@ export default function SharePanel({
           ctx.font = '13px sans-serif';
           ctx.fillText('扫码查看作品', canvasW / 2, qrSectionY + qrSize + 30);
         } catch {
-          // 二维码失败忽略
+          // 二维码加载失败忽略
         }
       } else {
         ctx.fillStyle = '#666';
@@ -261,7 +276,7 @@ export default function SharePanel({
       ctx.font = '11px sans-serif';
       ctx.fillText('智能非遗 - 让非遗"活"在当代', canvasW / 2, canvasH - 12);
 
-      // 下载
+      // 下载海报
       canvas.toBlob((blob) => {
         if (!blob) {
           showToast('生成海报失败');
