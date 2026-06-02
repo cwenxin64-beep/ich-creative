@@ -1,6 +1,6 @@
-import React, { useCallback, useRef, useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { Modal, View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
-import QRCodeSVG from 'react-qr-code';
+import { create as createQR } from 'qrcode';
 import { useToast } from '@/hooks/useToast';
 
 interface SharePanelProps {
@@ -11,6 +11,110 @@ interface SharePanelProps {
   title?: string;
   description?: string;
   shareUrl?: string;
+}
+
+/**
+ * 使用 qrcode 库的 create() 生成 QR 矩阵数据，
+ * 然后手动在 canvas 上绘制像素点，生成 base64 PNG。
+ */
+function generateQRBase64(text: string, size: number = 200): Promise<string> {
+  return new Promise((resolve, reject) => {
+    try {
+      const qrData = createQR(text, { errorCorrectionLevel: 'M' });
+      const modules = qrData.modules;
+      const moduleCount = modules.size;
+      const margin = 2;
+      const totalModules = moduleCount + margin * 2;
+      const cellSize = Math.floor(size / totalModules);
+      const actualSize = cellSize * totalModules;
+
+      const canvas = document.createElement('canvas');
+      canvas.width = actualSize;
+      canvas.height = actualSize;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        reject(new Error('Canvas context not available'));
+        return;
+      }
+
+      // 白色背景
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, actualSize, actualSize);
+
+      // 画黑色模块
+      ctx.fillStyle = '#000000';
+      for (let row = 0; row < moduleCount; row++) {
+        for (let col = 0; col < moduleCount; col++) {
+          if (modules.data[row * moduleCount + col]) {
+            ctx.fillRect(
+              (col + margin) * cellSize,
+              (row + margin) * cellSize,
+              cellSize,
+              cellSize
+            );
+          }
+        }
+      }
+
+      resolve(canvas.toDataURL('image/png'));
+    } catch (e) {
+      reject(e);
+    }
+  });
+}
+
+/**
+ * 将外部图片 URL 转为 base64 data URL
+ * 先尝试通过后端图片代理获取（避免 CORS），如果失败则直接用 canvas 绘制
+ */
+async function imageUrlToBase64(url: string): Promise<string | null> {
+  // 如果已经是 base64，直接返回
+  if (url.startsWith('data:')) return url;
+
+  try {
+    // 方案1: 通过后端图片代理获取
+    const proxyUrl = `/api/v1/imageproxy?url=${encodeURIComponent(url)}`;
+    const response = await fetch(proxyUrl);
+    if (response.ok) {
+      const blob = await response.blob();
+      return await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = () => resolve('');
+        reader.readAsDataURL(blob);
+      });
+    }
+  } catch (e) {
+    console.warn('[SharePanel] Proxy fetch failed, trying direct canvas:', e);
+  }
+
+  // 方案2: 直接加载图片并画到 canvas
+  try {
+    return await new Promise<string>((resolve) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.naturalWidth;
+          canvas.height = img.naturalHeight;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0);
+            resolve(canvas.toDataURL('image/jpeg', 0.8));
+          } else {
+            resolve('');
+          }
+        } catch {
+          resolve('');
+        }
+      };
+      img.onerror = () => resolve('');
+      img.src = url;
+    });
+  } catch {
+    return null;
+  }
 }
 
 export default function SharePanel({
@@ -25,48 +129,42 @@ export default function SharePanel({
   const { showToast } = useToast();
   const [saving, setSaving] = useState(false);
   const [qrImageData, setQrImageData] = useState<string>('');
-  const posterRef = useRef<HTMLDivElement>(null);
-  const qrSvgRef = useRef<HTMLDivElement>(null);
+  const [posterImageData, setPosterImageData] = useState<string>('');
+  const [posterEl, setPosterEl] = useState<HTMLDivElement | null>(null);
 
   const qrContent = shareUrl || (typeof window !== 'undefined' ? window.location.origin : '');
 
-  // 当弹窗打开时，将 SVG 二维码转换为 base64 图片
+  // 弹窗打开时，预生成 QR 和图片的 base64
   useEffect(() => {
     if (!visible) return;
 
-    const timer = setTimeout(() => {
+    const prepare = async () => {
+      // 生成二维码 base64
       try {
-        const container = qrSvgRef.current;
-        if (!container) return;
-
-        const svgEl = container.querySelector('svg');
-        if (!svgEl) return;
-
-        // SVG → Canvas → DataURL
-        const svgData = new XMLSerializer().serializeToString(svgEl);
-        const svgBase64 = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
-
-        const img = new Image();
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          canvas.width = 200;
-          canvas.height = 200;
-          const ctx = canvas.getContext('2d');
-          if (ctx) {
-            ctx.fillStyle = '#ffffff';
-            ctx.fillRect(0, 0, 200, 200);
-            ctx.drawImage(img, 0, 0, 200, 200);
-            setQrImageData(canvas.toDataURL('image/png'));
-          }
-        };
-        img.src = svgBase64;
+        const dataUrl = await generateQRBase64(qrContent, 200);
+        console.log('[SharePanel] QR generated, length:', dataUrl.length);
+        setQrImageData(dataUrl);
       } catch (e) {
-        console.error('QR code conversion error:', e);
+        console.error('[SharePanel] QR generation failed:', e);
       }
-    }, 300);
 
+      // 预加载图片 base64（通过代理避免 CORS）
+      if (imageUrl && imageUrl.startsWith('http')) {
+        try {
+          const base64 = await imageUrlToBase64(imageUrl);
+          if (base64) {
+            console.log('[SharePanel] Image converted to base64, length:', base64.length);
+            setPosterImageData(base64);
+          }
+        } catch (e) {
+          console.warn('[SharePanel] Image base64 conversion failed:', e);
+        }
+      }
+    };
+
+    const timer = setTimeout(prepare, 200);
     return () => clearTimeout(timer);
-  }, [visible]);
+  }, [visible, qrContent, imageUrl]);
 
   // 保存原图/音频
   const saveOriginal = useCallback(async () => {
@@ -120,13 +218,12 @@ export default function SharePanel({
       setSaving(true);
 
       const html2canvas = (await import('html2canvas')).default;
-      const el = posterRef.current;
-      if (!el) {
+      if (!posterEl) {
         showToast('生成海报失败');
         return;
       }
 
-      const canvas = await html2canvas(el, {
+      const canvas = await html2canvas(posterEl, {
         backgroundColor: null,
         scale: 2,
         useCORS: true,
@@ -158,7 +255,7 @@ export default function SharePanel({
     } finally {
       setSaving(false);
     }
-  }, [title, showToast]);
+  }, [title, showToast, posterEl]);
 
   // 复制链接
   const copyLink = useCallback(async () => {
@@ -186,6 +283,9 @@ export default function SharePanel({
     }
   }, [shareUrl, showToast]);
 
+  // 海报中使用的图片 src：优先使用 base64（html2canvas 可以渲染），否则用原始 URL
+  const posterImageSrc = posterImageData || imageUrl;
+
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View style={styles.overlay}>
@@ -200,7 +300,7 @@ export default function SharePanel({
 
           {/* 海报预览区域 */}
           <div
-            ref={posterRef}
+            ref={setPosterEl}
             style={{
               width: '100%',
               borderRadius: 12,
@@ -224,11 +324,10 @@ export default function SharePanel({
               {description}
             </div>
 
-            {/* 作品图片 */}
-            {imageUrl && (
+            {/* 作品图片 - 使用 base64 或代理 URL */}
+            {posterImageSrc && (
               <img
-                src={imageUrl}
-                crossOrigin="anonymous"
+                src={posterImageSrc}
                 style={{
                   width: '80%',
                   maxHeight: 240,
@@ -261,7 +360,7 @@ export default function SharePanel({
               </div>
             )}
 
-            {/* 二维码区域 - 用 <img> 而不是 SVG，html2canvas 可以渲染 */}
+            {/* 二维码区域 - 用 base64 PNG data URL */}
             {qrImageData && (
               <div style={{
                 background: '#ffffff',
@@ -274,9 +373,27 @@ export default function SharePanel({
               }}>
                 <img
                   src={qrImageData}
-                  style={{ width: 100, height: 100 }}
+                  style={{ width: 100, height: 100, display: 'block' }}
                 />
                 <div style={{ color: '#666', fontSize: 11, marginTop: 6 }}>扫码查看作品</div>
+              </div>
+            )}
+
+            {/* 没有二维码时显示加载 */}
+            {!qrImageData && (
+              <div style={{
+                background: '#ffffff',
+                borderRadius: 10,
+                padding: 12,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                marginBottom: 12,
+                width: 124,
+                height: 124,
+                justifyContent: 'center',
+              }}>
+                <div style={{ color: '#999', fontSize: 11 }}>生成二维码中...</div>
               </div>
             )}
 
@@ -339,14 +456,6 @@ export default function SharePanel({
           </View>
         </View>
       </View>
-
-      {/* 隐藏的 SVG 二维码用于转换为图片 */}
-      <div
-        ref={qrSvgRef}
-        style={{ position: 'absolute', left: '-9999px', top: '-9999px', opacity: 0, pointerEvents: 'none' }}
-      >
-        <QRCodeSVG value={qrContent} size={100} />
-      </div>
     </Modal>
   );
 }
