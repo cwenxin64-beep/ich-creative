@@ -475,7 +475,7 @@ export default function PhotoScreen() {
         imageUrl={result?.staticMainImageUrl}
         title="非遗创意作品"
         description="我用智能非遗创作了一幅非遗风格作品，快来看看！"
-        shareUrl={result?.staticMainImageUrl}
+        shareUrl={typeof window !== 'undefined' ? window.location.origin : undefined}
       />
     </Screen>
   );

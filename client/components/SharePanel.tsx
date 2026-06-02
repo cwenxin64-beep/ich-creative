@@ -27,12 +27,14 @@ export default function SharePanel({
   const [saving, setSaving] = useState(false);
   const [qrLoading, setQrLoading] = useState(false);
 
-  // 生成二维码
+  // 生成二维码 — 编码网站首页URL，而不是图片URL
   useEffect(() => {
-    if (visible && shareUrl) {
-      generateQRCode(shareUrl);
+    if (visible) {
+      // 用网站首页作为二维码内容，这样别人扫码可以看到应用
+      const qrContent = window.location.origin || 'https://ich-client-204193-6-1388119917.sh.run.tcloudbase.com';
+      generateQRCode(qrContent);
     }
-  }, [visible, shareUrl]);
+  }, [visible]);
 
   const generateQRCode = async (url: string) => {
     try {
@@ -50,7 +52,7 @@ export default function SharePanel({
     }
   };
 
-  // 保存/下载图片（Web端 fetch+blob方式，兼容性好）
+  // 保存/下载图片（Web端 fetch+blob方式）
   const saveImageToAlbum = useCallback(async () => {
     const urlToSave = imageUrl || audioUrl;
     if (!urlToSave) {
@@ -63,14 +65,20 @@ export default function SharePanel({
       // 构建完整URL
       let fullUrl = urlToSave;
       if (!fullUrl.startsWith('http')) {
-        const base = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || '';
+        const base = window.location.origin || '';
         fullUrl = `${base}${fullUrl}`;
       }
 
       // 音频文件走代理
       if (audioUrl && fullUrl.includes('volces.com')) {
-        const base = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || '';
+        const base = window.location.origin || '';
         fullUrl = `${base}/api/v1/audio/proxy?url=${encodeURIComponent(audioUrl!)}`;
+      }
+
+      // 图片也走代理避免跨域
+      if (imageUrl && !fullUrl.includes('/api/v1/')) {
+        const base = window.location.origin || '';
+        fullUrl = `${base}/api/v1/image/proxy?url=${encodeURIComponent(fullUrl)}`;
       }
 
       const response = await fetch(fullUrl);
@@ -115,7 +123,7 @@ export default function SharePanel({
       }
 
       const canvasW = 600;
-      const canvasH = imageUrl ? 900 : 500;
+      const canvasH = imageUrl ? 960 : 600;
       canvas.width = canvasW;
       canvas.height = canvasH;
 
@@ -141,24 +149,25 @@ export default function SharePanel({
       ctx.font = '16px sans-serif';
       ctx.fillText(description, canvasW / 2, 78);
 
-      // 图片
+      // 图片 — 通过代理加载避免跨域
       if (imageUrl) {
         try {
           let fullUrl = imageUrl;
           if (!fullUrl.startsWith('http')) {
-            const base = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || '';
-            fullUrl = `${base}${fullUrl}`;
+            fullUrl = `${window.location.origin}${fullUrl}`;
           }
+          // 走代理加载图片
+          const proxyUrl = `${window.location.origin}/api/v1/image/proxy?url=${encodeURIComponent(fullUrl)}`;
           const img = new Image();
           img.crossOrigin = 'anonymous';
           await new Promise<void>((resolve, reject) => {
             img.onload = () => resolve();
             img.onerror = () => reject(new Error('Image load failed'));
-            img.src = fullUrl;
+            img.src = proxyUrl;
           });
 
           const maxImgW = 500;
-          const maxImgH = 550;
+          const maxImgH = 520;
           const scale = Math.min(maxImgW / img.width, maxImgH / img.height, 1);
           const drawW = img.width * scale;
           const drawH = img.height * scale;
@@ -171,25 +180,56 @@ export default function SharePanel({
           ctx.fill();
           ctx.drawImage(img, imgX, imgY, drawW, drawH);
         } catch {
-          ctx.fillStyle = '#666';
-          ctx.font = '16px sans-serif';
-          ctx.fillText('（图片加载失败）', canvasW / 2, 350);
+          // 代理也失败，尝试直接加载
+          try {
+            const img = new Image();
+            await new Promise<void>((resolve, reject) => {
+              img.onload = () => resolve();
+              img.onerror = () => reject(new Error('Image load failed'));
+              img.src = imageUrl!;
+            });
+            const maxImgW = 500;
+            const maxImgH = 520;
+            const scale = Math.min(maxImgW / img.width, maxImgH / img.height, 1);
+            const drawW = img.width * scale;
+            const drawH = img.height * scale;
+            const imgX = (canvasW - drawW) / 2;
+            const imgY = 100;
+            ctx.fillStyle = '#ffffff';
+            roundRect(ctx, imgX - 10, imgY - 10, drawW + 20, drawH + 20, 12);
+            ctx.fill();
+            ctx.drawImage(img, imgX, imgY, drawW, drawH);
+          } catch {
+            ctx.fillStyle = '#555';
+            ctx.fillRect(75, 100, 450, 350);
+            ctx.fillStyle = '#999';
+            ctx.font = '16px sans-serif';
+            ctx.fillText('（图片加载失败）', canvasW / 2, 280);
+          }
         }
       }
 
       // 音频图标
       if (audioUrl && !imageUrl) {
+        ctx.fillStyle = '#2a2a4e';
+        roundRect(ctx, 100, 100, 400, 250, 16);
+        ctx.fill();
         ctx.fillStyle = '#D4A574';
         ctx.font = '64px sans-serif';
-        ctx.fillText('🎵', canvasW / 2, 280);
+        ctx.fillText('🎵', canvasW / 2, 230);
         ctx.fillStyle = '#fff';
         ctx.font = '16px sans-serif';
-        ctx.fillText('点击收听非遗音乐', canvasW / 2, 330);
+        ctx.fillText('点击收听非遗音乐', canvasW / 2, 290);
       }
 
+      // 二维码区域背景
+      const qrSectionY = imageUrl ? 680 : 400;
+      ctx.fillStyle = '#111128';
+      roundRect(ctx, 50, qrSectionY, 500, 180, 12);
+      ctx.fill();
+
       // 二维码
-      const qrY = imageUrl ? 720 : 120;
-      if (shareUrl && qrCodeUri) {
+      if (qrCodeUri) {
         try {
           const qrImg = new Image();
           await new Promise<void>((resolve, reject) => {
@@ -197,20 +237,29 @@ export default function SharePanel({
             qrImg.onerror = () => reject(new Error('QR load failed'));
             qrImg.src = qrCodeUri;
           });
-          const qrSize = 100;
-          ctx.drawImage(qrImg, canvasW / 2 - qrSize / 2, qrY, qrSize, qrSize);
+          const qrSize = 120;
+          ctx.drawImage(qrImg, canvasW / 2 - qrSize / 2, qrSectionY + 10, qrSize, qrSize);
           ctx.fillStyle = '#999';
-          ctx.font = '12px sans-serif';
-          ctx.fillText('扫码查看作品', canvasW / 2, qrY + qrSize + 20);
+          ctx.font = '13px sans-serif';
+          ctx.fillText('扫码查看作品', canvasW / 2, qrSectionY + qrSize + 30);
         } catch {
           // 二维码失败忽略
         }
+      } else {
+        ctx.fillStyle = '#666';
+        ctx.font = '14px sans-serif';
+        ctx.fillText('扫码查看作品', canvasW / 2, qrSectionY + 60);
       }
 
-      // 底部品牌
-      ctx.fillStyle = '#666';
+      // 提示文字
+      ctx.fillStyle = '#D4A574';
       ctx.font = '12px sans-serif';
-      ctx.fillText('智能非遗 - 让非遗"活"在当代', canvasW / 2, canvasH - 20);
+      ctx.fillText('长按保存图片 → 打开微信发送给好友', canvasW / 2, qrSectionY + 160);
+
+      // 底部品牌
+      ctx.fillStyle = '#555';
+      ctx.font = '11px sans-serif';
+      ctx.fillText('智能非遗 - 让非遗"活"在当代', canvasW / 2, canvasH - 12);
 
       // 下载
       canvas.toBlob((blob) => {
@@ -237,11 +286,11 @@ export default function SharePanel({
     } finally {
       setSaving(false);
     }
-  }, [imageUrl, audioUrl, title, description, shareUrl, qrCodeUri, showToast]);
+  }, [imageUrl, audioUrl, title, description, qrCodeUri, showToast]);
 
   // 复制链接
   const copyLink = useCallback(async () => {
-    const link = shareUrl || imageUrl || audioUrl || '';
+    const link = window.location.origin || shareUrl || '';
     if (!link) {
       showToast('暂无链接可复制');
       return;
@@ -263,7 +312,7 @@ export default function SharePanel({
     } catch {
       showToast('复制失败，请手动复制');
     }
-  }, [shareUrl, imageUrl, audioUrl, showToast]);
+  }, [shareUrl, showToast]);
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -275,6 +324,23 @@ export default function SharePanel({
             <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
               <Text style={styles.closeText}>✕</Text>
             </TouchableOpacity>
+          </View>
+
+          {/* 海报预览 */}
+          <View style={styles.previewSection}>
+            <Text style={styles.previewTitle}>{title || '智能非遗作品'}</Text>
+            <Text style={styles.previewDesc}>{description}</Text>
+            {imageUrl ? (
+              <Image source={{ uri: imageUrl }} style={styles.previewImage} resizeMode="cover" />
+            ) : audioUrl ? (
+              <View style={styles.audioPreview}>
+                <Text style={styles.audioEmoji}>🎵</Text>
+                <Text style={styles.audioText}>非遗音乐作品</Text>
+              </View>
+            ) : null}
+            {qrCodeUri && (
+              <Image source={{ uri: qrCodeUri }} style={styles.previewQR} resizeMode="contain" />
+            )}
           </View>
 
           {/* 分享方式 */}
@@ -317,27 +383,10 @@ export default function SharePanel({
             </TouchableOpacity>
           </View>
 
-          {/* 二维码 */}
-          {shareUrl && (
-            <View style={styles.qrSection}>
-              <Text style={styles.qrTitle}>扫码查看作品</Text>
-              {qrLoading ? (
-                <ActivityIndicator color="#D4A574" size="large" />
-              ) : qrCodeUri ? (
-                <Image
-                  source={{ uri: qrCodeUri }}
-                  style={styles.qrCode}
-                  resizeMode="contain"
-                />
-              ) : null}
-              <Text style={styles.qrHint}>截图发送给好友扫码查看</Text>
-            </View>
-          )}
-
           {/* 底部提示 */}
           <View style={styles.tips}>
             <Text style={styles.tipsText}>
-              💡 点击「保存海报」生成分享图 → 打开微信 → 选择好友 → 从相册发送
+              💡 点击「保存海报」生成带二维码的分享图 → 打开微信 → 从相册发送
             </Text>
           </View>
         </View>
@@ -387,7 +436,7 @@ const styles = {
     flexDirection: 'row' as const,
     justifyContent: 'space-between' as const,
     alignItems: 'center' as const,
-    marginBottom: 20,
+    marginBottom: 16,
   },
   headerTitle: {
     color: '#fff',
@@ -401,10 +450,56 @@ const styles = {
     color: '#999',
     fontSize: 18,
   },
+  previewSection: {
+    alignItems: 'center' as const,
+    backgroundColor: '#111128',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+  },
+  previewTitle: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700' as const,
+    marginBottom: 4,
+  },
+  previewDesc: {
+    color: '#D4A574',
+    fontSize: 12,
+    marginBottom: 12,
+  },
+  previewImage: {
+    width: 200,
+    height: 150,
+    borderRadius: 8,
+    marginBottom: 12,
+  },
+  audioPreview: {
+    width: 200,
+    height: 80,
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+    backgroundColor: '#1a1a3e',
+    borderRadius: 8,
+    marginBottom: 12,
+  },
+  audioEmoji: {
+    fontSize: 32,
+    marginBottom: 4,
+  },
+  audioText: {
+    color: '#D4A574',
+    fontSize: 12,
+  },
+  previewQR: {
+    width: 80,
+    height: 80,
+    borderRadius: 4,
+  },
   shareMethods: {
     flexDirection: 'row' as const,
     justifyContent: 'space-around' as const,
-    marginBottom: 24,
+    marginBottom: 16,
   },
   methodItem: {
     alignItems: 'center' as const,
@@ -431,29 +526,6 @@ const styles = {
     color: '#888',
     fontSize: 10,
     textAlign: 'center' as const,
-  },
-  qrSection: {
-    alignItems: 'center' as const,
-    marginBottom: 16,
-    paddingVertical: 16,
-    backgroundColor: '#16162a',
-    borderRadius: 12,
-  },
-  qrTitle: {
-    color: '#D4A574',
-    fontSize: 14,
-    fontWeight: '600' as const,
-    marginBottom: 12,
-  },
-  qrCode: {
-    width: 160,
-    height: 160,
-    borderRadius: 8,
-  },
-  qrHint: {
-    color: '#888',
-    fontSize: 11,
-    marginTop: 8,
   },
   tips: {
     backgroundColor: '#16162a',

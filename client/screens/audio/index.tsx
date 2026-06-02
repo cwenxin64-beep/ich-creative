@@ -420,7 +420,7 @@ export default function AudioScreen() {
         audioUrl={result?.audioUrl ? `${getApiBaseUrl()}/api/v1/audio/proxy?url=${encodeURIComponent(result.audioUrl)}` : undefined}
         title="非遗风格音乐"
         description={`我创作了一首非遗风格音乐！曲风：${result?.genre || ''} 情绪：${result?.mood || ''}`}
-        shareUrl={result?.audioUrl ? `${getApiBaseUrl()}/api/v1/audio/proxy?url=${encodeURIComponent(result.audioUrl)}` : undefined}
+        shareUrl={typeof window !== 'undefined' ? window.location.origin : undefined}
       />
     </Screen>
   );

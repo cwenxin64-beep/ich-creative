@@ -619,7 +619,7 @@ export default function FavoritesScreen() {
         audioUrl={shareItem?.metadata?.audioUrl || ''}
         title={shareItem?.title || '非遗作品'}
         description={shareItem?.description || ''}
-        shareUrl={shareItem?.mainImageUrl || shareItem?.metadata?.audioUrl || ''}
+        shareUrl={typeof window !== 'undefined' ? window.location.origin : undefined}
       />
     </Screen>
   );

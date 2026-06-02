@@ -768,7 +768,7 @@ export default function PlayScreen() {
         imageUrl={shareTarget?.imageUrl}
         title="非遗交互作品"
         description={`我创造了一个${shareTarget?.type || '非遗'}作品，快来看看吧！`}
-        shareUrl={shareTarget?.imageUrl || shareTarget?.videoUrl}
+        shareUrl={typeof window !== 'undefined' ? window.location.origin : undefined}
       />
     </Screen>
   );

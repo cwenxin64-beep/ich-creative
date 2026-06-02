@@ -677,7 +677,7 @@ export default function UseScreen() {
         imageUrl={shareTarget?.mainImageUrl || shareTarget?.imageUrl}
         title={`${shareTarget?.category || '非遗'}作品`}
         description={`我用智能非遗定制了${shareTarget?.category || '非遗'}作品，快来看看！`}
-        shareUrl={shareTarget?.mainImageUrl || shareTarget?.imageUrl}
+        shareUrl={typeof window !== 'undefined' ? window.location.origin : undefined}
       />
     </Screen>
   );

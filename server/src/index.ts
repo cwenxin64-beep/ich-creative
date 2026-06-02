@@ -51,6 +51,28 @@ app.get('/api/v1/health', (req, res) => {
   res.status(200).json({ status: 'ok' });
 });
 
+// Image proxy - for canvas cross-origin access
+app.get('/api/v1/image/proxy', async (req, res) => {
+  try {
+    const imageUrl = req.query.url as string;
+    if (!imageUrl) {
+      return res.status(400).json({ error: 'Missing url parameter' });
+    }
+    const response = await fetch(imageUrl);
+    if (!response.ok) {
+      return res.status(response.status).json({ error: 'Failed to fetch image' });
+    }
+    const contentType = response.headers.get('content-type') || 'image/jpeg';
+    const buffer = Buffer.from(await response.arrayBuffer());
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    res.send(buffer);
+  } catch (error) {
+    res.status(500).json({ error: 'Image proxy failed' });
+  }
+});
+
 // API Routes
 app.use('/api/v1/upload', uploadRouter);
 app.use('/api/v1/photo', photoRouter);
