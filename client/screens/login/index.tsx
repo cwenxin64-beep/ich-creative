@@ -6,6 +6,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Screen } from '@/components/Screen';
 import { ThemedText } from '@/components/ThemedText';
 import { FontAwesome6 } from '@expo/vector-icons';
+import Toast from '@/components/Toast';
+import { useToast } from '@/hooks/useToast';
 import { createStyles } from './styles';
 
 export default function LoginScreen() {
@@ -13,6 +15,7 @@ export default function LoginScreen() {
   const styles = useMemo(() => createStyles(theme), [theme]);
   const router = useSafeRouter();
   const { loginWithEmail } = useAuth();
+  const { toast, showToast, hideToast } = useToast();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -157,6 +160,7 @@ export default function LoginScreen() {
             </TouchableOpacity>
           </View>
         </ScrollView>
+        <Toast visible={toastVisible} message={toastMessage} onHide={hideToast} />
       </KeyboardAvoidingView>
     </Screen>
   );

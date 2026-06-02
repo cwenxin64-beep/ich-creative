@@ -1,12 +1,12 @@
 import React, { useState, useMemo } from 'react';
-import { View, TouchableOpacity, ScrollView, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, TouchableOpacity, ScrollView, TextInput, Platform } from 'react-native';
 import { useSafeRouter } from '@/hooks/useSafeRouter';
 import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/contexts/AuthContext';
 import { Screen } from '@/components/Screen';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-import { Toast } from '@/components/Toast';
+import Toast from '@/components/Toast';
 import { useToast } from '@/hooks/useToast';
 import { FontAwesome6 } from '@expo/vector-icons';
 import { createStyles } from './styles';
@@ -81,12 +81,8 @@ export default function RegisterScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <Screen backgroundColor={theme.backgroundRoot} statusBarStyle={isDark ? 'light' : 'dark'}>
-        <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+    <Screen backgroundColor={theme.backgroundRoot} statusBarStyle={isDark ? 'light' : 'dark'}>
+      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
           {/* Header */}
           <ThemedView level="root" style={styles.header}>
             <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
@@ -100,7 +96,7 @@ export default function RegisterScreen() {
           {/* Logo */}
           <ThemedView level="root" style={styles.logoSection}>
             <View style={[styles.logoContainer, { backgroundColor: theme.backgroundDefault }]}>
-              <FontAwesome6 name="vault" size={60} color={theme.primary} />
+              <FontAwesome6 name="user-plus" size={60} color={theme.primary} />
             </View>
             <ThemedText variant="h3" color={theme.textPrimary} style={styles.logoTitle}>
               智能非遗
@@ -274,8 +270,7 @@ export default function RegisterScreen() {
             </TouchableOpacity>
           </View>
         </ScrollView>
+        <Toast visible={toastVisible} message={toastMessage} onHide={hideToast} />
       </Screen>
-      <Toast visible={toast.visible} message={toast.message} type={toast.type} onHide={hideToast} />
-    </KeyboardAvoidingView>
   );
 }
