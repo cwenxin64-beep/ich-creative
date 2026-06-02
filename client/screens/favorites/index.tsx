@@ -392,11 +392,7 @@ export default function FavoritesScreen() {
           activeOpacity={1}
           onPress={() => setDetailItem(null)}
         >
-          <TouchableOpacity
-            style={[styles.modalContent, { backgroundColor: theme.backgroundRoot }]}
-            activeOpacity={1}
-            onPress={(e) => e.stopPropagation()}
-          >
+          <View style={[styles.modalContent, { backgroundColor: theme.backgroundRoot }]}>
             {/* 关闭按钮 */}
             <TouchableOpacity style={styles.modalCloseBtn} onPress={() => setDetailItem(null)}>
               <FontAwesome6 name="xmark" size={20} color={theme.textPrimary} />
@@ -496,7 +492,7 @@ export default function FavoritesScreen() {
                 <ThemedText variant="smallMedium" color={theme.error}>删除</ThemedText>
               </TouchableOpacity>
             </View>
-          </TouchableOpacity>
+          </View>
         </TouchableOpacity>
       </Modal>
     );
@@ -619,10 +615,11 @@ export default function FavoritesScreen() {
       <SharePanel
         visible={sharePanelVisible}
         onClose={() => setSharePanelVisible(false)}
-        imageUrl={shareItem?.imageUrl || shareItem?.sourceUrl}
+        imageUrl={shareItem?.mainImageUrl || ''}
+        audioUrl={shareItem?.metadata?.audioUrl || ''}
         title={shareItem?.title || '非遗作品'}
         description={shareItem?.description || ''}
-        shareUrl={shareItem?.imageUrl || shareItem?.sourceUrl}
+        shareUrl={shareItem?.mainImageUrl || shareItem?.metadata?.audioUrl || ''}
       />
     </Screen>
   );
