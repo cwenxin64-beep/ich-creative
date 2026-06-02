@@ -11,6 +11,7 @@ import { ThemedView } from '@/components/ThemedView';
 import { buildApiUrl, authFetch } from '@/utils/api';
 import { FontAwesome6 } from '@expo/vector-icons';
 import { GenerationProgress } from '@/components/GenerationProgress';
+import SharePanel from '@/components/SharePanel';
 import { AnimatedFavoriteButton } from '@/components/AnimatedFavoriteButton';
 import { createStyles } from './styles';
 
@@ -48,6 +49,7 @@ export default function AudioScreen() {
   const [progress, setProgress] = useState(0);
   const [isFavorited, setIsFavorited] = useState(false);
   const [favoriteId, setFavoriteId] = useState<number | null>(null);
+  const [sharePanelVisible, setSharePanelVisible] = useState(false);
   const [result, setResult] = useState<{
     id: number | null;
     audioUrl: string;
@@ -125,54 +127,7 @@ export default function AudioScreen() {
 
   const handleShare = async () => {
     if (!result) return;
-
-    try {
-      const audioLink = result.audioUrl
-        ? `${getApiBaseUrl()}/api/v1/audio/proxy?url=${encodeURIComponent(result.audioUrl)}`
-        : '';
-      const shareText = `我创作了一首非遗风格音乐！\n曲风：${result.genre}\n情绪：${result.mood}`;
-
-      // 优先使用 Web Share API（支持直接分享到微信）
-      if (navigator.share) {
-        try {
-          if (audioLink) {
-            try {
-              const response = await fetch(audioLink);
-              const blob = await response.blob();
-              const file = new File([blob], 'ich_music.mp3', { type: 'audio/mpeg' });
-              await navigator.share({
-                title: '非遗风格音乐',
-                text: shareText,
-                files: [file],
-              });
-              return;
-            } catch {
-              // files 不支持时回退
-            }
-          }
-          await navigator.share({
-            title: '非遗风格音乐',
-            text: shareText + (audioLink ? '\n🎵 收听: ' + audioLink : ''),
-            url: audioLink || undefined,
-          });
-          return;
-        } catch (shareError: any) {
-          if (shareError?.name === 'AbortError') return;
-        }
-      }
-
-      // 回退：复制链接
-      const fullText = shareText + (audioLink ? '\n🎵 收听: ' + audioLink : '');
-      try {
-        await navigator.clipboard.writeText(fullText);
-        showToast('内容已复制到剪贴板');
-      } catch {
-        showToast('分享失败');
-      }
-    } catch (error) {
-      console.error('Share error:', error);
-      showToast('分享失败，请重试');
-    }
+    setSharePanelVisible(true);
   };
 
   const handleGenerate = async () => {
@@ -459,6 +414,14 @@ export default function AudioScreen() {
         )}
       </ScrollView>
       <Toast message={toastMessage} visible={toastVisible} onHide={hideToast} />
+      <SharePanel
+        visible={sharePanelVisible}
+        onClose={() => setSharePanelVisible(false)}
+        audioUrl={result?.audioUrl ? `${getApiBaseUrl()}/api/v1/audio/proxy?url=${encodeURIComponent(result.audioUrl)}` : undefined}
+        title="非遗风格音乐"
+        description={`我创作了一首非遗风格音乐！曲风：${result?.genre || ''} 情绪：${result?.mood || ''}`}
+        shareUrl={result?.audioUrl ? `${getApiBaseUrl()}/api/v1/audio/proxy?url=${encodeURIComponent(result.audioUrl)}` : undefined}
+      />
     </Screen>
   );
 }

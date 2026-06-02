@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { View, ScrollView, RefreshControl, Share, Alert, TouchableOpacity, Modal, Dimensions, Platform } from 'react-native';
+import { View, ScrollView, RefreshControl, Alert, TouchableOpacity, Modal, Dimensions, Platform } from 'react-native';
 import { useSafeRouter } from '@/hooks/useSafeRouter';
 import { useFocusEffect } from 'expo-router';
 import { Screen } from '@/components/Screen';
@@ -8,6 +8,7 @@ import { ThemedView } from '@/components/ThemedView';
 import { Image } from 'expo-image';
 import { FontAwesome6 } from '@expo/vector-icons';
 import { useTheme } from '@/hooks/useTheme';
+import SharePanel from '@/components/SharePanel';
 import Toast from '../../components/Toast';
 import { useToast } from '../../hooks/useToast';
 import { buildApiUrl, authFetch } from '@/utils/api';
@@ -109,76 +110,20 @@ export default function FavoritesScreen() {
     }
   };
 
-  const handleShare = async (item: FavoriteItem) => {
-    try {
-      const isMusic = item.type === 'music';
-      const message = isMusic
-        ? `${item.title}\n曲风：${item.metadata?.genre || ''} | 情绪：${item.metadata?.mood || ''}\n\n由智能非遗创意平台创作`
-        : `${item.title}\n${item.description}\n\n查看更多精彩作品！`;
+  const [sharePanelVisible, setSharePanelVisible] = useState(false);
+  const [shareItem, setShareItem] = useState<FavoriteItem | null>(null);
 
-      // 优先使用 Web Share API（支持直接分享到微信）
-      if (navigator.share) {
-        try {
-          // 尝试分享图片/音频文件
-          const contentUrl = isMusic ? item.audioUrl : (item.imageUrl || item.sourceUrl);
-          if (contentUrl) {
-            try {
-              const response = await fetch(contentUrl);
-              const blob = await response.blob();
-              const file = new File([blob], isMusic ? 'ich_music.mp3' : 'ich_art.jpg', { type: isMusic ? 'audio/mpeg' : 'image/jpeg' });
-              await navigator.share({
-                title: item.title,
-                text: message,
-                files: [file],
-              });
-              return;
-            } catch {
-              // files 不支持时回退
-            }
-          }
-          await navigator.share({
-            title: item.title,
-            text: message,
-            url: contentUrl || undefined,
-          });
-          return;
-        } catch (shareError: any) {
-          if (shareError?.name === 'AbortError') return;
-        }
-      }
-
-      // 回退：复制到剪贴板
-      try {
-        await navigator.clipboard.writeText(message);
-        showToast('内容已复制到剪贴板');
-      } catch {
-        showToast('分享失败');
-      }
-    } catch (error) {
-      showToast('分享失败，请稍后重试');
-    }
+  const handleShare = (item: FavoriteItem) => {
+    setShareItem(item);
+    setSharePanelVisible(true);
   };
 
-  const handleBatchShare = async () => {
+  const handleBatchShare = () => {
     if (selectedIds.size === 0) return;
     const items = favorites.filter(f => selectedIds.has(f.id));
-    try {
-      const message = items.map(item => `${item.title}: ${item.description}`).join('\n\n');
-      if (navigator.share) {
-        try {
-          await navigator.share({
-            title: '我的非遗收藏',
-            text: `${message}\n\n查看更多精彩作品！`,
-          });
-          return;
-        } catch (shareError: any) {
-          if (shareError?.name === 'AbortError') return;
-        }
-      }
-      await navigator.clipboard.writeText(message);
-      showToast('内容已复制到剪贴板');
-    } catch (error) {
-      showToast('分享失败，请稍后重试');
+    if (items.length > 0) {
+      setShareItem(items[0]);
+      setSharePanelVisible(true);
     }
   };
 
@@ -671,6 +616,14 @@ export default function FavoritesScreen() {
         {renderDetailModal()}
       </View>
       <Toast message={toastMessage} visible={toastVisible} onHide={hideToast} />
+      <SharePanel
+        visible={sharePanelVisible}
+        onClose={() => setSharePanelVisible(false)}
+        imageUrl={shareItem?.imageUrl || shareItem?.sourceUrl}
+        title={shareItem?.title || '非遗作品'}
+        description={shareItem?.description || ''}
+        shareUrl={shareItem?.imageUrl || shareItem?.sourceUrl}
+      />
     </Screen>
   );
 }

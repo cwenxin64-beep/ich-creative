@@ -8,6 +8,7 @@ import { ThemedView } from '@/components/ThemedView';
 import { FontAwesome6 } from '@expo/vector-icons';
 import { AnimatedFavoriteButton } from '@/components/AnimatedFavoriteButton';
 import { GenerationProgress } from '@/components/GenerationProgress';
+import SharePanel from '@/components/SharePanel';
 import Toast from '../../components/Toast';
 import { useToast } from '../../hooks/useToast';
 import { createStyles } from './styles';
@@ -178,54 +179,12 @@ export default function PlayScreen() {
     }
   };
 
+  const [sharePanelVisible, setSharePanelVisible] = useState(false);
+  const [shareTarget, setShareTarget] = useState<any>(null);
+
   const handleShare = async (result: any) => {
-    try {
-      const url = result.imageUrl || result.videoUrl;
-      if (!url) {
-        showToast('没有可分享的内容');
-        return;
-      }
-
-      // 优先使用 Web Share API（支持直接分享到微信）
-      if (navigator.share) {
-        try {
-          // 尝试分享图片文件
-          try {
-            const response = await fetch(url);
-            const blob = await response.blob();
-            const isImage = url.includes('.jpg') || url.includes('.png') || url.includes('.jpeg') || url.includes('.webp');
-            const file = new File([blob], isImage ? 'ich_art.jpg' : 'ich_art.mp4', { type: isImage ? 'image/jpeg' : 'video/mp4' });
-            await navigator.share({
-              title: '非遗交互作品',
-              text: `我创造了一个${result.type}，快来看看吧！`,
-              files: [file],
-            });
-            return;
-          } catch {
-            // files 不支持时回退
-          }
-          await navigator.share({
-            title: '非遗交互作品',
-            text: `我创造了一个${result.type}，快来看看吧！`,
-            url: url,
-          });
-          return;
-        } catch (shareError: any) {
-          if (shareError?.name === 'AbortError') return;
-        }
-      }
-
-      // 回退：复制链接
-      try {
-        await navigator.clipboard.writeText(url);
-        showToast('链接已复制到剪贴板');
-      } catch {
-        showToast('分享失败');
-      }
-    } catch (error) {
-      console.error('Share error:', error);
-      showToast('分享失败，请重试');
-    }
+    setShareTarget(result);
+    setSharePanelVisible(true);
   };
 
   const handleGenerate = async () => {
@@ -803,6 +762,14 @@ export default function PlayScreen() {
         </View>
       </Modal>
       <Toast message={toastMessage} visible={toastVisible} onHide={hideToast} />
+      <SharePanel
+        visible={sharePanelVisible}
+        onClose={() => setSharePanelVisible(false)}
+        imageUrl={shareTarget?.imageUrl}
+        title="非遗交互作品"
+        description={`我创造了一个${shareTarget?.type || '非遗'}作品，快来看看吧！`}
+        shareUrl={shareTarget?.imageUrl || shareTarget?.videoUrl}
+      />
     </Screen>
   );
 }

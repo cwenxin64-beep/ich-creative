@@ -3,6 +3,7 @@ import { View, TouchableOpacity, ScrollView, Alert, TextInput, Platform, Image }
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import { GenerationProgress } from '../../components/GenerationProgress';
+import SharePanel from '../../components/SharePanel';
 import Toast from '../../components/Toast';
 import { useToast } from '../../hooks/useToast';
 import { useSafeRouter, useSafeSearchParams } from '@/hooks/useSafeRouter';
@@ -43,6 +44,7 @@ export default function PhotoScreen() {
   const [isFavorited, setIsFavorited] = useState(false);
   const [favoriteId, setFavoriteId] = useState<string | null>(null);
   const [sharing, setSharing] = useState(false);
+  const [sharePanelVisible, setSharePanelVisible] = useState(false);
 
   const handleFavorite = async () => {
     console.log('[Favorite] Button pressed, result:', result);
@@ -133,60 +135,7 @@ export default function PhotoScreen() {
       return;
     }
 
-    try {
-      const url = result.staticMainImageUrl;
-
-      if (!url) {
-        showToast('没有可分享的内容');
-        return;
-      }
-
-      // 优先使用 Web Share API（支持直接分享到微信）
-      if (navigator.share) {
-        try {
-          // 获取图片 blob 用于微信分享
-          const response = await fetch(url);
-          const blob = await response.blob();
-          const file = new File([blob], 'ich_art.jpg', { type: 'image/jpeg' });
-
-          await navigator.share({
-            title: '非遗创意作品',
-            text: '我用智能非遗创作了一幅非遗风格作品，快来看看！',
-            files: [file],
-          });
-          return;
-        } catch (shareError: any) {
-          // 用户取消分享不提示错误
-          if (shareError?.name === 'AbortError') return;
-          // Web Share API files 不支持时回退到链接分享
-        }
-      }
-
-      // 回退：尝试 Web Share 文字链接
-      if (navigator.share) {
-        try {
-          await navigator.share({
-            title: '非遗创意作品',
-            text: '我用智能非遗创作了一幅非遗风格作品，快来看看！',
-            url: url,
-          });
-          return;
-        } catch (shareError: any) {
-          if (shareError?.name === 'AbortError') return;
-        }
-      }
-
-      // 最终回退：复制链接
-      try {
-        await navigator.clipboard.writeText(url);
-        showToast('链接已复制到剪贴板');
-      } catch {
-        showToast('分享链接: ' + url);
-      }
-    } catch (error) {
-      console.error('Share error:', error);
-      showToast('分享失败，请重试');
-    }
+    setSharePanelVisible(true);
   };
 
   // 处理从相机页面返回的照片
@@ -520,6 +469,14 @@ export default function PhotoScreen() {
 
       </ScrollView>
       <Toast message={toastMessage} visible={toastVisible} onHide={hideToast} />
+      <SharePanel
+        visible={sharePanelVisible}
+        onClose={() => setSharePanelVisible(false)}
+        imageUrl={result?.staticMainImageUrl}
+        title="非遗创意作品"
+        description="我用智能非遗创作了一幅非遗风格作品，快来看看！"
+        shareUrl={result?.staticMainImageUrl}
+      />
     </Screen>
   );
 }

@@ -10,6 +10,7 @@ import { ThemedView } from '@/components/ThemedView';
 import { FontAwesome6 } from '@expo/vector-icons';
 import { AnimatedFavoriteButton } from '@/components/AnimatedFavoriteButton';
 import { GenerationProgress } from '@/components/GenerationProgress';
+import SharePanel from '@/components/SharePanel';
 import Toast from '../../components/Toast';
 import { useToast } from '../../hooks/useToast';
 import { createStyles } from './styles';
@@ -161,57 +162,12 @@ export default function UseScreen() {
     }
   };
 
+  const [sharePanelVisible, setSharePanelVisible] = useState(false);
+  const [shareTarget, setShareTarget] = useState<any>(null);
+
   const handleShare = async (result: any) => {
-    try {
-      const url = result.mainImageUrl || result.imageUrl;
-
-      if (!url) {
-        showToast('没有可分享的内容');
-        return;
-      }
-
-      const categoryName = result.category || '非遗';
-
-      // 优先使用 Web Share API（支持直接分享到微信）
-      if (navigator.share) {
-        try {
-          // 尝试分享图片文件
-          try {
-            const response = await fetch(url);
-            const blob = await response.blob();
-            const isImage = url.includes('.jpg') || url.includes('.png') || url.includes('.jpeg') || url.includes('.webp');
-            const file = new File([blob], isImage ? 'ich_art.jpg' : 'ich_art.mp4', { type: isImage ? 'image/jpeg' : 'video/mp4' });
-            await navigator.share({
-              title: `${categoryName}非遗作品`,
-              text: `我用智能非遗定制了${categoryName}作品，快来看看！`,
-              files: [file],
-            });
-            return;
-          } catch {
-            // files 不支持时回退
-          }
-          await navigator.share({
-            title: `${categoryName}非遗作品`,
-            text: `我用智能非遗定制了${categoryName}作品，快来看看！`,
-            url: url,
-          });
-          return;
-        } catch (shareError: any) {
-          if (shareError?.name === 'AbortError') return;
-        }
-      }
-
-      // 回退：复制链接
-      try {
-        await navigator.clipboard.writeText(url);
-        showToast('链接已复制到剪贴板');
-      } catch {
-        showToast('分享失败');
-      }
-    } catch (error) {
-      console.error('Share error:', error);
-      showToast('分享失败，请重试');
-    }
+    setShareTarget(result);
+    setSharePanelVisible(true);
   };
 
   const handleGenerate = async () => {
@@ -715,6 +671,14 @@ export default function UseScreen() {
         onSubmit={handleSubmitCustomization}
       />
       <Toast message={toastMessage} visible={toastVisible} onHide={hideToast} />
+      <SharePanel
+        visible={sharePanelVisible}
+        onClose={() => setSharePanelVisible(false)}
+        imageUrl={shareTarget?.mainImageUrl || shareTarget?.imageUrl}
+        title={`${shareTarget?.category || '非遗'}作品`}
+        description={`我用智能非遗定制了${shareTarget?.category || '非遗'}作品，快来看看！`}
+        shareUrl={shareTarget?.mainImageUrl || shareTarget?.imageUrl}
+      />
     </Screen>
   );
 }
