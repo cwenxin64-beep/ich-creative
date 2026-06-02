@@ -10,7 +10,7 @@ import { FontAwesome6 } from '@expo/vector-icons';
 import { useTheme } from '@/hooks/useTheme';
 import Toast from '../../components/Toast';
 import { useToast } from '../../hooks/useToast';
-import { buildApiUrl } from '@/utils/api';
+import { buildApiUrl, authFetch } from '@/utils/api';
 import { createStyles } from './styles';
 
 interface FavoriteItem {
@@ -49,7 +49,7 @@ export default function FavoritesScreen() {
 
   const fetchFavorites = async () => {
     try {
-      const response = await fetch(buildApiUrl('/api/v1/favorites'));
+      const response = await authFetch(buildApiUrl('/api/v1/favorites'));
       if (response.ok) {
         const data = await response.json();
         const mappedFavorites = (data.favorites || []).map((fav: any) => {
@@ -180,7 +180,7 @@ export default function FavoritesScreen() {
           onPress: async () => {
             try {
               const deletePromises = Array.from(selectedIds).map(id =>
-                fetch(buildApiUrl(`/api/v1/favorites/${id}`), { method: 'DELETE' })
+                authFetch(buildApiUrl(`/api/v1/favorites/${id}`), { method: 'DELETE' })
               );
               await Promise.all(deletePromises);
               setFavorites(favorites.filter(f => !selectedIds.has(f.id)));
@@ -197,7 +197,7 @@ export default function FavoritesScreen() {
 
   const handleSyncToMaterials = async () => {
     try {
-      const response = await fetch(buildApiUrl('/api/v1/materials/sync'), {
+      const response = await authFetch(buildApiUrl('/api/v1/materials/sync'), {
         method: 'POST',
       });
       if (response.ok) {
@@ -225,7 +225,7 @@ export default function FavoritesScreen() {
           onPress: async () => {
             try {
               const deletePromises = favorites.map(f =>
-                fetch(buildApiUrl(`/api/v1/favorites/${f.id}`), { method: 'DELETE' })
+                authFetch(buildApiUrl(`/api/v1/favorites/${f.id}`), { method: 'DELETE' })
               );
               await Promise.all(deletePromises);
               setFavorites([]);

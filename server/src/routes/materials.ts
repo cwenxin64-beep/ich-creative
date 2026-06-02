@@ -3,16 +3,33 @@ import { query } from '../storage/database/pg-client';
 
 const router = express.Router();
 
-// 从请求中获取用户标识
-function getUserIdentity(req: Request): string {
+// 获取用户ID - 优先使用登录用户，否则使用device_id
+function resolveUserId(req: Request): number | null {
+  // 如果有登录用户信息（由auth中间件设置）
+  if ((req as any).user?.userId) {
+    return (req as any).user.userId;
+  }
+  return null;
+}
+
+// 从请求中获取设备标识
+function getDeviceIdentity(req: Request): string {
   const ip = req.ip || req.headers['x-forwarded-for'] || 'unknown';
   const userAgent = req.headers['user-agent'] || 'unknown';
   const deviceId = `${ip}-${userAgent}`.slice(0, 255);
   return deviceId;
 }
 
-// 获取或创建用户
-async function getOrCreateUser(deviceId: string): Promise<number> {
+// 获取用户ID（兼容登录和未登录）
+async function resolveUserIdentity(req: Request): Promise<number> {
+  // 优先使用登录用户ID
+  const loginUserId = resolveUserId(req);
+  if (loginUserId) {
+    return loginUserId;
+  }
+
+  // 未登录用户使用 device_id
+  const deviceId = getDeviceIdentity(req);
   const selectResult = await query(
     'SELECT id FROM users WHERE device_id = $1',
     [deviceId]
@@ -40,8 +57,7 @@ async function getOrCreateUser(deviceId: string): Promise<number> {
  */
 router.get('/', async (req: Request, res: Response) => {
   try {
-    const deviceId = getUserIdentity(req);
-    const userId = await getOrCreateUser(deviceId);
+    const userId = await resolveUserIdentity(req);
 
     const result = await query(
       'SELECT * FROM materials WHERE user_id = $1 ORDER BY created_at DESC',
@@ -67,14 +83,17 @@ router.get('/', async (req: Request, res: Response) => {
  */
 router.post('/sync', async (req: Request, res: Response) => {
   try {
-    const deviceId = getUserIdentity(req);
-    const userId = await getOrCreateUser(deviceId);
+    const userId = await resolveUserIdentity(req);
+
+    console.log(`[Materials] Sync for user ${userId}`);
 
     // 获取用户的所有收藏
     const favoritesResult = await query(
       'SELECT * FROM favorites WHERE user_id = $1',
       [userId]
     );
+
+    console.log(`[Materials] Found ${favoritesResult.rows.length} favorites for user ${userId}`);
 
     // 获取已有的素材（通过 source_id + source_type 去重）
     const existingResult = await query(
@@ -159,8 +178,7 @@ router.post('/sync', async (req: Request, res: Response) => {
 router.delete('/:id', async (req: Request, res: Response) => {
   try {
     const id = req.params.id as string;
-    const deviceId = getUserIdentity(req);
-    const userId = await getOrCreateUser(deviceId);
+    const userId = await resolveUserIdentity(req);
 
     const checkResult = await query(
       'SELECT id, user_id FROM materials WHERE id = $1',

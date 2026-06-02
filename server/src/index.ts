@@ -7,7 +7,7 @@ import playRouter from "./routes/play";
 import useRouter from "./routes/use";
 import favoritesRouter from "./routes/favorites";
 import materialsRouter from "./routes/materials";
-import authRouter from "./routes/auth";
+import authRouter, { optionalAuth } from "./routes/auth";
 import { initDatabase } from "./storage/database/init-tables";
 
 const app = express();
@@ -57,8 +57,8 @@ app.use('/api/v1/photo', photoRouter);
 app.use('/api/v1/audio', audioRouter);
 app.use('/api/v1/play', playRouter);
 app.use('/api/v1/use', useRouter);
-app.use('/api/v1/favorites', favoritesRouter);
-app.use('/api/v1/materials', materialsRouter);
+app.use('/api/v1/favorites', optionalAuth, favoritesRouter);
+app.use('/api/v1/materials', optionalAuth, materialsRouter);
 app.use('/api/v1/auth', authRouter);
 
 app.listen(port, async () => {

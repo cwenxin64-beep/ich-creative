@@ -13,7 +13,7 @@ import { Screen } from '@/components/Screen';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { createFormDataFile } from '@/utils';
-import { buildApiUrl } from '@/utils/api';
+import { buildApiUrl, authFetch } from '@/utils/api';
 import { FontAwesome6 } from '@expo/vector-icons';
 import { AnimatedFavoriteButton } from '@/components/AnimatedFavoriteButton';
 import { createStyles } from './styles';
@@ -60,7 +60,7 @@ export default function PhotoScreen() {
          * 服务端文件：server/src/routes/favorites.ts
          * 接口：DELETE /api/v1/favorites/:id
          */
-        const response = await fetch(buildApiUrl(`/api/v1/favorites/${favoriteId}`), {
+        const response = await authFetch(buildApiUrl(`/api/v1/favorites/${favoriteId}`), {
           method: 'DELETE',
         });
 
@@ -95,7 +95,7 @@ export default function PhotoScreen() {
       }
 
       console.log('[Favorite] Sending request with imageUrl:', imageUrl);
-      const response = await fetch(buildApiUrl('/api/v1/favorites'), {
+      const response = await authFetch(buildApiUrl('/api/v1/favorites'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -269,7 +269,7 @@ export default function PhotoScreen() {
       formData.append('outputType', outputType);
 
       // Step 1: 发起异步生成请求
-      const response = await fetch(buildApiUrl('/api/v1/photo/generate'), {
+      const response = await authFetch(buildApiUrl('/api/v1/photo/generate'), {
         method: 'POST',
         body: formData,
       });
@@ -289,7 +289,7 @@ export default function PhotoScreen() {
       let attempts = 0;
       const pollStatus = async (): Promise<void> => {
         try {
-          const statusResponse = await fetch(buildApiUrl(`/api/v1/photo/status/${taskId}`));
+          const statusResponse = await authFetch(buildApiUrl(`/api/v1/photo/status/${taskId}`));
           const statusData = await statusResponse.json();
 
           console.log('Task status:', statusData.status, 'progress:', statusData.progress);

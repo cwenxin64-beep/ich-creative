@@ -1,4 +1,5 @@
 import Constants from 'expo-constants';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 /**
  * 获取 API 基础 URL
@@ -30,4 +31,26 @@ export const buildApiUrl = (path: string): string => {
   const base = getApiBaseUrl();
   const cleanPath = path.startsWith('/') ? path : `/${path}`;
   return `${base}${cleanPath}`;
+};
+
+const ACCESS_TOKEN_KEY = 'auth_access_token';
+
+/**
+ * 带认证的 fetch 封装
+ * 自动从 AsyncStorage 读取 token 并附加到 Authorization header
+ */
+export const authFetch = async (url: string, options: RequestInit = {}): Promise<Response> => {
+  const token = await AsyncStorage.getItem(ACCESS_TOKEN_KEY);
+  const headers: Record<string, string> = {
+    ...(options.headers as Record<string, string> || {}),
+  };
+
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  return fetch(url, {
+    ...options,
+    headers,
+  });
 };

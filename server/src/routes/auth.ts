@@ -35,6 +35,26 @@ export function authMiddleware(req: Request, res: Response, next: NextFunction) 
   next();
 }
 
+// 可选认证中间件 - 有 token 就解析，没有就跳过
+export function optionalAuth(req: Request, res: Response, next: NextFunction) {
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.split(' ')[1];
+    const payload = verifyToken(token);
+    if (payload) {
+      req.user = payload;
+    }
+  }
+  next();
+}
+
+// 从请求中获取设备标识
+function getDeviceIdentity(req: Request): string {
+  const ip = req.ip || req.headers['x-forwarded-for'] || 'unknown';
+  const userAgent = req.headers['user-agent'] || 'unknown';
+  return `${ip}-${userAgent}`.slice(0, 255);
+}
+
 // ============ 注册 ============
 router.post('/register', async (req, res) => {
   try {
@@ -76,14 +96,28 @@ router.post('/register', async (req, res) => {
     // 哈希密码
     const hashedPassword = await hashPassword(password);
 
-    // 创建用户
-    const insertResult = await query(
-      'INSERT INTO users (username, email, password_hash, role) VALUES ($1, $2, $3, $4) RETURNING id, username, email, role, created_at',
-      [username, email, hashedPassword, 'user']
-    );
+    // 检查是否已有 device_id 用户（未注册的匿名用户），如果有则升级为注册用户
+    const deviceId = getDeviceIdentity(req);
+    const deviceUser = await query('SELECT id FROM users WHERE device_id = $1 AND (email IS NULL OR email = \'\') LIMIT 1', [deviceId]);
 
-    const user = insertResult.rows[0];
-    console.log(`[AUTH] New user registered: ${email}`);
+    let user: any;
+    if (deviceUser.rows.length > 0) {
+      // 升级匿名用户为注册用户，保留原有收藏和素材数据
+      const updateResult = await query(
+        'UPDATE users SET username = $1, email = $2, password_hash = $3, role = $4 WHERE id = $5 RETURNING id, username, email, role, created_at',
+        [username, email, hashedPassword, 'user', deviceUser.rows[0].id]
+      );
+      user = updateResult.rows[0];
+      console.log(`[AUTH] Upgraded anonymous user ${user.id} to registered: ${email}`);
+    } else {
+      // 创建新用户
+      const insertResult = await query(
+        'INSERT INTO users (username, email, password_hash, role) VALUES ($1, $2, $3, $4) RETURNING id, username, email, role, created_at',
+        [username, email, hashedPassword, 'user']
+      );
+      user = insertResult.rows[0];
+      console.log(`[AUTH] New user registered: ${email}`);
+    }
 
     // 自动登录 - 签发 token
     const tokens = signTokens({
@@ -144,6 +178,20 @@ router.post('/login', async (req, res) => {
       email: user.email,
       role: user.role,
     });
+
+    // 登录成功后，将当前 device_id 的匿名用户数据迁移到登录用户下
+    const deviceId = getDeviceIdentity(req);
+    const deviceUser = await query('SELECT id FROM users WHERE device_id = $1 AND id != $2 AND (email IS NULL OR email = \'\') LIMIT 1', [deviceId, user.id]);
+    if (deviceUser.rows.length > 0) {
+      const oldUserId = deviceUser.rows[0].id;
+      // 迁移收藏
+      await query('UPDATE favorites SET user_id = $1 WHERE user_id = $2', [user.id, oldUserId]);
+      // 迁移素材
+      await query('UPDATE materials SET user_id = $1 WHERE user_id = $2', [user.id, oldUserId]);
+      // 删除匿名用户
+      await query('DELETE FROM users WHERE id = $1', [oldUserId]);
+      console.log(`[AUTH] Migrated data from anonymous user ${oldUserId} to ${user.id}`);
+    }
 
     console.log(`[AUTH] User logged in: ${email}`);
 

@@ -8,7 +8,7 @@ import { useToast } from '../../hooks/useToast';
 import { Screen } from '@/components/Screen';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-import { buildApiUrl } from '@/utils/api';
+import { buildApiUrl, authFetch } from '@/utils/api';
 import { FontAwesome6 } from '@expo/vector-icons';
 import { GenerationProgress } from '@/components/GenerationProgress';
 import { AnimatedFavoriteButton } from '@/components/AnimatedFavoriteButton';
@@ -73,7 +73,7 @@ export default function AudioScreen() {
     // 如果已收藏，则取消收藏
     if (isFavorited && favoriteId) {
       try {
-        const response = await fetch(buildApiUrl(`/api/v1/favorites/${favoriteId}`), {
+        const response = await authFetch(buildApiUrl(`/api/v1/favorites/${favoriteId}`), {
           method: 'DELETE',
         });
         const data = await response.json();
@@ -91,7 +91,7 @@ export default function AudioScreen() {
     }
 
     try {
-      const response = await fetch(buildApiUrl('/api/v1/favorites'), {
+      const response = await authFetch(buildApiUrl('/api/v1/favorites'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -178,7 +178,7 @@ export default function AudioScreen() {
       const moodPart = selectedMoods.length > 0 ? `，情绪：${selectedMoods.join('、')}` : '';
       const fullPrompt = `${prompt.trim()}${genrePart}${moodPart}，时长${selectedDuration}秒`;
 
-      const response = await fetch(buildApiUrl('/api/v1/audio/generate'), {
+      const response = await authFetch(buildApiUrl('/api/v1/audio/generate'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -411,7 +411,7 @@ export default function AudioScreen() {
                     if (Platform.OS === 'web') {
                       try {
                         const proxyUrl = `${getApiBaseUrl()}/api/v1/audio/proxy?url=${encodeURIComponent(result.audioUrl)}`;
-                        const response = await fetch(proxyUrl);
+                        const response = await authFetch(proxyUrl);
                         const blob = await response.blob();
                         const blobUrl = window.URL.createObjectURL(blob);
                         const link = document.createElement('a');

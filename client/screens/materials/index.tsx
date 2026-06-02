@@ -10,7 +10,7 @@ import { FontAwesome6 } from '@expo/vector-icons';
 import { useTheme } from '@/hooks/useTheme';
 import Toast from '../../components/Toast';
 import { useToast } from '../../hooks/useToast';
-import { buildApiUrl } from '@/utils/api';
+import { buildApiUrl, authFetch } from '@/utils/api';
 import { createStyles } from './styles';
 
 interface MaterialItem {
@@ -39,7 +39,7 @@ export default function MaterialsScreen() {
 
   const fetchMaterials = async () => {
     try {
-      const response = await fetch(buildApiUrl('/api/v1/materials'));
+      const response = await authFetch(buildApiUrl('/api/v1/materials'));
       if (response.ok) {
         const data = await response.json();
         const mapped = (data.materials || []).map((m: any) => ({
@@ -74,7 +74,7 @@ export default function MaterialsScreen() {
 
   const handleSync = async () => {
     try {
-      const response = await fetch(buildApiUrl('/api/v1/materials/sync'), {
+      const response = await authFetch(buildApiUrl('/api/v1/materials/sync'), {
         method: 'POST',
       });
       if (response.ok) {
@@ -92,7 +92,7 @@ export default function MaterialsScreen() {
 
   const handleDelete = async (id: string) => {
     try {
-      const response = await fetch(buildApiUrl(`/api/v1/materials/${id}`), {
+      const response = await authFetch(buildApiUrl(`/api/v1/materials/${id}`), {
         method: 'DELETE',
       });
       if (response.ok) {

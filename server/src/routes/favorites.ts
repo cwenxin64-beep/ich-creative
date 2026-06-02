@@ -3,31 +3,41 @@ import { query } from '../storage/database/pg-client';
 
 const router = express.Router();
 
-// 从请求中获取用户标识（使用 IP + User-Agent 作为简易识别）
-function getUserIdentity(req: Request): string {
+// 获取用户ID - 优先使用登录用户，否则使用device_id
+function resolveLoginUserId(req: Request): number | null {
+  if ((req as any).user?.userId) {
+    return (req as any).user.userId;
+  }
+  return null;
+}
+
+// 从请求中获取设备标识
+function getDeviceIdentity(req: Request): string {
   const ip = req.ip || req.headers['x-forwarded-for'] || 'unknown';
   const userAgent = req.headers['user-agent'] || 'unknown';
-  // 简单生成设备ID
   const deviceId = `${ip}-${userAgent}`.slice(0, 255);
   return deviceId;
 }
 
-// 获取或创建用户
-async function getOrCreateUser(deviceId: string): Promise<number> {
-  // 先查询用户
-  console.log(`[Favorites] Looking up user with device_id: ${deviceId.substring(0, 50)}...`);
+// 获取用户ID（兼容登录和未登录）
+async function resolveUserIdentity(req: Request): Promise<number> {
+  // 优先使用登录用户ID
+  const loginUserId = resolveLoginUserId(req);
+  if (loginUserId) {
+    return loginUserId;
+  }
+
+  // 未登录用户使用 device_id
+  const deviceId = getDeviceIdentity(req);
   const selectResult = await query(
     'SELECT id FROM users WHERE device_id = $1',
     [deviceId]
   );
 
   if (selectResult.rows.length > 0) {
-    console.log(`[Favorites] Found existing user: ${selectResult.rows[0].id}`);
     return selectResult.rows[0].id;
   }
 
-  // 创建新用户
-  console.log(`[Favorites] Creating new user with device_id: ${deviceId.substring(0, 50)}...`);
   const insertResult = await query(
     'INSERT INTO users (device_id) VALUES ($1) RETURNING id',
     [deviceId]
@@ -37,13 +47,12 @@ async function getOrCreateUser(deviceId: string): Promise<number> {
     throw new Error('Failed to create user: no data returned');
   }
 
-  console.log(`[Favorites] Created new user: ${insertResult.rows[0].id}`);
   return insertResult.rows[0].id;
 }
 
 /**
  * POST /api/v1/favorites
- * 添加收藏（自动识别用户）
+ * 添加收藏
  */
 router.post('/', async (req: Request, res: Response) => {
   try {
@@ -53,11 +62,8 @@ router.post('/', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    const deviceId = getUserIdentity(req);
-    console.log(`[Favorites] Device ID: ${deviceId.substring(0, 50)}...`);
-
-    const userId = await getOrCreateUser(deviceId);
-    console.log(`[Favorites] User ID: ${userId}`);
+    const userId = await resolveUserIdentity(req);
+    console.log(`[Favorites] Add favorite for user ${userId}`);
 
     const insertResult = await query(
       `INSERT INTO favorites (user_id, type, image_url, video_url, title, metadata)
@@ -67,7 +73,6 @@ router.post('/', async (req: Request, res: Response) => {
     );
 
     const favorite = insertResult.rows[0];
-    console.log(`Added to favorites: user=${userId}, type=${type}`);
 
     res.json({
       success: true,
@@ -89,8 +94,7 @@ router.post('/', async (req: Request, res: Response) => {
  */
 router.get('/', async (req: Request, res: Response) => {
   try {
-    const deviceId = getUserIdentity(req);
-    const userId = await getOrCreateUser(deviceId);
+    const userId = await resolveUserIdentity(req);
 
     const result = await query(
       'SELECT * FROM favorites WHERE user_id = $1 ORDER BY created_at DESC',
@@ -117,10 +121,8 @@ router.get('/', async (req: Request, res: Response) => {
 router.delete('/:id', async (req: Request, res: Response) => {
   try {
     const id = req.params.id as string;
-    const deviceId = getUserIdentity(req);
-    const userId = await getOrCreateUser(deviceId);
+    const userId = await resolveUserIdentity(req);
 
-    // 先检查是否是该用户的收藏
     const checkResult = await query(
       'SELECT id, user_id FROM favorites WHERE id = $1',
       [parseInt(id)]
@@ -135,8 +137,6 @@ router.delete('/:id', async (req: Request, res: Response) => {
     }
 
     await query('DELETE FROM favorites WHERE id = $1', [parseInt(id)]);
-
-    console.log(`Removed from favorites: id=${id}, user=${userId}`);
 
     res.json({ success: true });
   } catch (error) {

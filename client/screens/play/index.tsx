@@ -11,7 +11,7 @@ import { GenerationProgress } from '@/components/GenerationProgress';
 import Toast from '../../components/Toast';
 import { useToast } from '../../hooks/useToast';
 import { createStyles } from './styles';
-import { buildApiUrl } from '@/utils/api';
+import { buildApiUrl, authFetch } from '@/utils/api';
 
 // 非遗类型
 const ICH_TYPES = [
@@ -86,7 +86,7 @@ export default function PlayScreen() {
        * 服务端文件：server/src/routes/favorites.ts
        * 接口：GET /api/v1/favorites
        */
-      const response = await fetch(buildApiUrl('/api/v1/favorites'));
+      const response = await authFetch(buildApiUrl('/api/v1/favorites'));
       const data = await response.json();
 
       if (data.success) {
@@ -123,7 +123,7 @@ export default function PlayScreen() {
     if (favoriteMap.has(favKey)) {
       const dbId = favoriteMap.get(favKey)!;
       try {
-        const response = await fetch(buildApiUrl(`/api/v1/favorites/${dbId}`), {
+        const response = await authFetch(buildApiUrl(`/api/v1/favorites/${dbId}`), {
           method: 'DELETE',
         });
         const data = await response.json();
@@ -149,7 +149,7 @@ export default function PlayScreen() {
        * 接口：POST /api/v1/favorites
        * Body 参数：type: string, imageUrl?: string, videoUrl?: string, title: string, metadata?: any
        */
-      const response = await fetch(buildApiUrl('/api/v1/favorites'), {
+      const response = await authFetch(buildApiUrl('/api/v1/favorites'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -250,7 +250,7 @@ export default function PlayScreen() {
       }
 
       // 创建任务
-      const createResponse = await fetch(buildApiUrl('/api/v1/play/generate'), {
+      const createResponse = await authFetch(buildApiUrl('/api/v1/play/generate'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(requestBody),
@@ -269,7 +269,7 @@ export default function PlayScreen() {
 
       // 轮询任务状态
       const pollTask = async (): Promise<any> => {
-        const statusResponse = await fetch(buildApiUrl(`/api/v1/play/status/${taskId}`));
+        const statusResponse = await authFetch(buildApiUrl(`/api/v1/play/status/${taskId}`));
         const statusData = await statusResponse.json();
 
         console.log('Task status:', statusData.status, 'Progress:', statusData.progress);
