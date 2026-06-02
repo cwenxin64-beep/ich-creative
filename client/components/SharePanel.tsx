@@ -1,7 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Modal, View, Text, TouchableOpacity, Image, Share as RNShare, ActivityIndicator } from 'react-native';
-import * as FileSystem from 'expo-file-system';
-import * as MediaLibrary from 'expo-media-library';
+import { Modal, View, Text, TouchableOpacity, Image, ActivityIndicator, Alert } from 'react-native';
 import QRCode from 'qrcode';
 import { useToast } from '@/hooks/useToast';
 
@@ -52,21 +50,59 @@ export default function SharePanel({
     }
   };
 
-  // 保存图片到相册
-  const saveImageToAlbum = useCallback(async () => {
+  // Web端下载图片（fetch + blob方式）
+  const downloadImageWeb = useCallback(async () => {
     if (!imageUrl) {
       showToast('暂无图片可保存');
       return;
     }
     try {
       setSaving(true);
+      const proxyUrl = imageUrl.startsWith('http') ? imageUrl : `${getBaseUrl()}${imageUrl}`;
+
+      const response = await fetch(proxyUrl);
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = `${title || '非遗作品'}_${Date.now()}.jpg`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(blobUrl);
+      showToast('图片已保存，可在微信中发送');
+    } catch (err) {
+      console.error('Download image error:', err);
+      showToast('保存失败，请长按图片保存');
+    } finally {
+      setSaving(false);
+    }
+  }, [imageUrl, title, showToast]);
+
+  // 保存图片（兼容 Web 和原生）
+  const saveImageToAlbum = useCallback(async () => {
+    // Web端用下载方式
+    if (typeof window !== 'undefined' && window.document) {
+      await downloadImageWeb();
+      return;
+    }
+
+    // 原生端用 MediaLibrary
+    if (!imageUrl) {
+      showToast('暂无图片可保存');
+      return;
+    }
+    try {
+      setSaving(true);
+      const FileSystem = await import('expo-file-system');
+      const MediaLibrary = await import('expo-media-library');
+
       const { status } = await MediaLibrary.requestPermissionsAsync();
       if (status !== 'granted') {
         showToast('需要相册权限才能保存');
         return;
       }
 
-      // 通过代理下载图片
       const proxyUrl = imageUrl.startsWith('http')
         ? imageUrl
         : `${getBaseUrl()}${imageUrl}`;
@@ -84,7 +120,7 @@ export default function SharePanel({
     } finally {
       setSaving(false);
     }
-  }, [imageUrl, showToast]);
+  }, [imageUrl, downloadImageWeb, showToast]);
 
   // 复制链接
   const copyLink = useCallback(async () => {
@@ -97,7 +133,6 @@ export default function SharePanel({
       await navigator.clipboard.writeText(link);
       showToast('链接已复制，可粘贴到微信分享');
     } catch {
-      // fallback
       const textArea = document.createElement('textarea');
       textArea.value = link;
       document.body.appendChild(textArea);
@@ -108,40 +143,128 @@ export default function SharePanel({
     }
   }, [shareUrl, imageUrl, audioUrl, showToast]);
 
-  // 使用系统分享（移动端）
-  const systemShare = useCallback(async () => {
+  // 生成分享海报并下载
+  const saveSharePoster = useCallback(async () => {
     try {
-      if (navigator.share) {
-        if (imageUrl) {
-          // 尝试分享文件
-          try {
-            const response = await fetch(imageUrl);
-            const blob = await response.blob();
-            const file = new File([blob], `${title}.jpg`, { type: 'image/jpeg' });
-            await navigator.share({
-              title,
-              text: description,
-              files: [file],
-            });
-            return;
-          } catch {
-            // 文件分享不支持，回退到链接
-          }
+      setSaving(true);
+
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        showToast('生成海报失败');
+        return;
+      }
+
+      const canvasW = 600;
+      const canvasH = imageUrl ? 900 : 500;
+      canvas.width = canvasW;
+      canvas.height = canvasH;
+
+      // 背景
+      const gradient = ctx.createLinearGradient(0, 0, 0, canvasH);
+      gradient.addColorStop(0, '#1a1a2e');
+      gradient.addColorStop(1, '#16213e');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, canvasW, canvasH);
+
+      // 顶部装饰线
+      ctx.fillStyle = '#D4A574';
+      ctx.fillRect(0, 0, canvasW, 4);
+
+      // 标题
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 28px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(title || '智能非遗作品', canvasW / 2, 50);
+
+      // 副标题
+      ctx.fillStyle = '#D4A574';
+      ctx.font = '16px sans-serif';
+      ctx.fillText(description, canvasW / 2, 78);
+
+      if (imageUrl) {
+        // 加载图片
+        try {
+          const proxyUrl = imageUrl.startsWith('http') ? imageUrl : `${getBaseUrl()}${imageUrl}`;
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          await new Promise<void>((resolve, reject) => {
+            img.onload = () => resolve();
+            img.onerror = () => reject(new Error('Image load failed'));
+            img.src = proxyUrl;
+          });
+
+          // 绘制图片（居中，保持比例）
+          const maxImgW = 500;
+          const maxImgH = 550;
+          const scale = Math.min(maxImgW / img.width, maxImgH / img.height, 1);
+          const drawW = img.width * scale;
+          const drawH = img.height * scale;
+          const imgX = (canvasW - drawW) / 2;
+          const imgY = 100;
+
+          // 图片背景（白色圆角矩形）
+          ctx.fillStyle = '#ffffff';
+          roundRect(ctx, imgX - 10, imgY - 10, drawW + 20, drawH + 20, 12);
+          ctx.fill();
+
+          ctx.drawImage(img, imgX, imgY, drawW, drawH);
+        } catch {
+          // 图片加载失败，跳过
+          ctx.fillStyle = '#666';
+          ctx.font = '16px sans-serif';
+          ctx.fillText('（图片加载失败）', canvasW / 2, 350);
         }
-        await navigator.share({
-          title,
-          text: description,
-          url: shareUrl || imageUrl || audioUrl,
-        });
-      } else {
-        await copyLink();
       }
-    } catch (err: any) {
-      if (err?.name !== 'AbortError') {
-        await copyLink();
+
+      // 二维码区域
+      const qrY = imageUrl ? 720 : 120;
+      if (shareUrl && qrCodeUri) {
+        try {
+          const qrImg = new Image();
+          await new Promise<void>((resolve, reject) => {
+            qrImg.onload = () => resolve();
+            qrImg.onerror = () => reject(new Error('QR load failed'));
+            qrImg.src = qrCodeUri;
+          });
+          const qrSize = 100;
+          ctx.drawImage(qrImg, canvasW / 2 - qrSize / 2, qrY, qrSize, qrSize);
+          ctx.fillStyle = '#999';
+          ctx.font = '12px sans-serif';
+          ctx.fillText('微信扫码查看作品', canvasW / 2, qrY + qrSize + 20);
+        } catch {
+          // 二维码加载失败
+        }
       }
+
+      // 底部品牌
+      ctx.fillStyle = '#666';
+      ctx.font = '12px sans-serif';
+      ctx.fillText('智能非遗 - 用AI让非遗"活"在当代', canvasW / 2, canvasH - 20);
+
+      // 下载海报
+      canvas.toBlob((blob) => {
+        if (!blob) {
+          showToast('生成海报失败');
+          return;
+        }
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `分享_${title || '非遗作品'}_${Date.now()}.jpg`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast('海报已保存，可在微信中发送');
+      }, 'image/jpeg', 0.9);
+    } catch (err) {
+      console.error('Save poster error:', err);
+      showToast('生成海报失败');
+    } finally {
+      setSaving(false);
     }
-  }, [imageUrl, audioUrl, title, description, shareUrl, copyLink]);
+  }, [imageUrl, audioUrl, title, description, shareUrl, qrCodeUri, showToast]);
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -149,7 +272,7 @@ export default function SharePanel({
         <View style={styles.container}>
           {/* 标题 */}
           <View style={styles.header}>
-            <Text style={styles.headerTitle}>分享到</Text>
+            <Text style={styles.headerTitle}>分享到微信</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
               <Text style={styles.closeText}>✕</Text>
             </TouchableOpacity>
@@ -157,7 +280,20 @@ export default function SharePanel({
 
           {/* 分享方式 */}
           <View style={styles.shareMethods}>
-            {/* 保存图片 */}
+            {/* 生成分享海报 */}
+            <TouchableOpacity style={styles.methodItem} onPress={saveSharePoster} disabled={saving}>
+              <View style={[styles.methodIcon, { backgroundColor: '#07C160' }]}>
+                {saving ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                ) : (
+                  <Text style={styles.methodEmoji}>🎨</Text>
+                )}
+              </View>
+              <Text style={styles.methodLabel}>保存海报</Text>
+              <Text style={styles.methodHint}>生成海报图片发微信</Text>
+            </TouchableOpacity>
+
+            {/* 保存原图 */}
             {imageUrl && (
               <TouchableOpacity style={styles.methodItem} onPress={saveImageToAlbum} disabled={saving}>
                 <View style={[styles.methodIcon, { backgroundColor: '#4CAF50' }]}>
@@ -167,8 +303,8 @@ export default function SharePanel({
                     <Text style={styles.methodEmoji}>📷</Text>
                   )}
                 </View>
-                <Text style={styles.methodLabel}>保存图片</Text>
-                <Text style={styles.methodHint}>存到相册后从微信分享</Text>
+                <Text style={styles.methodLabel}>保存原图</Text>
+                <Text style={styles.methodHint}>存图片发微信相册</Text>
               </TouchableOpacity>
             )}
 
@@ -180,21 +316,12 @@ export default function SharePanel({
               <Text style={styles.methodLabel}>复制链接</Text>
               <Text style={styles.methodHint}>粘贴到微信聊天</Text>
             </TouchableOpacity>
-
-            {/* 系统分享 */}
-            <TouchableOpacity style={styles.methodItem} onPress={systemShare}>
-              <View style={[styles.methodIcon, { backgroundColor: '#2196F3' }]}>
-                <Text style={styles.methodEmoji}>📤</Text>
-              </View>
-              <Text style={styles.methodLabel}>更多方式</Text>
-              <Text style={styles.methodHint}>调起系统分享</Text>
-            </TouchableOpacity>
           </View>
 
           {/* 二维码 */}
           {shareUrl && (
             <View style={styles.qrSection}>
-              <Text style={styles.qrTitle}>微信扫一扫查看</Text>
+              <Text style={styles.qrTitle}>微信扫一扫查看作品</Text>
               {qrLoading ? (
                 <ActivityIndicator color="#D4A574" size="large" />
               ) : qrCodeUri ? (
@@ -204,20 +331,42 @@ export default function SharePanel({
                   resizeMode="contain"
                 />
               ) : null}
-              <Text style={styles.qrHint}>截图后发送给微信好友扫码</Text>
+              <Text style={styles.qrHint}>截图发送给微信好友扫码查看</Text>
             </View>
           )}
 
           {/* 底部提示 */}
           <View style={styles.tips}>
             <Text style={styles.tipsText}>
-              💡 提示：保存图片到相册后，在微信聊天中选择相册图片即可分享
+              💡 提示：点击「保存海报」生成带二维码的分享图，保存后在微信中选择图片发送即可
             </Text>
           </View>
         </View>
       </View>
     </Modal>
   );
+}
+
+// 绘制圆角矩形辅助函数
+function roundRect(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  r: number
+) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
 }
 
 function getBaseUrl(): string {
@@ -263,7 +412,7 @@ const styles = {
   },
   methodItem: {
     alignItems: 'center' as const,
-    width: 90,
+    width: 95,
   },
   methodIcon: {
     width: 56,
