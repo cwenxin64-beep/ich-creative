@@ -11,7 +11,7 @@ interface GenerationProgressProps {
 
 export const GenerationProgress: React.FC<GenerationProgressProps> = ({
   progress,
-  tip = 'AI 正在为你创作，请稍候...',
+  tip = '我们正在为您创作，请稍候...',
 }) => {
   const { theme } = useTheme();
   const animatedWidth = useRef(new Animated.Value(0)).current;

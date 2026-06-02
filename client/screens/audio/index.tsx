@@ -362,7 +362,7 @@ export default function AudioScreen() {
         {loading && (
           <GenerationProgress
             progress={progress}
-            tip="AI 正在为你创作音乐，通常需要 1-3 分钟..."
+            tip="我们正在为您创作音乐，通常需要 1-3 分钟..."
           />
         )}
 

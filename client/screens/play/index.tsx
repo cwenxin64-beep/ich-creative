@@ -577,7 +577,7 @@ export default function PlayScreen() {
         {loading && (
           <GenerationProgress
             progress={progress}
-            tip="AI 正在为你生成非遗交互体验，通常需要 1-2 分钟..."
+            tip="我们正在为您生成非遗交互体验，通常需要 1-2 分钟..."
           />
         )}
 

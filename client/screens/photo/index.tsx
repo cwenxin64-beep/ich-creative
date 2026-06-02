@@ -436,7 +436,7 @@ export default function PhotoScreen() {
         {loading && (
           <GenerationProgress
             progress={progress}
-            tip="AI 正在为你生成非遗风格图片，通常需要 30-60 秒..."
+            tip="我们正在为您生成非遗风格图片，通常需要 30-60 秒..."
           />
         )}
 

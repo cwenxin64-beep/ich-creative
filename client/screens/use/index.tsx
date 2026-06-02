@@ -520,7 +520,7 @@ export default function UseScreen() {
         {loading && (
           <GenerationProgress
             progress={progress}
-            tip="AI 正在为你定制非遗实用设计，通常需要 1-2 分钟..."
+            tip="我们正在为您定制非遗实用设计，通常需要 1-2 分钟..."
           />
         )}
 
