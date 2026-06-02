@@ -72,41 +72,31 @@ export default function UseScreen() {
   // 我的素材相关状态
   const [showMaterialModal, setShowMaterialModal] = useState(false);
   const [selectedMaterial, setSelectedMaterial] = useState<any>(null);
-  const [favorites, setFavorites] = useState<any[]>([]);
-  const [loadingFavorites, setLoadingFavorites] = useState(false);
+  const [materials, setMaterials] = useState<any[]>([]);
+  const [loadingMaterials, setLoadingMaterials] = useState(false);
   const [sharingResults, setSharingResults] = useState<Set<string>>(new Set());
 
-  // 加载收藏列表
-  const loadFavorites = async () => {
-    setLoadingFavorites(true);
+  // 加载素材列表
+  const loadMaterials = async () => {
+    setLoadingMaterials(true);
     try {
-      /**
-       * 服务端文件：server/src/routes/favorites.ts
-       * 接口：GET /api/v1/favorites
-       */
-      const response = await authFetch(buildApiUrl('/api/v1/favorites'));
+      const response = await authFetch(buildApiUrl('/api/v1/materials'));
       const data = await response.json();
 
       if (data.success) {
-        // 从已收藏列表填充 favoriteMap (imageUrl → dbId)
-        const map = new Map<string, number>();
-        (data.favorites || []).forEach((fav: any) => {
-          if (fav.image_url) map.set(fav.image_url, fav.id);
-        });
-        setFavoriteMap(map);
+        setMaterials(data.materials || []);
       }
     } catch (error) {
-      console.error('Load favorites error:', error);
-      Alert.alert('错误', '加载收藏失败');
+      console.error('Load materials error:', error);
     } finally {
-      setLoadingFavorites(false);
+      setLoadingMaterials(false);
     }
   };
 
-  // 当打开素材选择Modal时加载收藏
+  // 当打开素材选择Modal时加载素材
   useEffect(() => {
     if (showMaterialModal) {
-      loadFavorites();
+      loadMaterials();
     }
   }, [showMaterialModal]);
 
@@ -275,8 +265,7 @@ export default function UseScreen() {
       // 如果选择了"我的素材"，传递素材信息
       if (selectedScene === 'my-material' && selectedMaterial) {
         requestBody.material = {
-          imageUrl: selectedMaterial.mainImageUrl || selectedMaterial.imageUrl,
-          videoUrl: selectedMaterial.videoUrl,
+          imageUrl: selectedMaterial.source_url,
           title: selectedMaterial.title,
           metadata: selectedMaterial.metadata,
         };
@@ -491,12 +480,12 @@ export default function UseScreen() {
           {selectedMaterial && (
             <ThemedView level="default" style={styles.selectedMaterialCard}>
               <Image
-                source={{ uri: selectedMaterial.mainImageUrl || selectedMaterial.imageUrl }}
+                source={{ uri: selectedMaterial.source_url }}
                 style={styles.selectedMaterialImage}
               />
               <View style={styles.selectedMaterialInfo}>
                 <ThemedText variant="smallMedium" color={theme.textPrimary} numberOfLines={1}>
-                  {selectedMaterial.title}
+                  {selectedMaterial.title || '未命名素材'}
                 </ThemedText>
                 <ThemedText variant="caption" color={theme.textMuted}>
                   已选择素材
@@ -649,22 +638,22 @@ export default function UseScreen() {
 
             {/* Material List */}
             <ScrollView style={styles.modalBody}>
-              {loadingFavorites ? (
+              {loadingMaterials ? (
                 <View style={styles.loadingContainer}>
                   <FontAwesome6 name="spinner" size={32} color={theme.primary} />
                   <ThemedText variant="body" color={theme.textSecondary} style={styles.loadingText}>
                     加载中...
                   </ThemedText>
                 </View>
-              ) : favorites.length === 0 ? (
+              ) : materials.length === 0 ? (
                 <View style={styles.emptyContainer}>
                   <FontAwesome6 name="folder-open" size={48} color={theme.textMuted} />
                   <ThemedText variant="body" color={theme.textMuted} style={styles.emptyText}>
-                    暂无收藏的素材
+                    暂无素材，请先在收藏页同步到素材
                   </ThemedText>
                 </View>
               ) : (
-                favorites.map((item) => (
+                materials.map((item) => (
                   <TouchableOpacity
                     key={item.id}
                     style={[
@@ -673,19 +662,11 @@ export default function UseScreen() {
                     ]}
                     onPress={() => setSelectedMaterial(item)}
                   >
-                    {item.mainImageUrl || item.imageUrl ? (
+                    {item.source_url ? (
                       <Image
-                        source={{ uri: item.mainImageUrl || item.imageUrl }}
+                        source={{ uri: item.source_url }}
                         style={styles.materialItemImage}
                       />
-                    ) : item.videoUrl ? (
-                      <View style={styles.materialItemVideo}>
-                        <Image
-                          source={{ uri: item.videoUrl + '?type=cover' }}
-                          style={styles.materialItemImage}
-                        />
-                        <FontAwesome6 name="play" size={24} color="#fff" style={styles.materialPlayIcon} />
-                      </View>
                     ) : (
                       <View style={styles.materialItemPlaceholder}>
                         <FontAwesome6 name="image" size={32} color={theme.textMuted} />
@@ -693,10 +674,10 @@ export default function UseScreen() {
                     )}
                     <View style={styles.materialItemInfo}>
                       <ThemedText variant="body" color={theme.textPrimary}>
-                        {item.title}
+                        {item.title || '未命名素材'}
                       </ThemedText>
                       <ThemedText variant="caption" color={theme.textSecondary}>
-                        {item.type}
+                        {item.type === 'music' ? '音乐' : item.type === 'image' ? '图片' : item.type}
                       </ThemedText>
                     </View>
                     {selectedMaterial?.id === item.id && (
