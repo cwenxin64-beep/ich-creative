@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { useRouter, useSegments } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // ============ Types ============
@@ -69,9 +68,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [token, setToken] = useState<string | null>(null);
   const [refreshTokenValue, setRefreshTokenValue] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-
-  const router = useRouter();
-  const segments = useSegments();
 
   // 从本地存储恢复登录状态
   const restoreAuth = useCallback(async () => {
@@ -190,21 +186,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       storage.setItem(USER_KEY, JSON.stringify(updatedUser));
     }
   };
-
-  // 路由守卫：根据登录状态自动跳转
-  useEffect(() => {
-    if (isLoading) return;
-
-    const inAuthGroup = segments[0] === 'login' || segments[0] === 'register';
-
-    if (!user && !inAuthGroup) {
-      // 未登录且不在登录页 → 跳转到登录页
-      router.replace('/login');
-    } else if (user && inAuthGroup) {
-      // 已登录且在登录页 → 跳转到首页
-      router.replace('/(tabs)/home');
-    }
-  }, [user, isLoading, segments]);
 
   const value: AuthContextType = {
     user,
