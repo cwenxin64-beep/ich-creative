@@ -161,25 +161,34 @@ export default function HomeScreen() {
           ))}
         </View>
 
-        {/* My Favorites Button */}
-        <TouchableOpacity
-          style={[styles.favoritesButton, { backgroundColor: theme.backgroundDefault }]}
-          onPress={() => router.push('/favorites')}
-          activeOpacity={0.7}
-        >
-          <View style={[styles.favoritesIconContainer, { backgroundColor: `${'#EC4899'}15` }]}>
-            <FontAwesome6 name="heart" size={28} color="#EC4899" />
-          </View>
-          <ThemedView level="root" style={styles.favoritesContent}>
-            <ThemedText variant="title" color={theme.textPrimary} style={styles.favoritesTitle}>
+        {/* My Favorites & Materials Row */}
+        <View style={styles.rowButtons}>
+          <TouchableOpacity
+            style={[styles.halfButton, { backgroundColor: theme.backgroundDefault }]}
+            onPress={() => router.push('/favorites')}
+            activeOpacity={0.7}
+          >
+            <View style={[styles.halfIconContainer, { backgroundColor: `${'#EC4899'}15` }]}>
+              <FontAwesome6 name="heart" size={22} color="#EC4899" />
+            </View>
+            <ThemedText variant="smallMedium" color={theme.textPrimary} style={styles.halfTitle}>
               我的收藏
             </ThemedText>
-            <ThemedText variant="small" color={theme.textSecondary} style={styles.favoritesDescription}>
-              查看和管理收藏的创作作品
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.halfButton, { backgroundColor: theme.backgroundDefault }]}
+            onPress={() => router.push('/materials')}
+            activeOpacity={0.7}
+          >
+            <View style={[styles.halfIconContainer, { backgroundColor: `${'#8B5CF6'}15` }]}>
+              <FontAwesome6 name="box-open" size={22} color="#8B5CF6" />
+            </View>
+            <ThemedText variant="smallMedium" color={theme.textPrimary} style={styles.halfTitle}>
+              我的素材
             </ThemedText>
-          </ThemedView>
-          <FontAwesome6 name="chevron-right" size={20} color={theme.textMuted} />
-        </TouchableOpacity>
+          </TouchableOpacity>
+        </View>
 
         {/* Footer Info */}
         <ThemedView level="root" style={styles.footer}>

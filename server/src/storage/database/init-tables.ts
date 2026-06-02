@@ -71,6 +71,25 @@ export async function initDatabase() {
     await query(`CREATE INDEX IF NOT EXISTS idx_music_generations_task_id ON music_generations(task_id);`);
     await query(`CREATE INDEX IF NOT EXISTS idx_music_generations_status ON music_generations(status);`);
 
+    // 创建素材表
+    await query(`
+      CREATE TABLE IF NOT EXISTS materials (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER,
+        type VARCHAR(50) NOT NULL DEFAULT 'image',
+        source_url TEXT,
+        title VARCHAR(255),
+        description TEXT,
+        metadata JSONB DEFAULT '{}',
+        source_type VARCHAR(50) DEFAULT 'favorite',
+        source_id INTEGER,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+      );
+    `);
+
+    await query(`CREATE INDEX IF NOT EXISTS idx_materials_user_id ON materials(user_id);`);
+    await query(`CREATE INDEX IF NOT EXISTS idx_materials_source ON materials(source_type, source_id);`);
+
     console.log('[DB] Database tables initialized successfully');
   } catch (err) {
     console.error('[DB] Failed to initialize tables:', err);

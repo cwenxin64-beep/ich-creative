@@ -83,35 +83,34 @@ export const createStyles = (theme: Theme) => {
     arrowIcon: {
       marginLeft: Spacing.sm,
     },
-    favoritesButton: {
+    rowButtons: {
+      flexDirection: 'row',
+      gap: Spacing.md,
+      marginTop: Spacing.xl,
+      marginBottom: Spacing.lg,
+    },
+    halfButton: {
+      flex: 1,
       flexDirection: 'row',
       alignItems: 'center',
       padding: Spacing.lg,
       borderRadius: BorderRadius["2xl"],
-      marginTop: Spacing.xl,
-      marginBottom: Spacing.lg,
       shadowColor: theme.shadow,
       shadowOffset: { width: 0, height: 4 },
       shadowOpacity: 1,
       shadowRadius: 12,
       elevation: 8,
     },
-    favoritesIconContainer: {
-      width: 60,
-      height: 60,
-      borderRadius: BorderRadius.xl,
+    halfIconContainer: {
+      width: 44,
+      height: 44,
+      borderRadius: BorderRadius.lg,
       justifyContent: 'center',
       alignItems: 'center',
-      marginRight: Spacing.md,
+      marginRight: Spacing.sm,
     },
-    favoritesContent: {
-      flex: 1,
-    },
-    favoritesTitle: {
-      marginBottom: Spacing.xs / 2,
-    },
-    favoritesDescription: {
-      lineHeight: 18,
+    halfTitle: {
+      fontSize: 14,
     },
     footer: {
       marginTop: Spacing["2xl"],

@@ -195,6 +195,23 @@ export default function FavoritesScreen() {
     );
   };
 
+  const handleSyncToMaterials = async () => {
+    try {
+      const response = await fetch(buildApiUrl('/api/v1/materials/sync'), {
+        method: 'POST',
+      });
+      if (response.ok) {
+        const data = await response.json();
+        showToast(data.message || '同步成功');
+      } else {
+        showToast('同步失败，请稍后重试');
+      }
+    } catch (error) {
+      console.error('Sync to materials error:', error);
+      showToast('同步失败，请稍后重试');
+    }
+  };
+
   const handleClearAll = async () => {
     if (favorites.length === 0) return;
     Alert.alert(
@@ -583,6 +600,16 @@ export default function FavoritesScreen() {
                 </TouchableOpacity>
               </>
             )}
+
+            <TouchableOpacity
+              style={styles.panelButton}
+              onPress={handleSyncToMaterials}
+            >
+              <FontAwesome6 name="arrow-right-to-bracket" size={20} color={theme.primary} />
+              <ThemedText variant="smallMedium" color={theme.primary} style={styles.panelButtonText}>
+                同步素材
+              </ThemedText>
+            </TouchableOpacity>
 
             <TouchableOpacity
               style={[styles.panelButton, styles.clearButton]}
