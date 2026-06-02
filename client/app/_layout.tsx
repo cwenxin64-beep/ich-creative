@@ -3,7 +3,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { LogBox } from 'react-native';
-import Toast from 'react-native-toast-message';
+
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ColorSchemeProvider } from '@/hooks/useColorScheme';
 
@@ -37,7 +37,6 @@ export default function RootLayout() {
             <Stack.Screen name="detail" options={{ title: "" }} />
             <Stack.Screen name="(tabs)" options={{ title: "" }} />
           </Stack>
-          <Toast />
         </GestureHandlerRootView>
       </ColorSchemeProvider>
     </AuthProvider>
