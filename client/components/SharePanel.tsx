@@ -1,6 +1,6 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { Modal, View, Text, TouchableOpacity, Image, ActivityIndicator, ScrollView } from 'react-native';
-import QRCode from 'qrcode';
+import React, { useCallback, useRef, useState } from 'react';
+import { Modal, View, Text, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
+import QRCodeSVG from 'react-qr-code';
 import { useToast } from '@/hooks/useToast';
 
 interface SharePanelProps {
@@ -23,62 +23,11 @@ export default function SharePanel({
   shareUrl,
 }: SharePanelProps) {
   const { showToast } = useToast();
-  const [qrCodeUri, setQrCodeUri] = useState<string>('');
   const [saving, setSaving] = useState(false);
-
-  // 生成二维码
-  useEffect(() => {
-    if (visible) {
-      const qrContent = window.location.origin || 'https://ich-client-204193-6-1388119917.sh.run.tcloudbase.com';
-      QRCode.toDataURL(qrContent, {
-        width: 200,
-        margin: 2,
-        color: { dark: '#000000', light: '#ffffff' },
-      })
-        .then(setQrCodeUri)
-        .catch(() => setQrCodeUri(''));
-    }
-  }, [visible]);
-
-  // 将图片URL转为base64 data URL（解决canvas跨域问题）
-  const imageToBase64 = async (url: string): Promise<string | null> => {
-    try {
-      // 先尝试通过当前域名代理
-      const proxyUrl = `${window.location.origin}/api/v1/imageproxy?url=${encodeURIComponent(url)}`;
-      const resp = await fetch(proxyUrl);
-      if (resp.ok) {
-        const blob = await resp.blob();
-        return await blobToDataUrl(blob);
-      }
-    } catch {
-      // 代理失败，尝试直接 fetch
-    }
-
-    try {
-      // 直接 fetch（同源图片可行）
-      const resp = await fetch(url);
-      if (resp.ok) {
-        const blob = await resp.blob();
-        return await blobToDataUrl(blob);
-      }
-    } catch {
-      // 直接 fetch 也失败
-    }
-
-    return null;
-  };
-
-  const blobToDataUrl = (blob: Blob): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result as string);
-      reader.onerror = reject;
-      reader.readAsDataURL(blob);
-    });
-  };
+  const posterRef = useRef<HTMLDivElement>(null);
 
   // 保存原图/音频
-  const saveImageToAlbum = useCallback(async () => {
+  const saveOriginal = useCallback(async () => {
     const urlToSave = imageUrl || audioUrl;
     if (!urlToSave) {
       showToast('暂无内容可保存');
@@ -86,7 +35,6 @@ export default function SharePanel({
     }
     try {
       setSaving(true);
-
       let fullUrl = urlToSave;
       if (!fullUrl.startsWith('http')) {
         fullUrl = `${window.location.origin}${fullUrl}`;
@@ -95,11 +43,6 @@ export default function SharePanel({
       // 音频走代理
       if (audioUrl && fullUrl.includes('volces.com')) {
         fullUrl = `${window.location.origin}/api/v1/audio/proxy?url=${encodeURIComponent(audioUrl!)}`;
-      }
-
-      // 图片走代理
-      if (imageUrl && !fullUrl.includes('/api/v1/')) {
-        fullUrl = `${window.location.origin}/api/v1/imageproxy?url=${encodeURIComponent(fullUrl)}`;
       }
 
       const response = await fetch(fullUrl);
@@ -116,15 +59,13 @@ export default function SharePanel({
       link.style.display = 'none';
       document.body.appendChild(link);
       link.click();
-
       setTimeout(() => {
         document.body.removeChild(link);
         URL.revokeObjectURL(blobUrl);
       }, 100);
 
       showToast(audioUrl ? '音频已保存' : '图片已保存，可在微信中发送');
-    } catch (err) {
-      console.error('Save error:', err);
+    } catch {
       showToast('保存失败，请长按内容保存');
     } finally {
       setSaving(false);
@@ -136,147 +77,21 @@ export default function SharePanel({
     try {
       setSaving(true);
 
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      if (!ctx) {
-        showToast('浏览器不支持生成海报');
+      const html2canvas = (await import('html2canvas')).default;
+      const el = posterRef.current;
+      if (!el) {
+        showToast('生成海报失败');
         return;
       }
 
-      const canvasW = 600;
-      const canvasH = imageUrl ? 960 : 600;
-      canvas.width = canvasW;
-      canvas.height = canvasH;
+      const canvas = await html2canvas(el, {
+        backgroundColor: null,
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        logging: false,
+      });
 
-      // 背景渐变
-      const gradient = ctx.createLinearGradient(0, 0, 0, canvasH);
-      gradient.addColorStop(0, '#1a1a2e');
-      gradient.addColorStop(1, '#16213e');
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, canvasW, canvasH);
-
-      // 顶部装饰线
-      ctx.fillStyle = '#D4A574';
-      ctx.fillRect(0, 0, canvasW, 4);
-
-      // 标题
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 28px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText(title || '智能非遗作品', canvasW / 2, 50);
-
-      // 副标题
-      ctx.fillStyle = '#D4A574';
-      ctx.font = '16px sans-serif';
-      ctx.fillText(description, canvasW / 2, 78);
-
-      // 图片 — 转base64避免跨域
-      let imageDrawn = false;
-      if (imageUrl) {
-        try {
-          let fullUrl = imageUrl;
-          if (!fullUrl.startsWith('http')) {
-            fullUrl = `${window.location.origin}${fullUrl}`;
-          }
-
-          // 尝试将图片转为 base64 data URL
-          const base64 = await imageToBase64(fullUrl);
-          const img = new Image();
-
-          if (base64) {
-            img.src = base64; // base64 没有跨域问题
-          } else {
-            img.crossOrigin = 'anonymous';
-            img.src = fullUrl; // 最后尝试直接加载
-          }
-
-          await new Promise<void>((resolve, reject) => {
-            img.onload = () => resolve();
-            img.onerror = () => reject(new Error('Image load failed'));
-          });
-
-          const maxImgW = 500;
-          const maxImgH = 520;
-          const scale = Math.min(maxImgW / img.width, maxImgH / img.height, 1);
-          const drawW = img.width * scale;
-          const drawH = img.height * scale;
-          const imgX = (canvasW - drawW) / 2;
-          const imgY = 100;
-
-          // 白色圆角背景
-          ctx.fillStyle = '#ffffff';
-          roundRect(ctx, imgX - 10, imgY - 10, drawW + 20, drawH + 20, 12);
-          ctx.fill();
-          ctx.drawImage(img, imgX, imgY, drawW, drawH);
-          imageDrawn = true;
-        } catch {
-          // 图片加载失败
-        }
-      }
-
-      if (imageUrl && !imageDrawn) {
-        // 图片加载失败，显示占位
-        ctx.fillStyle = '#2a2a4e';
-        roundRect(ctx, 75, 100, 450, 350, 12);
-        ctx.fill();
-        ctx.fillStyle = '#999';
-        ctx.font = '16px sans-serif';
-        ctx.fillText('（图片加载失败）', canvasW / 2, 280);
-      }
-
-      // 音频图标
-      if (audioUrl && !imageUrl) {
-        ctx.fillStyle = '#2a2a4e';
-        roundRect(ctx, 100, 100, 400, 250, 16);
-        ctx.fill();
-        ctx.fillStyle = '#D4A574';
-        ctx.font = '64px sans-serif';
-        ctx.fillText('🎵', canvasW / 2, 230);
-        ctx.fillStyle = '#fff';
-        ctx.font = '16px sans-serif';
-        ctx.fillText('点击收听非遗音乐', canvasW / 2, 290);
-      }
-
-      // 二维码区域背景
-      const qrSectionY = imageUrl ? 680 : 400;
-      ctx.fillStyle = '#111128';
-      roundRect(ctx, 50, qrSectionY, 500, 180, 12);
-      ctx.fill();
-
-      // 二维码
-      if (qrCodeUri) {
-        try {
-          const qrImg = new Image();
-          await new Promise<void>((resolve, reject) => {
-            qrImg.onload = () => resolve();
-            qrImg.onerror = () => reject(new Error('QR load failed'));
-            qrImg.src = qrCodeUri;
-          });
-          const qrSize = 120;
-          ctx.drawImage(qrImg, canvasW / 2 - qrSize / 2, qrSectionY + 10, qrSize, qrSize);
-          ctx.fillStyle = '#999';
-          ctx.font = '13px sans-serif';
-          ctx.fillText('扫码查看作品', canvasW / 2, qrSectionY + qrSize + 30);
-        } catch {
-          // 二维码加载失败忽略
-        }
-      } else {
-        ctx.fillStyle = '#666';
-        ctx.font = '14px sans-serif';
-        ctx.fillText('扫码查看作品', canvasW / 2, qrSectionY + 60);
-      }
-
-      // 提示文字
-      ctx.fillStyle = '#D4A574';
-      ctx.font = '12px sans-serif';
-      ctx.fillText('长按保存图片 → 打开微信发送给好友', canvasW / 2, qrSectionY + 160);
-
-      // 底部品牌
-      ctx.fillStyle = '#555';
-      ctx.font = '11px sans-serif';
-      ctx.fillText('智能非遗 - 让非遗"活"在当代', canvasW / 2, canvasH - 12);
-
-      // 下载海报
       canvas.toBlob((blob) => {
         if (!blob) {
           showToast('生成海报失败');
@@ -301,11 +116,11 @@ export default function SharePanel({
     } finally {
       setSaving(false);
     }
-  }, [imageUrl, audioUrl, title, description, qrCodeUri, showToast]);
+  }, [title, showToast]);
 
   // 复制链接
   const copyLink = useCallback(async () => {
-    const link = window.location.origin || shareUrl || '';
+    const link = shareUrl || window.location.origin || '';
     if (!link) {
       showToast('暂无链接可复制');
       return;
@@ -329,6 +144,8 @@ export default function SharePanel({
     }
   }, [shareUrl, showToast]);
 
+  const qrContent = shareUrl || window.location.origin || 'https://ich-client-204193-6-1388119917.sh.run.tcloudbase.com';
+
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View style={styles.overlay}>
@@ -341,22 +158,93 @@ export default function SharePanel({
             </TouchableOpacity>
           </View>
 
-          {/* 海报预览 */}
-          <View style={styles.previewSection}>
-            <Text style={styles.previewTitle}>{title || '智能非遗作品'}</Text>
-            <Text style={styles.previewDesc}>{description}</Text>
-            {imageUrl ? (
-              <Image source={{ uri: imageUrl }} style={styles.previewImage} resizeMode="cover" />
-            ) : audioUrl ? (
-              <View style={styles.audioPreview}>
-                <Text style={styles.audioEmoji}>🎵</Text>
-                <Text style={styles.audioText}>非遗音乐作品</Text>
-              </View>
-            ) : null}
-            {qrCodeUri && (
-              <Image source={{ uri: qrCodeUri }} style={styles.previewQR} resizeMode="contain" />
+          {/* 海报预览区域 - 用 HTML div 渲染，html2canvas 截图 */}
+          <div
+            ref={posterRef}
+            style={{
+              width: '100%',
+              borderRadius: 12,
+              overflow: 'hidden',
+              background: 'linear-gradient(180deg, #1a1a2e 0%, #16213e 100%)',
+              padding: 24,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              position: 'relative',
+            }}
+          >
+            {/* 顶部装饰线 */}
+            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 4, background: '#D4A574' }} />
+
+            {/* 标题 */}
+            <div style={{ color: '#fff', fontSize: 22, fontWeight: 700, marginBottom: 6, textAlign: 'center' as const }}>
+              {title}
+            </div>
+            <div style={{ color: '#D4A574', fontSize: 13, marginBottom: 16, textAlign: 'center' as const }}>
+              {description}
+            </div>
+
+            {/* 作品图片 */}
+            {imageUrl && (
+              <img
+                src={imageUrl}
+                crossOrigin="anonymous"
+                style={{
+                  width: '80%',
+                  maxHeight: 240,
+                  borderRadius: 10,
+                  objectFit: 'cover',
+                  marginBottom: 16,
+                  backgroundColor: '#2a2a4e',
+                }}
+                onError={(e: any) => {
+                  e.target.style.display = 'none';
+                }}
+              />
             )}
-          </View>
+
+            {/* 音频图标 */}
+            {audioUrl && !imageUrl && (
+              <div style={{
+                width: '80%',
+                height: 120,
+                borderRadius: 10,
+                background: '#2a2a4e',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: 16,
+              }}>
+                <div style={{ fontSize: 48, marginBottom: 8 }}>🎵</div>
+                <div style={{ color: '#D4A574', fontSize: 14 }}>点击收听非遗音乐</div>
+              </div>
+            )}
+
+            {/* 二维码区域 */}
+            <div style={{
+              background: '#ffffff',
+              borderRadius: 10,
+              padding: 12,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              marginBottom: 12,
+            }}>
+              <QRCodeSVG value={qrContent} size={100} />
+              <div style={{ color: '#666', fontSize: 11, marginTop: 6 }}>扫码查看作品</div>
+            </div>
+
+            {/* 提示 */}
+            <div style={{ color: '#D4A574', fontSize: 11, textAlign: 'center' as const, marginBottom: 8 }}>
+              长按保存图片 → 打开微信发送给好友
+            </div>
+
+            {/* 品牌 */}
+            <div style={{ color: '#555', fontSize: 10, textAlign: 'center' as const }}>
+              智能非遗 · 让非遗"活"在当代
+            </div>
+          </div>
 
           {/* 分享方式 */}
           <View style={styles.shareMethods}>
@@ -375,7 +263,7 @@ export default function SharePanel({
 
             {/* 保存原图 */}
             {(imageUrl || audioUrl) && (
-              <TouchableOpacity style={styles.methodItem} onPress={saveImageToAlbum} disabled={saving}>
+              <TouchableOpacity style={styles.methodItem} onPress={saveOriginal} disabled={saving}>
                 <View style={[styles.methodIcon, { backgroundColor: '#4CAF50' }]}>
                   {saving ? (
                     <ActivityIndicator color="#fff" size="small" />
@@ -408,28 +296,6 @@ export default function SharePanel({
       </View>
     </Modal>
   );
-}
-
-// 圆角矩形辅助函数
-function roundRect(
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  w: number,
-  h: number,
-  r: number
-) {
-  ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.lineTo(x + w - r, y);
-  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-  ctx.lineTo(x + w, y + h - r);
-  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-  ctx.lineTo(x + r, y + h);
-  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-  ctx.lineTo(x, y + r);
-  ctx.quadraticCurveTo(x, y, x + r, y);
-  ctx.closePath();
 }
 
 const styles = {
@@ -465,55 +331,10 @@ const styles = {
     color: '#999',
     fontSize: 18,
   },
-  previewSection: {
-    alignItems: 'center' as const,
-    backgroundColor: '#111128',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-  },
-  previewTitle: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '700' as const,
-    marginBottom: 4,
-  },
-  previewDesc: {
-    color: '#D4A574',
-    fontSize: 12,
-    marginBottom: 12,
-  },
-  previewImage: {
-    width: 200,
-    height: 150,
-    borderRadius: 8,
-    marginBottom: 12,
-  },
-  audioPreview: {
-    width: 200,
-    height: 80,
-    justifyContent: 'center' as const,
-    alignItems: 'center' as const,
-    backgroundColor: '#1a1a3e',
-    borderRadius: 8,
-    marginBottom: 12,
-  },
-  audioEmoji: {
-    fontSize: 32,
-    marginBottom: 4,
-  },
-  audioText: {
-    color: '#D4A574',
-    fontSize: 12,
-  },
-  previewQR: {
-    width: 80,
-    height: 80,
-    borderRadius: 4,
-  },
   shareMethods: {
     flexDirection: 'row' as const,
     justifyContent: 'space-around' as const,
+    marginTop: 16,
     marginBottom: 16,
   },
   methodItem: {
