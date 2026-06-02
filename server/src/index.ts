@@ -17,13 +17,25 @@ console.log(`[STARTUP] Starting server on port ${port}...`);
 
 // CORS 配置 - 允许前端域名访问
 const corsOptions = {
-  origin: [
-    'https://ich-client-204193-6-1388119917.sh.run.tcloudbase.com',
-    'http://localhost:8081',
-    'http://localhost:19006',
-  ],
+  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+    // 允许无 origin 的请求（服务器间调用、Postman 等）
+    if (!origin) return callback(null, true);
+    
+    // 允许的域名列表
+    const allowedHosts = [
+      'ich-client-204193-6-1388119917.sh.run.tcloudbase.com',
+      'localhost',
+    ];
+    
+    // 动态允许 coze.site 域名和 tcloudbase.com 域名
+    const isAllowed = allowedHosts.some(host => origin.includes(host)) ||
+      origin.endsWith('.coze.site') ||
+      origin.endsWith('.sh.run.tcloudbase.com');
+    
+    callback(null, isAllowed);
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-session'],
   credentials: true,
 };
 

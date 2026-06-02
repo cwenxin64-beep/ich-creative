@@ -3,6 +3,7 @@ import { View, TouchableOpacity, ScrollView, TextInput, Platform } from 'react-n
 import { useSafeRouter } from '@/hooks/useSafeRouter';
 import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/contexts/AuthContext';
+import { getApiBaseUrl } from '@/utils/api';
 import { Screen } from '@/components/Screen';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -15,7 +16,7 @@ export default function RegisterScreen() {
   const { theme, isDark } = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const router = useSafeRouter();
-  const { loginWithEmail } = useAuth();
+  const { registerWithEmail } = useAuth();
   const { toastVisible, toastMessage, showToast, hideToast } = useToast();
 
   const [formData, setFormData] = useState({
@@ -52,29 +53,13 @@ export default function RegisterScreen() {
     setLoading(true);
 
     try {
-      const baseUrl = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || 'http://localhost:5000';
-      const response = await fetch(`${baseUrl}/api/v1/auth/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          username: formData.username,
-          email: formData.email,
-          password: formData.password,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        // Auto login after register
-        await loginWithEmail(formData.email, formData.password);
-        showToast('注册成功，欢迎加入！');
-      } else {
-        showToast(data.error || '注册失败，请稍后重试');
-      }
-    } catch (error) {
+      await registerWithEmail(formData.username, formData.email, formData.password);
+      showToast('注册成功，欢迎加入！');
+      // 注册成功后跳转到首页
+      router.replace('/(tabs)');
+    } catch (error: any) {
       console.error('Register error:', error);
-      showToast('注册失败，请检查网络连接');
+      showToast(error.message || '注册失败，请检查网络连接');
     } finally {
       setLoading(false);
     }

@@ -38,7 +38,8 @@ export default function LoginScreen() {
 
     try {
       await loginWithEmail(email.trim(), password);
-      // 登录成功后 AuthContext 路由守卫会自动跳转
+      // 登录成功后跳转到首页
+      router.replace('/(tabs)');
     } catch (err: any) {
       setError(err.message || '登录失败，请重试');
     } finally {

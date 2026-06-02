@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getApiBaseUrl } from '@/utils/api';
 
 // ============ Types ============
 export interface User {
@@ -55,12 +56,6 @@ const storage = {
 const TOKEN_KEY = 'auth_access_token';
 const REFRESH_KEY = 'auth_refresh_token';
 const USER_KEY = 'auth_user';
-
-// ============ API Base ============
-function getApiBaseUrl(): string {
-  // CloudBase 部署的 server 地址
-  return 'https://ich-server-204193-6-1388119917.sh.run.tcloudbase.com';
-}
 
 // ============ Provider ============
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {

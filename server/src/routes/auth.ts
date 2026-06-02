@@ -1,7 +1,9 @@
-import { Router, Request, Response, NextFunction } from 'express';
+import { Router } from 'express';
+import type { Request, Response, NextFunction } from 'express';
 import { query } from '../storage/database/pg-client';
 import { hashPassword, verifyPassword } from '../lib/password';
-import { signTokens, verifyToken, verifyRefreshToken, TokenPayload } from '../lib/jwt';
+import { signTokens, verifyToken, verifyRefreshToken } from '../lib/jwt';
+import type { TokenPayload } from '../lib/jwt';
 
 const router = Router();
 
