@@ -89,29 +89,21 @@ export default function WelcomeScreen() {
         <ThemedView level="root" style={styles.actionSection}>
           <TouchableOpacity
             style={[styles.primaryButton, { backgroundColor: theme.primary }]}
-            onPress={() => router.push('/home')}
+            onPress={() => router.push('/register')}
           >
-            <FontAwesome6 name="rocket" size={20} color={theme.buttonPrimaryText} />
+            <FontAwesome6 name="user-plus" size={20} color={theme.buttonPrimaryText} />
             <ThemedText variant="title" color={theme.buttonPrimaryText}>
-              立即体验
+              立即注册
             </ThemedText>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={[styles.secondaryButton, { backgroundColor: theme.backgroundDefault, borderColor: theme.border }]}
-            onPress={() => router.push('/register')}
-          >
-            <ThemedText variant="title" color={theme.textPrimary}>
-              注册账号
-            </ThemedText>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={{ marginTop: 12, padding: 8 }}
             onPress={() => router.push('/login')}
           >
-            <ThemedText variant="body" color={theme.primary} style={{ fontWeight: '600', textAlign: 'center' }}>
-              已有账号？立即登录
+            <FontAwesome6 name="right-to-bracket" size={20} color={theme.textPrimary} />
+            <ThemedText variant="title" color={theme.textPrimary}>
+              登录账号
             </ThemedText>
           </TouchableOpacity>
         </ThemedView>

@@ -15,6 +15,16 @@ export default function HomeScreen() {
   const router = useSafeRouter();
   const { user, isAuthenticated, logout } = useAuth();
 
+  const handleLogout = () => {
+    Alert.alert('退出登录', '确定要退出当前账号吗？', [
+      { text: '取消', style: 'cancel' },
+      { text: '退出', style: 'destructive', onPress: async () => {
+        await logout();
+        router.replace('/welcome');
+      }},
+    ]);
+  };
+
   const features = [
     {
       id: 'photo',
@@ -72,10 +82,7 @@ export default function HomeScreen() {
           style={[styles.userCard, { backgroundColor: theme.backgroundDefault }]}
           onPress={() => {
             if (isAuthenticated) {
-              Alert.alert('退出登录', '确定要退出当前账号吗？', [
-                { text: '取消', style: 'cancel' },
-                { text: '退出', style: 'destructive', onPress: async () => { await logout(); } },
-              ]);
+              handleLogout();
             } else {
               router.push('/welcome');
             }
