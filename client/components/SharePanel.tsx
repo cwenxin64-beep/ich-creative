@@ -1,5 +1,5 @@
-import React, { useCallback, useRef, useState } from 'react';
-import { Modal, View, Text, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
+import React, { useCallback, useRef, useState, useEffect } from 'react';
+import { Modal, View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
 import QRCodeSVG from 'react-qr-code';
 import { useToast } from '@/hooks/useToast';
 
@@ -24,7 +24,49 @@ export default function SharePanel({
 }: SharePanelProps) {
   const { showToast } = useToast();
   const [saving, setSaving] = useState(false);
+  const [qrImageData, setQrImageData] = useState<string>('');
   const posterRef = useRef<HTMLDivElement>(null);
+  const qrSvgRef = useRef<HTMLDivElement>(null);
+
+  const qrContent = shareUrl || (typeof window !== 'undefined' ? window.location.origin : '');
+
+  // 当弹窗打开时，将 SVG 二维码转换为 base64 图片
+  useEffect(() => {
+    if (!visible) return;
+
+    const timer = setTimeout(() => {
+      try {
+        const container = qrSvgRef.current;
+        if (!container) return;
+
+        const svgEl = container.querySelector('svg');
+        if (!svgEl) return;
+
+        // SVG → Canvas → DataURL
+        const svgData = new XMLSerializer().serializeToString(svgEl);
+        const svgBase64 = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
+
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          canvas.width = 200;
+          canvas.height = 200;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, 200, 200);
+            ctx.drawImage(img, 0, 0, 200, 200);
+            setQrImageData(canvas.toDataURL('image/png'));
+          }
+        };
+        img.src = svgBase64;
+      } catch (e) {
+        console.error('QR code conversion error:', e);
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [visible]);
 
   // 保存原图/音频
   const saveOriginal = useCallback(async () => {
@@ -120,7 +162,7 @@ export default function SharePanel({
 
   // 复制链接
   const copyLink = useCallback(async () => {
-    const link = shareUrl || window.location.origin || '';
+    const link = shareUrl || (typeof window !== 'undefined' ? window.location.origin : '');
     if (!link) {
       showToast('暂无链接可复制');
       return;
@@ -144,8 +186,6 @@ export default function SharePanel({
     }
   }, [shareUrl, showToast]);
 
-  const qrContent = shareUrl || window.location.origin || 'https://ich-client-204193-6-1388119917.sh.run.tcloudbase.com';
-
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View style={styles.overlay}>
@@ -158,7 +198,7 @@ export default function SharePanel({
             </TouchableOpacity>
           </View>
 
-          {/* 海报预览区域 - 用 HTML div 渲染，html2canvas 截图 */}
+          {/* 海报预览区域 */}
           <div
             ref={posterRef}
             style={{
@@ -193,7 +233,7 @@ export default function SharePanel({
                   width: '80%',
                   maxHeight: 240,
                   borderRadius: 10,
-                  objectFit: 'cover',
+                  objectFit: 'cover' as const,
                   marginBottom: 16,
                   backgroundColor: '#2a2a4e',
                 }}
@@ -221,19 +261,24 @@ export default function SharePanel({
               </div>
             )}
 
-            {/* 二维码区域 */}
-            <div style={{
-              background: '#ffffff',
-              borderRadius: 10,
-              padding: 12,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              marginBottom: 12,
-            }}>
-              <QRCodeSVG value={qrContent} size={100} />
-              <div style={{ color: '#666', fontSize: 11, marginTop: 6 }}>扫码查看作品</div>
-            </div>
+            {/* 二维码区域 - 用 <img> 而不是 SVG，html2canvas 可以渲染 */}
+            {qrImageData && (
+              <div style={{
+                background: '#ffffff',
+                borderRadius: 10,
+                padding: 12,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                marginBottom: 12,
+              }}>
+                <img
+                  src={qrImageData}
+                  style={{ width: 100, height: 100 }}
+                />
+                <div style={{ color: '#666', fontSize: 11, marginTop: 6 }}>扫码查看作品</div>
+              </div>
+            )}
 
             {/* 提示 */}
             <div style={{ color: '#D4A574', fontSize: 11, textAlign: 'center' as const, marginBottom: 8 }}>
@@ -294,6 +339,14 @@ export default function SharePanel({
           </View>
         </View>
       </View>
+
+      {/* 隐藏的 SVG 二维码用于转换为图片 */}
+      <div
+        ref={qrSvgRef}
+        style={{ position: 'absolute', left: '-9999px', top: '-9999px', opacity: 0, pointerEvents: 'none' }}
+      >
+        <QRCodeSVG value={qrContent} size={100} />
+      </div>
     </Modal>
   );
 }
