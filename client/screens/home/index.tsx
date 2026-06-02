@@ -1,7 +1,8 @@
 import React, { useMemo } from 'react';
-import { View, TouchableOpacity, ScrollView } from 'react-native';
+import { View, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { useSafeRouter } from '@/hooks/useSafeRouter';
 import { useTheme } from '@/hooks/useTheme';
+import { useAuth } from '@/contexts/AuthContext';
 import { Screen } from '@/components/Screen';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -12,6 +13,7 @@ export default function HomeScreen() {
   const { theme, isDark } = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const router = useSafeRouter();
+  const { user, isAuthenticated, logout } = useAuth();
 
   const features = [
     {
@@ -64,6 +66,56 @@ export default function HomeScreen() {
             用 AI 让非遗&quot;活&quot;在当代
           </ThemedText>
         </ThemedView>
+
+        {/* User Info Section */}
+        <TouchableOpacity
+          style={[styles.userCard, { backgroundColor: theme.backgroundDefault }]}
+          onPress={() => {
+            if (isAuthenticated) {
+              Alert.alert('退出登录', '确定要退出当前账号吗？', [
+                { text: '取消', style: 'cancel' },
+                { text: '退出', style: 'destructive', onPress: async () => { await logout(); } },
+              ]);
+            } else {
+              router.push('/welcome');
+            }
+          }}
+          activeOpacity={0.7}
+        >
+          <View style={[styles.userAvatar, { backgroundColor: `${theme.primary}20` }]}>
+            <FontAwesome6
+              name={isAuthenticated ? 'user-check' : 'right-to-bracket'}
+              size={24}
+              color={theme.primary}
+            />
+          </View>
+          <ThemedView level="root" style={styles.userInfo}>
+            {isAuthenticated && user ? (
+              <>
+                <ThemedText variant="title" color={theme.textPrimary} style={styles.userName}>
+                  {user.username}
+                </ThemedText>
+                <ThemedText variant="caption" color={theme.textSecondary}>
+                  {user.email}
+                </ThemedText>
+              </>
+            ) : (
+              <>
+                <ThemedText variant="title" color={theme.textPrimary} style={styles.userName}>
+                  未登录
+                </ThemedText>
+                <ThemedText variant="caption" color={theme.primary}>
+                  点击登录/注册
+                </ThemedText>
+              </>
+            )}
+          </ThemedView>
+          <FontAwesome6
+            name={isAuthenticated ? 'right-from-bracket' : 'chevron-right'}
+            size={18}
+            color={theme.textMuted}
+          />
+        </TouchableOpacity>
 
         {/* Features Grid */}
         <View style={styles.featuresGrid}>

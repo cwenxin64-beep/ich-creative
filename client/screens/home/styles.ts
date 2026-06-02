@@ -17,6 +17,32 @@ export const createStyles = (theme: Theme) => {
       marginTop: Spacing.sm,
       textAlign: 'center',
     },
+    userCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: Spacing.lg,
+      borderRadius: BorderRadius["2xl"],
+      marginBottom: Spacing.xl,
+      shadowColor: theme.shadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.5,
+      shadowRadius: 8,
+      elevation: 4,
+    },
+    userAvatar: {
+      width: 48,
+      height: 48,
+      borderRadius: BorderRadius.xl,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: Spacing.md,
+    },
+    userInfo: {
+      flex: 1,
+    },
+    userName: {
+      marginBottom: 2,
+    },
     featuresGrid: {
       gap: Spacing.lg,
     },

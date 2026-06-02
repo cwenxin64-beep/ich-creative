@@ -3,7 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { View, ActivityIndicator } from 'react-native';
 
 export default function Index() {
-  const { user, isLoading } = useAuth();
+  const { isLoading } = useAuth();
 
   if (isLoading) {
     return (
@@ -13,9 +13,6 @@ export default function Index() {
     );
   }
 
-  if (user) {
-    return <Redirect href="/(tabs)" />;
-  }
-
-  return <Redirect href="/welcome" />;
+  // 无论是否登录，都进入首页
+  return <Redirect href="/(tabs)" />;
 }
