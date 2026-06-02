@@ -118,5 +118,39 @@ export const createStyles = (theme: Theme) => {
       alignItems: 'center',
       paddingVertical: Spacing.lg,
     },
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.5)',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    modalContent: {
+      width: '80%',
+      maxWidth: 340,
+      borderRadius: BorderRadius["2xl"],
+      padding: Spacing.xl,
+      alignItems: 'center',
+    },
+    modalTitle: {
+      marginBottom: Spacing.sm,
+    },
+    modalMessage: {
+      marginBottom: Spacing.xl,
+      textAlign: 'center',
+    },
+    modalButtons: {
+      flexDirection: 'row',
+      gap: Spacing.md,
+      width: '100%',
+    },
+    modalButton: {
+      flex: 1,
+      paddingVertical: Spacing.md,
+      borderRadius: BorderRadius.lg,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    cancelButton: {},
+    confirmButton: {},
   });
 };

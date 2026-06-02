@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { View, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import { View, TouchableOpacity, ScrollView, Modal } from 'react-native';
 import { useSafeRouter } from '@/hooks/useSafeRouter';
 import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/contexts/AuthContext';
@@ -15,14 +15,16 @@ export default function HomeScreen() {
   const router = useSafeRouter();
   const { user, isAuthenticated, logout } = useAuth();
 
+  const [showLogoutConfirm, setShowLogoutConfirm] = React.useState(false);
+
   const handleLogout = () => {
-    Alert.alert('退出登录', '确定要退出当前账号吗？', [
-      { text: '取消', style: 'cancel' },
-      { text: '退出', style: 'destructive', onPress: async () => {
-        await logout();
-        router.replace('/welcome');
-      }},
-    ]);
+    setShowLogoutConfirm(true);
+  };
+
+  const confirmLogout = async () => {
+    setShowLogoutConfirm(false);
+    await logout();
+    router.replace('/welcome');
   };
 
   const features = [
@@ -186,6 +188,40 @@ export default function HomeScreen() {
           </ThemedText>
         </ThemedView>
       </ScrollView>
+      {/* Logout Confirm Modal */}
+      <Modal
+        visible={showLogoutConfirm}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowLogoutConfirm(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: theme.backgroundDefault }]}>
+            <ThemedText variant="title" color={theme.textPrimary} style={styles.modalTitle}>
+              退出登录
+            </ThemedText>
+            <ThemedText variant="body" color={theme.textSecondary} style={styles.modalMessage}>
+              确定要退出当前账号吗？
+            </ThemedText>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.cancelButton, { backgroundColor: `${theme.primary}15` }]}
+                onPress={() => setShowLogoutConfirm(false)}
+                activeOpacity={0.7}
+              >
+                <ThemedText variant="body" color={theme.primary}>取消</ThemedText>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.confirmButton, { backgroundColor: '#DC2626' }]}
+                onPress={confirmLogout}
+                activeOpacity={0.7}
+              >
+                <ThemedText variant="body" color="#FFFFFF">退出</ThemedText>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </Screen>
   );
 }
