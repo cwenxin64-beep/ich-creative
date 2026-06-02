@@ -352,7 +352,7 @@ export default function PhotoScreen() {
               拍非遗
             </ThemedText>
             <ThemedText variant="caption" color={theme.textSecondary}>
-              上传照片，AI 帮你生成非遗风格创意图片
+              上传照片，我们帮你生成非遗风格创意图片
             </ThemedText>
           </View>
         </ThemedView>

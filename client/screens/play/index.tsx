@@ -335,7 +335,7 @@ export default function PlayScreen() {
               玩非遗
             </ThemedText>
             <ThemedText variant="caption" color={theme.textSecondary}>
-              选择非遗元素，AI 帮你生成交互体验
+              选择非遗元素，我们帮你生成交互体验
             </ThemedText>
           </View>
         </ThemedView>

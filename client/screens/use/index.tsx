@@ -355,7 +355,7 @@ export default function UseScreen() {
               用非遗
             </ThemedText>
             <ThemedText variant="caption" color={theme.textSecondary}>
-              选择场景，AI 帮你定制非遗实用设计
+              选择场景，我们帮你定制非遗实用设计
             </ThemedText>
           </View>
         </ThemedView>

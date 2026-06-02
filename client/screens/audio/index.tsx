@@ -217,7 +217,7 @@ export default function AudioScreen() {
               唱非遗
             </ThemedText>
             <ThemedText variant="caption" color={theme.textSecondary}>
-              描述创意，AI 帮你生成非遗风格音乐
+              描述创意，我们帮你生成非遗风格音乐
             </ThemedText>
           </View>
         </ThemedView>
