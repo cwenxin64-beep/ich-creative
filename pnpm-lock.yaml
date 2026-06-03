@@ -298,6 +298,9 @@ importers:
       pg:
         specifier: ^8.17.2
         version: 8.17.2
+      qrcode:
+        specifier: ^1.5.4
+        version: 1.5.4
       tsconfig-paths:
         specifier: ^4.2.0
         version: 4.2.0
@@ -320,6 +323,9 @@ importers:
       '@types/pg':
         specifier: ^8.16.0
         version: 8.16.0
+      '@types/qrcode':
+        specifier: ^1.5.6
+        version: 1.5.6
       drizzle-kit:
         specifier: ^0.31.8
         version: 0.31.8

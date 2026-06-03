@@ -7,6 +7,7 @@ import playRouter from "./routes/play";
 import useRouter from "./routes/use";
 import favoritesRouter from "./routes/favorites";
 import materialsRouter from "./routes/materials";
+import qrcodeRouter from "./routes/qrcode";
 import authRouter, { optionalAuth } from "./routes/auth";
 import { initDatabase } from "./storage/database/init-tables";
 
@@ -52,10 +53,12 @@ app.get('/api/v1/health', (req, res) => {
 });
 
 // Image proxy - for canvas cross-origin access
+// 支持 ?url=xxx&base64=1 返回 JSON { dataUrl } 方便前端直接使用
 app.get('/api/v1/imageproxy', async (req, res) => {
-  console.log('[IMAGEPROXY] query:', JSON.stringify(req.query), 'path:', req.path, 'originalUrl:', req.originalUrl);
+  console.log('[IMAGEPROXY] query:', JSON.stringify(req.query));
   try {
     const imageUrl = req.query.url as string;
+    const wantBase64 = req.query.base64 === '1';
     if (!imageUrl) {
       return res.status(400).json({ error: 'Missing url parameter' });
     }
@@ -65,11 +68,19 @@ app.get('/api/v1/imageproxy', async (req, res) => {
     }
     const contentType = response.headers.get('content-type') || 'image/jpeg';
     const buffer = Buffer.from(await response.arrayBuffer());
-    res.setHeader('Content-Type', contentType);
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Cache-Control', 'public, max-age=86400');
-    res.send(buffer);
+
+    if (wantBase64) {
+      const base64 = buffer.toString('base64');
+      const dataUrl = `data:${contentType};base64,${base64}`;
+      res.json({ dataUrl });
+    } else {
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Cache-Control', 'public, max-age=86400');
+      res.send(buffer);
+    }
   } catch (error) {
+    console.error('[IMAGEPROXY] Error:', error);
     res.status(500).json({ error: 'Image proxy failed' });
   }
 });
@@ -82,6 +93,7 @@ app.use('/api/v1/play', playRouter);
 app.use('/api/v1/use', useRouter);
 app.use('/api/v1/favorites', optionalAuth, favoritesRouter);
 app.use('/api/v1/materials', optionalAuth, materialsRouter);
+app.use('/api/v1/qrcode', qrcodeRouter);
 app.use('/api/v1/auth', authRouter);
 
 app.listen(port, async () => {
