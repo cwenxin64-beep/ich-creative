@@ -1,6 +1,7 @@
 import React, { useCallback, useState, useEffect } from 'react';
 import { Modal, View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useToast } from '@/hooks/useToast';
+import { buildApiUrl } from '@/utils/api';
 
 interface SharePanelProps {
   visible: boolean;
@@ -40,9 +41,8 @@ export default function SharePanel({
     const prepare = async () => {
       // 1. 通过后端 API 生成二维码
       try {
-        const qrRes = await fetch(
-          `/api/v1/qrcode?text=${encodeURIComponent(qrContent)}&size=200`
-        );
+        const qrUrl = buildApiUrl(`/api/v1/qrcode?text=${encodeURIComponent(qrContent)}&size=200`);
+        const qrRes = await fetch(qrUrl);
         if (qrRes.ok) {
           const qrJson = await qrRes.json();
           if (qrJson.dataUrl) {
@@ -59,9 +59,8 @@ export default function SharePanel({
       // 2. 通过后端图片代理转 base64（避免 CORS）
       if (imageUrl && imageUrl.startsWith('http')) {
         try {
-          const imgRes = await fetch(
-            `/api/v1/imageproxy?url=${encodeURIComponent(imageUrl)}&base64=1`
-          );
+          const imgUrl = buildApiUrl(`/api/v1/imageproxy?url=${encodeURIComponent(imageUrl)}&base64=1`);
+          const imgRes = await fetch(imgUrl);
           if (imgRes.ok) {
             const imgJson = await imgRes.json();
             if (imgJson.dataUrl) {
@@ -77,7 +76,6 @@ export default function SharePanel({
       }
     };
 
-    // 延迟确保 Modal 渲染完成
     const timer = setTimeout(prepare, 300);
     return () => clearTimeout(timer);
   }, [visible, qrContent, imageUrl]);
@@ -98,7 +96,7 @@ export default function SharePanel({
 
       // 音频走代理
       if (audioUrl && fullUrl.includes('volces.com')) {
-        fullUrl = `${window.location.origin}/api/v1/audio/proxy?url=${encodeURIComponent(audioUrl!)}`;
+        fullUrl = buildApiUrl(`/api/v1/audio/proxy?url=${encodeURIComponent(audioUrl!)}`);
       }
 
       const response = await fetch(fullUrl);
