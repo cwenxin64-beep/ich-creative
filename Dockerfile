@@ -15,8 +15,8 @@ COPY server/build.js ./
 COPY server/tsconfig.json ./
 COPY server/src ./src
 
-# 安装依赖并构建（lockfile 作为参考，不强制匹配）
-RUN pnpm install --ignore-scripts && pnpm run build
+# 安装依赖（sharp需要postinstall脚本下载预编译二进制）
+RUN pnpm install && pnpm run build
 
 # 暴露端口
 EXPOSE 9091
