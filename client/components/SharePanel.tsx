@@ -24,61 +24,54 @@ export default function SharePanel({
 }: SharePanelProps) {
   const { showToast } = useToast();
   const [saving, setSaving] = useState(false);
-  const [qrImageData, setQrImageData] = useState<string>('');
-  const [posterImageData, setPosterImageData] = useState<string>('');
-  const [posterEl, setPosterEl] = useState<HTMLDivElement | null>(null);
+  const [posterDataUrl, setPosterDataUrl] = useState<string>('');
+  const [loading, setLoading] = useState(false);
 
   const qrContent = shareUrl || (typeof window !== 'undefined' ? window.location.origin : '');
 
-  // 弹窗打开时，通过后端 API 生成二维码 base64 和图片 base64
+  // 弹窗打开时，通过后端 API 生成完整海报
   useEffect(() => {
     if (!visible) {
-      setQrImageData('');
-      setPosterImageData('');
+      setPosterDataUrl('');
       return;
     }
 
-    const prepare = async () => {
-      // 1. 通过后端 API 生成二维码
+    const generatePoster = async () => {
+      setLoading(true);
       try {
-        const qrUrl = buildApiUrl(`/api/v1/qrcode?text=${encodeURIComponent(qrContent)}&size=200`);
-        const qrRes = await fetch(qrUrl);
-        if (qrRes.ok) {
-          const qrJson = await qrRes.json();
-          if (qrJson.dataUrl) {
-            console.log('[SharePanel] QR from API, length:', qrJson.dataUrl.length);
-            setQrImageData(qrJson.dataUrl);
+        const posterUrl = buildApiUrl('/api/v1/poster');
+        const res = await fetch(posterUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title,
+            description,
+            imageUrl: imageUrl || '',
+            shareUrl: qrContent,
+          }),
+        });
+
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && json.dataUrl) {
+            console.log('[SharePanel] Poster generated, dataUrl length:', json.dataUrl.length);
+            setPosterDataUrl(json.dataUrl);
+          } else {
+            console.error('[SharePanel] Poster API returned no data');
           }
         } else {
-          console.error('[SharePanel] QR API failed:', qrRes.status);
+          console.error('[SharePanel] Poster API failed:', res.status);
         }
       } catch (e) {
-        console.error('[SharePanel] QR fetch error:', e);
-      }
-
-      // 2. 通过后端图片代理转 base64（避免 CORS）
-      if (imageUrl && imageUrl.startsWith('http')) {
-        try {
-          const imgUrl = buildApiUrl(`/api/v1/imageproxy?url=${encodeURIComponent(imageUrl)}&base64=1`);
-          const imgRes = await fetch(imgUrl);
-          if (imgRes.ok) {
-            const imgJson = await imgRes.json();
-            if (imgJson.dataUrl) {
-              console.log('[SharePanel] Image base64 from proxy, length:', imgJson.dataUrl.length);
-              setPosterImageData(imgJson.dataUrl);
-            }
-          } else {
-            console.warn('[SharePanel] Image proxy failed:', imgRes.status);
-          }
-        } catch (e) {
-          console.warn('[SharePanel] Image proxy error:', e);
-        }
+        console.error('[SharePanel] Poster generation error:', e);
+      } finally {
+        setLoading(false);
       }
     };
 
-    const timer = setTimeout(prepare, 300);
+    const timer = setTimeout(generatePoster, 300);
     return () => clearTimeout(timer);
-  }, [visible, qrContent, imageUrl]);
+  }, [visible, title, description, imageUrl, qrContent]);
 
   // 保存原图/音频
   const saveOriginal = useCallback(async () => {
@@ -126,50 +119,39 @@ export default function SharePanel({
     }
   }, [imageUrl, audioUrl, title, showToast]);
 
-  // 生成分享海报并下载
+  // 保存海报图片（直接下载后端生成的 PNG）
   const saveSharePoster = useCallback(async () => {
+    if (!posterDataUrl) {
+      showToast('海报生成中，请稍候');
+      return;
+    }
     try {
       setSaving(true);
+      // base64 data URL → Blob → download
+      const res = await fetch(posterDataUrl);
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
 
-      const html2canvas = (await import('html2canvas')).default;
-      if (!posterEl) {
-        showToast('生成海报失败');
-        return;
-      }
+      const fileName = `分享_${title || '非遗作品'}_${Date.now()}.jpg`;
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = fileName;
+      a.style.display = 'none';
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(blobUrl);
+      }, 100);
 
-      const canvas = await html2canvas(posterEl, {
-        backgroundColor: null,
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        logging: false,
-      });
-
-      canvas.toBlob((blob) => {
-        if (!blob) {
-          showToast('生成海报失败');
-          return;
-        }
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `分享_${title || '非遗作品'}_${Date.now()}.jpg`;
-        a.style.display = 'none';
-        document.body.appendChild(a);
-        a.click();
-        setTimeout(() => {
-          document.body.removeChild(a);
-          URL.revokeObjectURL(url);
-        }, 100);
-        showToast('海报已保存，打开微信发送图片即可');
-      }, 'image/jpeg', 0.9);
+      showToast('海报已保存，打开微信发送图片即可');
     } catch (err) {
       console.error('Save poster error:', err);
-      showToast('生成海报失败，请尝试保存原图');
+      showToast('保存失败，请尝试保存原图');
     } finally {
       setSaving(false);
     }
-  }, [title, showToast, posterEl]);
+  }, [posterDataUrl, title, showToast]);
 
   // 复制链接
   const copyLink = useCallback(async () => {
@@ -197,9 +179,6 @@ export default function SharePanel({
     }
   }, [shareUrl, showToast]);
 
-  // 海报中使用的图片 src：优先 base64（html2canvas 可渲染），否则原始 URL
-  const posterImageSrc = posterImageData || imageUrl;
-
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View style={styles.overlay}>
@@ -212,114 +191,34 @@ export default function SharePanel({
             </TouchableOpacity>
           </View>
 
-          {/* 海报预览区域 */}
-          <div
-            ref={setPosterEl}
-            style={{
-              width: '100%',
-              borderRadius: 12,
-              overflow: 'hidden',
-              background: 'linear-gradient(180deg, #1a1a2e 0%, #16213e 100%)',
-              padding: 24,
-              display: 'block',
-              position: 'relative',
-              textAlign: 'center',
-            }}
-          >
-            {/* 顶部装饰线 */}
-            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '4px', background: '#D4A574' }} />
-
-            {/* 标题 */}
-            <div style={{ color: '#fff', fontSize: 22, fontWeight: 700, marginBottom: 6, textAlign: 'center' as const }}>
-              {title}
-            </div>
-            <div style={{ color: '#D4A574', fontSize: 13, marginBottom: 16, textAlign: 'center' as const }}>
-              {description}
-            </div>
-
-            {/* 作品图片 - 使用 base64 或代理 URL */}
-            {posterImageSrc && (
+          {/* 海报预览区域 - 直接显示后端生成的图片 */}
+          <View style={styles.posterPreview}>
+            {loading ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator color="#D4A574" size="large" />
+                <Text style={styles.loadingText}>正在生成海报...</Text>
+              </View>
+            ) : posterDataUrl ? (
               <img
-                src={posterImageSrc}
+                src={posterDataUrl}
                 style={{
-                  width: '80%',
-                  maxHeight: '240px',
-                  borderRadius: 10,
-                  objectFit: 'cover' as const,
-                  marginBottom: 16,
-                  backgroundColor: '#2a2a4e',
-                  flexShrink: 0,
+                  width: '100%',
+                  borderRadius: 12,
+                  display: 'block',
                 }}
-                onError={(e: any) => {
-                  e.target.style.display = 'none';
-                }}
+                alt="分享海报"
               />
-            )}
-
-            {/* 音频图标 */}
-            {audioUrl && !imageUrl && (
-              <div style={{
-                width: '80%',
-                height: '120px',
-                borderRadius: 10,
-                background: '#2a2a4e',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginBottom: 16,
-              }}>
-                <div style={{ fontSize: 48, marginBottom: 8 }}>🎵</div>
-                <div style={{ color: '#D4A574', fontSize: 14 }}>点击收听非遗音乐</div>
-              </div>
-            )}
-
-            {/* 二维码区域 - 使用后端返回的 base64 PNG data URL */}
-            {qrImageData ? (
-              <div style={{
-                background: '#ffffff',
-                borderRadius: 10,
-                padding: 12,
-                display: 'inline-block',
-                marginBottom: 12,
-              }}>
-                <img
-                  src={qrImageData}
-                  style={{ width: '100px', height: '100px', display: 'block', objectFit: 'contain', flexShrink: 0, aspectRatio: '1/1' }}
-                />
-                <div style={{ color: '#666', fontSize: 11, marginTop: 6 }}>扫码查看作品</div>
-              </div>
             ) : (
-              <div style={{
-                background: '#ffffff',
-                borderRadius: 10,
-                padding: 12,
-                display: 'inline-block',
-                marginBottom: 12,
-                width: '124px',
-                height: '124px',
-                textAlign: 'center',
-                lineHeight: '100px',
-              }}>
-                <div style={{ color: '#999', fontSize: 11 }}>生成二维码中...</div>
-              </div>
+              <View style={styles.loadingContainer}>
+                <Text style={styles.loadingText}>海报生成失败</Text>
+              </View>
             )}
-
-            {/* 提示 */}
-            <div style={{ color: '#D4A574', fontSize: 11, textAlign: 'center' as const, marginBottom: 8 }}>
-              长按保存图片 → 打开微信发送给好友
-            </div>
-
-            {/* 品牌 */}
-            <div style={{ color: '#555', fontSize: 10, textAlign: 'center' as const }}>
-              智能非遗 · 让非遗"活"在当代
-            </div>
-          </div>
+          </View>
 
           {/* 分享方式 */}
           <View style={styles.shareMethods}>
             {/* 保存海报 */}
-            <TouchableOpacity style={styles.methodItem} onPress={saveSharePoster} disabled={saving}>
+            <TouchableOpacity style={styles.methodItem} onPress={saveSharePoster} disabled={saving || loading}>
               <View style={[styles.methodIcon, { backgroundColor: '#07C160' }]}>
                 {saving ? (
                   <ActivityIndicator color="#fff" size="small" />
@@ -381,7 +280,7 @@ const styles = {
     paddingHorizontal: 20,
     paddingTop: 16,
     paddingBottom: 30,
-    maxHeight: '80%' as const,
+    maxHeight: '85%' as const,
   },
   header: {
     flexDirection: 'row' as const,
@@ -401,10 +300,28 @@ const styles = {
     color: '#999',
     fontSize: 18,
   },
+  posterPreview: {
+    width: '100%' as const,
+    alignItems: 'center' as const,
+    marginBottom: 16,
+  },
+  loadingContainer: {
+    width: '100%' as const,
+    height: 300,
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+    backgroundColor: '#16213e',
+    borderRadius: 12,
+  },
+  loadingText: {
+    color: '#D4A574',
+    fontSize: 14,
+    marginTop: 12,
+  },
   shareMethods: {
     flexDirection: 'row' as const,
     justifyContent: 'space-around' as const,
-    marginTop: 16,
+    marginTop: 8,
     marginBottom: 16,
   },
   methodItem: {

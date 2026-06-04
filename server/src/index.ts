@@ -8,6 +8,7 @@ import useRouter from "./routes/use";
 import favoritesRouter from "./routes/favorites";
 import materialsRouter from "./routes/materials";
 import qrcodeRouter from "./routes/qrcode";
+import posterRouter from "./routes/poster";
 import authRouter, { optionalAuth } from "./routes/auth";
 import { initDatabase } from "./storage/database/init-tables";
 
@@ -94,6 +95,7 @@ app.use('/api/v1/use', useRouter);
 app.use('/api/v1/favorites', optionalAuth, favoritesRouter);
 app.use('/api/v1/materials', optionalAuth, materialsRouter);
 app.use('/api/v1/qrcode', qrcodeRouter);
+app.use('/api/v1/poster', posterRouter);
 app.use('/api/v1/auth', authRouter);
 
 app.listen(port, async () => {
