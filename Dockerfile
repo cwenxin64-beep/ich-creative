@@ -7,7 +7,7 @@ ENV NODE_OPTIONS="--dns-result-order=ipv4first"
 WORKDIR /app
 
 # 安装 pnpm
-RUN npm install -g pnpm
+RUN npm install -g pnpm@9
 
 # 复制 server 目录的所有文件（.dockerignore 会过滤 node_modules 等）
 COPY server/package.json ./
@@ -15,7 +15,7 @@ COPY server/build.js ./
 COPY server/tsconfig.json ./
 COPY server/src ./src
 
-# 安装依赖并构建
+# 安装依赖并构建（lockfile 作为参考，不强制匹配）
 RUN pnpm install --ignore-scripts && pnpm run build
 
 # 暴露端口
