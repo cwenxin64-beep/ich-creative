@@ -26,7 +26,7 @@ router.post('/', async (req: Request, res: Response) => {
       width: qrSize,
       margin: 2,
       errorCorrectionLevel: 'M',
-      color: { dark: '#1a1a2e', light: '#ffffff' },
+      color: { dark: '#000000', light: '#ffffff' },
     });
 
     // 2. 下载作品图片（如有）
@@ -96,14 +96,14 @@ router.post('/', async (req: Request, res: Response) => {
     // 标题文字（SVG）
     const titleSvg = Buffer.from(`<svg width="${posterWidth}" height="${titleFontSize + 10}">
       <text x="${posterWidth / 2}" y="${titleFontSize}" text-anchor="middle" 
-        font-family="sans-serif" font-size="${titleFontSize}" font-weight="700" fill="#ffffff">${escapeXml(title)}</text>
+        font-family="Noto Sans CJK SC, PingFang SC, Microsoft YaHei, sans-serif" font-size="${titleFontSize}" font-weight="700" fill="#ffffff">${escapeXml(title)}</text>
     </svg>`);
     composites.push({ input: titleSvg, top: titleY, left: 0 });
 
     // 描述文字
     const descSvg = Buffer.from(`<svg width="${posterWidth}" height="${descFontSize + 10}">
       <text x="${posterWidth / 2}" y="${descFontSize}" text-anchor="middle" 
-        font-family="sans-serif" font-size="${descFontSize}" fill="#D4A574">${escapeXml(description)}</text>
+        font-family="Noto Sans CJK SC, PingFang SC, Microsoft YaHei, sans-serif" font-size="${descFontSize}" fill="#D4A574">${escapeXml(description)}</text>
     </svg>`);
     composites.push({ input: descSvg, top: descY, left: 0 });
 
@@ -136,7 +136,7 @@ router.post('/', async (req: Request, res: Response) => {
       const placeholderSvg = Buffer.from(`<svg width="${placeholderW}" height="${placeholderH}">
         <rect x="0" y="0" width="${placeholderW}" height="${placeholderH}" rx="16" ry="16" fill="#2a2a4e"/>
         <text x="${placeholderW / 2}" y="${placeholderH / 2 + 8}" text-anchor="middle" 
-          font-family="sans-serif" font-size="18" fill="#D4A574">非遗创意作品</text>
+          font-family="Noto Sans CJK SC, PingFang SC, Microsoft YaHei, sans-serif" font-size="18" fill="#D4A574">非遗创意作品</text>
       </svg>`);
       composites.push({ input: placeholderSvg, top: imageY, left: padding });
     }
@@ -155,21 +155,21 @@ router.post('/', async (req: Request, res: Response) => {
     // QR 码标签
     const qrLabelSvg = Buffer.from(`<svg width="${posterWidth}" height="24">
       <text x="${posterWidth / 2}" y="16" text-anchor="middle" 
-        font-family="sans-serif" font-size="14" fill="#666666">扫码查看作品</text>
+        font-family="Noto Sans CJK SC, PingFang SC, Microsoft YaHei, sans-serif" font-size="14" fill="#666666">扫码查看作品</text>
     </svg>`);
     composites.push({ input: qrLabelSvg, top: qrLabelY, left: 0 });
 
     // 提示文字
     const tipSvg = Buffer.from(`<svg width="${posterWidth}" height="24">
       <text x="${posterWidth / 2}" y="16" text-anchor="middle" 
-        font-family="sans-serif" font-size="13" fill="#D4A574">长按保存图片 → 打开微信发送给好友</text>
+        font-family="Noto Sans CJK SC, PingFang SC, Microsoft YaHei, sans-serif" font-size="13" fill="#D4A574">长按保存图片 → 打开微信发送给好友</text>
     </svg>`);
     composites.push({ input: tipSvg, top: tipY, left: 0 });
 
     // 品牌文字
     const brandSvg = Buffer.from(`<svg width="${posterWidth}" height="20">
       <text x="${posterWidth / 2}" y="14" text-anchor="middle" 
-        font-family="sans-serif" font-size="${brandFontSize}" fill="#555555">智能非遗 · 让非遗"活"在当代</text>
+        font-family="Noto Sans CJK SC, PingFang SC, Microsoft YaHei, sans-serif" font-size="${brandFontSize}" fill="#555555">智能非遗 · 让非遗"活"在当代</text>
     </svg>`);
     composites.push({ input: brandSvg, top: brandY, left: 0 });
 

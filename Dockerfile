@@ -6,6 +6,9 @@ ENV NODE_OPTIONS="--dns-result-order=ipv4first"
 
 WORKDIR /app
 
+# 安装中文字体（海报生成需要）
+RUN apk add --no-cache font-noto font-noto-cjk
+
 # 安装 pnpm
 RUN npm install -g pnpm@9
 
