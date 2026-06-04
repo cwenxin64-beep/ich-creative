@@ -221,14 +221,13 @@ export default function SharePanel({
               overflow: 'hidden',
               background: 'linear-gradient(180deg, #1a1a2e 0%, #16213e 100%)',
               padding: 24,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
+              display: 'block',
               position: 'relative',
+              textAlign: 'center',
             }}
           >
             {/* 顶部装饰线 */}
-            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 4, background: '#D4A574' }} />
+            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '4px', background: '#D4A574' }} />
 
             {/* 标题 */}
             <div style={{ color: '#fff', fontSize: 22, fontWeight: 700, marginBottom: 6, textAlign: 'center' as const }}>
@@ -244,11 +243,12 @@ export default function SharePanel({
                 src={posterImageSrc}
                 style={{
                   width: '80%',
-                  maxHeight: 240,
+                  maxHeight: '240px',
                   borderRadius: 10,
                   objectFit: 'cover' as const,
                   marginBottom: 16,
                   backgroundColor: '#2a2a4e',
+                  flexShrink: 0,
                 }}
                 onError={(e: any) => {
                   e.target.style.display = 'none';
@@ -260,7 +260,7 @@ export default function SharePanel({
             {audioUrl && !imageUrl && (
               <div style={{
                 width: '80%',
-                height: 120,
+                height: '120px',
                 borderRadius: 10,
                 background: '#2a2a4e',
                 display: 'flex',
@@ -280,14 +280,12 @@ export default function SharePanel({
                 background: '#ffffff',
                 borderRadius: 10,
                 padding: 12,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
+                display: 'inline-block',
                 marginBottom: 12,
               }}>
                 <img
                   src={qrImageData}
-                  style={{ width: 100, height: 100, display: 'block' }}
+                  style={{ width: '100px', height: '100px', display: 'block', objectFit: 'contain', flexShrink: 0, aspectRatio: '1/1' }}
                 />
                 <div style={{ color: '#666', fontSize: 11, marginTop: 6 }}>扫码查看作品</div>
               </div>
@@ -296,13 +294,12 @@ export default function SharePanel({
                 background: '#ffffff',
                 borderRadius: 10,
                 padding: 12,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
+                display: 'inline-block',
                 marginBottom: 12,
-                width: 124,
-                height: 124,
-                justifyContent: 'center',
+                width: '124px',
+                height: '124px',
+                textAlign: 'center',
+                lineHeight: '100px',
               }}>
                 <div style={{ color: '#999', fontSize: 11 }}>生成二维码中...</div>
               </div>
