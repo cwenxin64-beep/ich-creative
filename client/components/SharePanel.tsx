@@ -1,5 +1,5 @@
 import React, { useCallback, useState, useEffect } from 'react';
-import { Modal, View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { Modal, View, Text, TouchableOpacity, ActivityIndicator, ScrollView } from 'react-native';
 import { useToast } from '@/hooks/useToast';
 import { buildApiUrl } from '@/utils/api';
 
@@ -183,84 +183,88 @@ export default function SharePanel({
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View style={styles.overlay}>
         <View style={styles.container}>
-          {/* 标题 */}
-          <View style={styles.header}>
-            <Text style={styles.headerTitle}>分享到微信</Text>
-            <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-              <Text style={styles.closeText}>✕</Text>
-            </TouchableOpacity>
-          </View>
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+            {/* 标题 */}
+            <View style={styles.header}>
+              <Text style={styles.headerTitle}>分享到微信</Text>
+              <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
+                <Text style={styles.closeText}>✕</Text>
+              </TouchableOpacity>
+            </View>
 
-          {/* 海报预览区域 - 直接显示后端生成的图片 */}
-          <View style={styles.posterPreview}>
-            {loading ? (
-              <View style={styles.loadingContainer}>
-                <ActivityIndicator color="#D4A574" size="large" />
-                <Text style={styles.loadingText}>正在生成海报...</Text>
-              </View>
-            ) : posterDataUrl ? (
-              <img
-                src={posterDataUrl}
-                style={{
-                  width: '100%',
-                  borderRadius: 12,
-                  display: 'block',
-                }}
-                alt="分享海报"
-              />
-            ) : (
-              <View style={styles.loadingContainer}>
-                <Text style={styles.loadingText}>海报生成失败</Text>
-              </View>
-            )}
-          </View>
+            {/* 海报预览区域 - 直接显示后端生成的图片 */}
+            <View style={styles.posterPreview}>
+              {loading ? (
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator color="#D4A574" size="large" />
+                  <Text style={styles.loadingText}>正在生成海报...</Text>
+                </View>
+              ) : posterDataUrl ? (
+                <img
+                  src={posterDataUrl}
+                  style={{
+                    width: '100%',
+                    maxHeight: 420,
+                    objectFit: 'contain',
+                    borderRadius: 12,
+                    display: 'block',
+                  }}
+                  alt="分享海报"
+                />
+              ) : (
+                <View style={styles.loadingContainer}>
+                  <Text style={styles.loadingText}>海报生成失败</Text>
+                </View>
+              )}
+            </View>
 
-          {/* 分享方式 */}
-          <View style={styles.shareMethods}>
-            {/* 保存海报 */}
-            <TouchableOpacity style={styles.methodItem} onPress={saveSharePoster} disabled={saving || loading}>
-              <View style={[styles.methodIcon, { backgroundColor: '#07C160' }]}>
-                {saving ? (
-                  <ActivityIndicator color="#fff" size="small" />
-                ) : (
-                  <Text style={styles.methodEmoji}>🎨</Text>
-                )}
-              </View>
-              <Text style={styles.methodLabel}>保存海报</Text>
-              <Text style={styles.methodHint}>生成海报发微信</Text>
-            </TouchableOpacity>
-
-            {/* 保存原图 */}
-            {(imageUrl || audioUrl) && (
-              <TouchableOpacity style={styles.methodItem} onPress={saveOriginal} disabled={saving}>
-                <View style={[styles.methodIcon, { backgroundColor: '#4CAF50' }]}>
+            {/* 分享方式 */}
+            <View style={styles.shareMethods}>
+              {/* 保存海报 */}
+              <TouchableOpacity style={styles.methodItem} onPress={saveSharePoster} disabled={saving || loading}>
+                <View style={[styles.methodIcon, { backgroundColor: '#07C160' }]}>
                   {saving ? (
                     <ActivityIndicator color="#fff" size="small" />
                   ) : (
-                    <Text style={styles.methodEmoji}>{audioUrl ? '🎵' : '📷'}</Text>
+                    <Text style={styles.methodEmoji}>🎨</Text>
                   )}
                 </View>
-                <Text style={styles.methodLabel}>{audioUrl ? '保存音频' : '保存原图'}</Text>
-                <Text style={styles.methodHint}>{audioUrl ? '存音频发微信' : '存图片发微信'}</Text>
+                <Text style={styles.methodLabel}>保存海报</Text>
+                <Text style={styles.methodHint}>生成海报发微信</Text>
               </TouchableOpacity>
-            )}
 
-            {/* 复制链接 */}
-            <TouchableOpacity style={styles.methodItem} onPress={copyLink}>
-              <View style={[styles.methodIcon, { backgroundColor: '#FF9800' }]}>
-                <Text style={styles.methodEmoji}>🔗</Text>
-              </View>
-              <Text style={styles.methodLabel}>复制链接</Text>
-              <Text style={styles.methodHint}>粘贴到微信</Text>
-            </TouchableOpacity>
-          </View>
+              {/* 保存原图 */}
+              {(imageUrl || audioUrl) && (
+                <TouchableOpacity style={styles.methodItem} onPress={saveOriginal} disabled={saving}>
+                  <View style={[styles.methodIcon, { backgroundColor: '#4CAF50' }]}>
+                    {saving ? (
+                      <ActivityIndicator color="#fff" size="small" />
+                    ) : (
+                      <Text style={styles.methodEmoji}>{audioUrl ? '🎵' : '📷'}</Text>
+                    )}
+                  </View>
+                  <Text style={styles.methodLabel}>{audioUrl ? '保存音频' : '保存原图'}</Text>
+                  <Text style={styles.methodHint}>{audioUrl ? '存音频发微信' : '存图片发微信'}</Text>
+                </TouchableOpacity>
+              )}
 
-          {/* 底部提示 */}
-          <View style={styles.tips}>
-            <Text style={styles.tipsText}>
-              💡 点击「保存海报」生成带二维码的分享图 → 打开微信 → 从相册发送
-            </Text>
-          </View>
+              {/* 复制链接 */}
+              <TouchableOpacity style={styles.methodItem} onPress={copyLink}>
+                <View style={[styles.methodIcon, { backgroundColor: '#FF9800' }]}>
+                  <Text style={styles.methodEmoji}>🔗</Text>
+                </View>
+                <Text style={styles.methodLabel}>复制链接</Text>
+                <Text style={styles.methodHint}>粘贴到微信</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* 底部提示 */}
+            <View style={styles.tips}>
+              <Text style={styles.tipsText}>
+                点击「保存海报」生成带二维码的分享图 → 打开微信 → 从相册发送
+              </Text>
+            </View>
+          </ScrollView>
         </View>
       </View>
     </Modal>
@@ -277,10 +281,12 @@ const styles = {
     backgroundColor: '#1a1a2e',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
+    maxHeight: '85%' as const,
+  },
+  scrollContent: {
     paddingHorizontal: 20,
     paddingTop: 16,
     paddingBottom: 30,
-    maxHeight: '85%' as const,
   },
   header: {
     flexDirection: 'row' as const,
