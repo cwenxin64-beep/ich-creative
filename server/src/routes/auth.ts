@@ -139,8 +139,16 @@ router.post('/register', async (req, res) => {
       },
       ...tokens,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('[AUTH] Register error:', error);
+    // 数据库连接错误给用户更明确的提示
+    if (error?.code === 'ENOTFOUND' || error?.code === 'ECONNREFUSED' || error?.code === 'ETIMEDOUT') {
+      return res.status(503).json({
+        success: false,
+        error: '服务暂时不可用，请稍后重试（数据库连接失败）',
+        code: 'DB_UNAVAILABLE',
+      });
+    }
     res.status(500).json({ success: false, error: '注册失败，请稍后重试' });
   }
 });
@@ -210,6 +218,13 @@ router.post('/login', async (req, res) => {
     });
   } catch (error) {
     console.error('[AUTH] Login error:', error);
+    if (error?.code === 'ENOTFOUND' || error?.code === 'ECONNREFUSED' || error?.code === 'ETIMEDOUT') {
+      return res.status(503).json({
+        success: false,
+        error: '服务暂时不可用，请稍后重试（数据库连接失败）',
+        code: 'DB_UNAVAILABLE',
+      });
+    }
     res.status(500).json({ success: false, error: '登录失败，请稍后重试' });
   }
 });
