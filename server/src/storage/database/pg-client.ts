@@ -1,9 +1,13 @@
 import { Pool } from 'pg';
 
 // 数据库连接配置 - 通过环境变量注入
-const databaseUrl = process.env.DATABASE_URL;
+// 兼容多种环境变量名: DATABASE_URL (Docker) / PGDATABASE_URL (Coze/沙箱)
+const databaseUrl =
+  process.env.DATABASE_URL ||
+  process.env.PGDATABASE_URL ||
+  process.env.POSTGRES_URL;
 
-console.log('[DB] DATABASE_URL exists:', !!databaseUrl);
+console.log('[DB] DATABASE_URL exists:', !!databaseUrl, 'source:', process.env.DATABASE_URL ? 'DATABASE_URL' : (process.env.PGDATABASE_URL ? 'PGDATABASE_URL' : (process.env.POSTGRES_URL ? 'POSTGRES_URL' : 'NONE')));
 
 // 创建连接池
 export const pool = new Pool(
