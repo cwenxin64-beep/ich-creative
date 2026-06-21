@@ -5,6 +5,21 @@ export async function initDatabase() {
   console.log('[DB] Initializing database tables...');
 
   try {
+    // ✅ 关键：先创建用户表（如果不存在）—— 新数据库必须先有表，ALTER 才能执行
+    // 旧数据库已有此表时 CREATE IF NOT EXISTS 不会重建
+    await query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY,
+        username VARCHAR(255),
+        email VARCHAR(255),
+        password_hash TEXT,
+        device_id VARCHAR(255),
+        role VARCHAR(50) DEFAULT 'user',
+        nickname VARCHAR(255),
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+      );
+    `);
+
     // 确保用户表有所需的列（兼容已存在的表结构）
     // 先尝试添加可能缺失的列，如果已存在则忽略
     const alterStatements = [
@@ -14,6 +29,7 @@ export async function initDatabase() {
       `ALTER TABLE users ADD COLUMN IF NOT EXISTS device_id VARCHAR(255)`,
       `ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(50) DEFAULT 'user'`,
       `ALTER TABLE users ADD COLUMN IF NOT EXISTS nickname VARCHAR(255)`,
+      `ALTER TABLE users ADD COLUMN IF NOT EXISTS created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()`,
       `ALTER TABLE users ALTER COLUMN device_id DROP NOT NULL`,
     ];
 
