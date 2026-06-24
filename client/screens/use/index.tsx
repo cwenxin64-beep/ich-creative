@@ -221,13 +221,43 @@ export default function UseScreen() {
         body: JSON.stringify(requestBody),
       });
 
-      const data = await response.json();
+      const createData = await response.json();
 
-      if (data.success) {
-        setProgress(100);
-        setResults(data.results || []);
+      if (!createData.taskId) {
+        Alert.alert('创建任务失败', createData.error || '请重试');
+        setLoading(false);
+        clearInterval(progressTimer);
+        return;
+      }
+
+      const taskId = createData.taskId;
+      console.log('Task created:', taskId);
+
+      // 轮询任务状态（参考 play/index.tsx 的实现）
+      const pollTask = async (): Promise<any> => {
+        const statusResponse = await authFetch(buildApiUrl(`/api/v1/use/status/${taskId}`));
+        const statusData = await statusResponse.json();
+
+        console.log('Task status:', statusData.status, 'Progress:', statusData.progress);
+
+        if (statusData.status === 'completed') {
+          return statusData.result;
+        } else if (statusData.status === 'failed') {
+          throw new Error(statusData.error || '生成失败');
+        } else {
+          // 继续轮询，每 2 秒一次
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          return pollTask();
+        }
+      };
+
+      const result = await pollTask();
+
+      setProgress(100);
+      if (result.success) {
+        setResults(result.results || []);
       } else {
-        Alert.alert('生成失败', data.message || '请重试');
+        Alert.alert('生成失败', result.message || '请重试');
       }
     } catch (error) {
       console.error('Generation error:', error);

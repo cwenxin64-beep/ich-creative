@@ -1,5 +1,6 @@
 import express, { type Request, type Response } from 'express';
 import { S3Storage } from 'coze-coding-dev-sdk';
+import { taskStore } from '../task-queue';
 
 const router = express.Router();
 
@@ -154,19 +155,21 @@ async function callVolcengineImage(prompt: string): Promise<string> {
 }
 
 /**
- * POST /api/v1/use/customize
- * Generate customized ICH creative products
+ * 异步执行定制任务（不阻塞 HTTP 响应）
  */
-router.post('/customize', async (req: Request, res: Response) => {
+async function executeCustomizeTask(taskId: string, params: {
+  keywords: string;
+  ichType?: string;
+  interactionType?: string;
+  applicationScene?: string;
+  material?: string;
+}) {
+  const { keywords, ichType = '', interactionType = '', applicationScene = '', material } = params;
+
+  taskStore.update(taskId, { status: 'processing', progress: 5 });
+  console.log(`[Task ${taskId}] Starting customization: ichType=${ichType}, applicationScene=${applicationScene}, keywords="${keywords}"`);
+
   try {
-    const { keywords, ichType = '', interactionType = '', applicationScene = '', material } = req.body;
-
-    if (!keywords) {
-      return res.status(400).json({ error: 'No keywords provided' });
-    }
-
-    console.log(`Customize request: ichType=${ichType}, applicationScene=${applicationScene}, keywords="${keywords}"`);
-
     // 构建设计 Prompt
     const designPrompt = `你是一位非物质文化遗产创意设计专家。请根据用户关键词，生成精准的定制产品设计方案。
 
@@ -208,10 +211,14 @@ router.post('/customize', async (req: Request, res: Response) => {
 
 请严格按照以上要求输出JSON：`;
 
+    taskStore.update(taskId, { progress: 10 });
+
     // Step 1: 分析并生成 prompts
     const analysisResponse = await callVolcengineLLM([
       { role: 'user', content: designPrompt }
     ]);
+
+    taskStore.update(taskId, { progress: 30 });
 
     // 解析 JSON
     let prompts;
@@ -222,22 +229,23 @@ router.post('/customize', async (req: Request, res: Response) => {
       }
       prompts = JSON.parse(content);
     } catch (parseError) {
-      console.error('JSON parse error:', parseError);
-      return res.status(500).json({
-        error: 'AI 响应格式错误，请重试',
-      });
+      console.error(`[Task ${taskId}] JSON parse error:`, parseError);
+      taskStore.update(taskId, { status: 'failed', error: 'AI 响应格式错误，请重试' });
+      return;
     }
-    console.log('Generated design prompts:', Object.keys(prompts));
+    console.log(`[Task ${taskId}] Generated design prompts:`, Object.keys(prompts));
 
     // Step 2: 生成产品图片
     const results: any[] = [];
     const categories = ['fashion', 'home', 'art', 'gifts'];
+    const targetCategories = applicationScene && applicationScene !== 'all' 
+      ? [applicationScene] 
+      : categories;
+    
+    const totalCategories = targetCategories.length;
+    let completedCategories = 0;
 
-    for (const category of categories) {
-      if (applicationScene && applicationScene !== 'all' && applicationScene !== category) {
-        continue;
-      }
-
+    for (const category of targetCategories) {
       const promptData = prompts[category];
       if (!promptData) continue;
 
@@ -256,25 +264,88 @@ router.post('/customize', async (req: Request, res: Response) => {
           }
         });
       } catch (error) {
-        console.error(`Failed to generate ${category} product:`, error);
+        console.error(`[Task ${taskId}] Failed to generate ${category} product:`, error);
       }
+      
+      completedCategories++;
+      const progress = 30 + Math.round((completedCategories / totalCategories) * 60);
+      taskStore.update(taskId, { progress });
     }
 
-    console.log(`Customization completed: ${results.length} products generated`);
+    console.log(`[Task ${taskId}] Customization completed: ${results.length} products generated`);
 
-    res.json({
-      success: true,
-      results,
-      keywords,
-      prompts
+    taskStore.update(taskId, {
+      status: 'completed',
+      progress: 100,
+      result: {
+        success: true,
+        results,
+        keywords,
+        prompts
+      }
     });
   } catch (error) {
-    console.error('Customization error:', error);
+    console.error(`[Task ${taskId}] Customization error:`, error);
+    taskStore.update(taskId, {
+      status: 'failed',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+}
+
+/**
+ * POST /api/v1/use/customize
+ * 创建定制任务，立即返回 taskId（异步执行）
+ */
+router.post('/customize', async (req: Request, res: Response) => {
+  try {
+    const { keywords, ichType = '', interactionType = '', applicationScene = '', material } = req.body;
+
+    if (!keywords) {
+      return res.status(400).json({ error: 'No keywords provided' });
+    }
+
+    // 创建任务
+    const task = taskStore.create();
+    console.log(`[Task ${task.id}] Created for customization request`);
+
+    // 异步执行任务（不阻塞 HTTP 响应）
+    executeCustomizeTask(task.id, { keywords, ichType, interactionType, applicationScene, material });
+
+    // 立即返回 taskId，让前端轮询状态
+    res.json({
+      taskId: task.id,
+      status: 'processing',
+      message: '任务已创建，请轮询查询状态'
+    });
+  } catch (error) {
+    console.error('Customize request error:', error);
     res.status(500).json({
-      error: 'Generation failed',
+      error: 'Failed to create task',
       message: error instanceof Error ? error.message : 'Unknown error'
     });
   }
+});
+
+/**
+ * GET /api/v1/use/status/:taskId
+ * 查询定制任务状态
+ */
+router.get('/status/:taskId', (req: Request, res: Response) => {
+  const { taskId } = req.params;
+  const task = taskStore.get(taskId);
+
+  if (!task) {
+    return res.status(404).json({ error: 'Task not found' });
+  }
+
+  res.json({
+    taskId: task.id,
+    status: task.status,
+    progress: task.progress,
+    result: task.result,
+    error: task.error
+  });
 });
 
 export default router;
