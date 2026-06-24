@@ -149,9 +149,9 @@ export const createStyles = (theme: Theme) => {
     },
     resultImage: {
       width: '100%',
-      height: 200,
+      height: 360,
       borderRadius: BorderRadius.lg,
-      resizeMode: 'cover',
+      resizeMode: 'contain',
     },
     resultSubImages: {
       flexDirection: 'row',
@@ -159,12 +159,12 @@ export const createStyles = (theme: Theme) => {
     },
     resultSubImage: {
       flex: 1,
-      height: 100,
+      height: 180,
       borderRadius: BorderRadius.lg,
-      resizeMode: 'cover',
+      resizeMode: 'contain',
     },
     imagePreview: {
-      height: 200,
+      height: 360,
       borderRadius: BorderRadius.lg,
       backgroundColor: theme.backgroundTertiary,
       justifyContent: 'center',
