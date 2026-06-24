@@ -325,9 +325,14 @@ export default function UseScreen() {
 
         {/* 非遗类型选择 */}
         <ThemedView level="root" style={styles.ichTypeSection}>
-          <ThemedText variant="title" color={theme.textPrimary} style={styles.sectionLabel}>
-            非遗类型
-          </ThemedText>
+          <View style={styles.sectionHeader}>
+            <ThemedText variant="title" color={theme.textPrimary} style={styles.sectionLabel}>
+              非遗类型
+            </ThemedText>
+            <ThemedText variant="caption" color={theme.textMuted} style={styles.sectionTip}>
+              选择一种非遗元素作为设计灵感
+            </ThemedText>
+          </View>
           <View style={styles.categoryGrid}>
             {ICH_TYPES.map((type) => (
               <TouchableOpacity
@@ -353,9 +358,14 @@ export default function UseScreen() {
 
         {/* 体验类型选择 */}
         <ThemedView level="root" style={styles.interactionTypeSection}>
-          <ThemedText variant="title" color={theme.textPrimary} style={styles.sectionLabel}>
-            体验类型
-          </ThemedText>
+          <View style={styles.sectionHeader}>
+            <ThemedText variant="title" color={theme.textPrimary} style={styles.sectionLabel}>
+              体验类型
+            </ThemedText>
+            <ThemedText variant="caption" color={theme.textMuted} style={styles.sectionTip}>
+              选择你的身份角色，定制专属风格
+            </ThemedText>
+          </View>
           <View style={styles.categoryGrid}>
             {INTERACTION_TYPES.map((type) => (
               <TouchableOpacity
@@ -381,9 +391,14 @@ export default function UseScreen() {
 
         {/* 应用场景选择 */}
         <ThemedView level="root" style={styles.sceneSection}>
-          <ThemedText variant="title" color={theme.textPrimary} style={styles.sectionLabel}>
-            应用场景
-          </ThemedText>
+          <View style={styles.sectionHeader}>
+            <ThemedText variant="title" color={theme.textPrimary} style={styles.sectionLabel}>
+              应用场景
+            </ThemedText>
+            <ThemedText variant="caption" color={theme.textMuted} style={styles.sectionTip}>
+              选择产品用途，生成对应的设计方案
+            </ThemedText>
+          </View>
           <View style={styles.categoryGrid}>
             {APPLICATION_SCENES.map((scene) => (
               <TouchableOpacity
@@ -409,23 +424,36 @@ export default function UseScreen() {
 
         {/* Keywords Input */}
         <ThemedView level="root" style={styles.inputSection}>
-          <ThemedText variant="title" color={theme.textPrimary} style={styles.inputLabel}>
-            创意关键词
-          </ThemedText>
+          <View style={styles.sectionHeader}>
+            <ThemedText variant="title" color={theme.textPrimary} style={styles.inputLabel}>
+              创意关键词
+            </ThemedText>
+            <ThemedText variant="caption" color={theme.textMuted} style={styles.sectionTip}>
+              输入风格关键词，AI 将据此生成设计方案
+            </ThemedText>
+          </View>
           <TextInput
             style={[styles.textInput, { color: theme.textPrimary, backgroundColor: theme.backgroundTertiary }]}
-            placeholder="输入关键词，例如：中国风、简约、现代、传统..."
+            placeholder="例如：中国风、简约、现代、传统..."
             placeholderTextColor={theme.textMuted}
             value={keywords}
             onChangeText={setKeywords}
             multiline
-            numberOfLines={3}
+            numberOfLines={2}
             textAlignVertical="top"
           />
         </ThemedView>
 
         {/* My Material Section */}
         <ThemedView level="root" style={styles.materialSection}>
+          <View style={styles.sectionHeader}>
+            <ThemedText variant="title" color={theme.textPrimary} style={styles.inputLabel}>
+              我的素材
+            </ThemedText>
+            <ThemedText variant="caption" color={theme.textMuted} style={styles.sectionTip}>
+              可选择收藏的图片/视频作为设计参考（可选）
+            </ThemedText>
+          </View>
           <TouchableOpacity
             style={[
               styles.materialButton,
@@ -473,6 +501,11 @@ export default function UseScreen() {
         </ThemedView>
 
         {/* Generate Button */}
+        <View style={styles.buttonTipContainer}>
+          <ThemedText variant="caption" color={theme.textMuted} style={styles.buttonTip}>
+            👇 点击下方按钮开始生成，预计需要 1-2 分钟
+          </ThemedText>
+        </View>
         <TouchableOpacity
           style={[
             styles.generateButton,

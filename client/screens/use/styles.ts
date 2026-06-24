@@ -95,6 +95,20 @@ export const createStyles = (theme: Theme) => {
       elevation: 8,
     },
     customizeButtonText: {},
+    buttonTipContainer: {
+      marginBottom: Spacing.md,
+      alignItems: 'center',
+    },
+    buttonTip: {
+      textAlign: 'center',
+      opacity: 0.8,
+    },
+    tipText: {
+      textAlign: 'center',
+      opacity: 0.7,
+      paddingHorizontal: Spacing.md,
+      marginBottom: Spacing.xs,
+    },
     resultsSection: {
       gap: Spacing.md,
     },
