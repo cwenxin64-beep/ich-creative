@@ -453,6 +453,9 @@ export default function UseScreen() {
             <ThemedText variant="caption" color={theme.textMuted} style={styles.sectionTip}>
               可选择收藏的图片/视频作为设计参考（可选）
             </ThemedText>
+            <ThemedText variant="caption" color={theme.textMuted} style={styles.hintText}>
+              💡 在「拍非遗」「玩非遗」页面收藏图片/视频后，可在此选用
+            </ThemedText>
           </View>
           <TouchableOpacity
             style={[
