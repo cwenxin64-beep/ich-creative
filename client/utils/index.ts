@@ -74,3 +74,6 @@ export const convertToLocalTimeStr = (utcDateStr: string): string => {
   }
   return d.local().format('YYYY-MM-DD HH:mm:ss');
 }
+
+// Re-export from api.ts（解决 audio/index.tsx 导入路径问题）
+export { getApiBaseUrl, buildApiUrl } from './api';
