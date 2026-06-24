@@ -120,7 +120,7 @@ export const createStyles = (theme: Theme) => {
       fontSize: 12,
     },
     resultPreview: {
-      height: 240,
+      height: 400,
       borderRadius: BorderRadius.lg,
       overflow: 'hidden',
       position: 'relative',
@@ -129,7 +129,7 @@ export const createStyles = (theme: Theme) => {
     resultMedia: {
       width: '100%',
       height: '100%',
-      resizeMode: 'cover',
+      resizeMode: 'contain',
     },
     playIcon: {
       position: 'absolute',
@@ -148,9 +148,9 @@ export const createStyles = (theme: Theme) => {
     },
     resultMainImage: {
       width: '100%',
-      height: 200,
+      height: 360,
       borderRadius: BorderRadius.lg,
-      resizeMode: 'cover',
+      resizeMode: 'contain',
     },
     resultSubImages: {
       flexDirection: 'row',
@@ -158,9 +158,9 @@ export const createStyles = (theme: Theme) => {
     },
     resultSubImage: {
       flex: 1,
-      height: 100,
+      height: 180,
       borderRadius: BorderRadius.lg,
-      resizeMode: 'cover',
+      resizeMode: 'contain',
     },
     previewPlaceholder: {
       height: 180,
