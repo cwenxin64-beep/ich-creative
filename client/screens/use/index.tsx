@@ -315,7 +315,7 @@ export default function UseScreen() {
           </TouchableOpacity>
           <View style={styles.headerText}>
             <ThemedText variant="h2" color={theme.textPrimary}>
-              用非遗
+              创非遗
             </ThemedText>
             <ThemedText variant="caption" color={theme.textSecondary}>
               选择场景，我们帮你定制非遗实用设计

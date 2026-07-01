@@ -65,7 +65,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="use"
         options={{
-          title: '用非遗',
+          title: '创非遗',
           tabBarIcon: ({ color }) => <FontAwesome6 name="palette" size={24} color={color} />,
         }}
       />

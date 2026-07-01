@@ -76,7 +76,7 @@ export default function WelcomeScreen() {
                 <FontAwesome6 name="palette" size={24} color={theme.error} />
               </View>
               <View style={styles.featureText}>
-                <ThemedText variant="title" color={theme.textPrimary}>用非遗</ThemedText>
+                <ThemedText variant="title" color={theme.textPrimary}>创非遗</ThemedText>
                 <ThemedText variant="caption" color={theme.textSecondary}>
                   个性定制，专属设计
                 </ThemedText>

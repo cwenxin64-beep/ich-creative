@@ -57,7 +57,7 @@ export default function HomeScreen() {
     },
     {
       id: 'use',
-      title: '用非遗',
+      title: '创非遗',
       subtitle: '定制设计',
       icon: 'palette',
       color: '#C75B5B',
