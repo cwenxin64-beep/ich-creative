@@ -101,9 +101,37 @@ router.get('/', async (req: Request, res: Response) => {
       [userId]
     );
 
+    // 蛇形字段转驼峰，供前端消费
+    const favorites = (result.rows || []).map((row: any) => {
+      const metadata = row.metadata || {};
+      // 从 metadata 里挑出附图 URL，兼容多种命名
+      const subImageUrls = [
+        metadata.subImageUrl1,
+        metadata.subImageUrl2,
+        metadata.subImageUrl3,
+        metadata.subImageUrl4,
+        ...(Array.isArray(metadata.subImageUrls) ? metadata.subImageUrls : []),
+      ].filter(Boolean);
+      return {
+        id: row.id,
+        userId: row.user_id,
+        type: row.type,
+        // 原字段
+        imageUrl: row.image_url,
+        videoUrl: row.video_url,
+        title: row.title,
+        metadata,
+        createdAt: row.created_at,
+        // 兼容前端字段命名
+        mainImageUrl: row.image_url || metadata.mainImageUrl || null,
+        subImageUrls,
+        description: metadata.description || metadata.prompt || '',
+      };
+    });
+
     res.json({
       success: true,
-      favorites: result.rows || [],
+      favorites,
     });
   } catch (error) {
     console.error('Get favorites error:', error);
