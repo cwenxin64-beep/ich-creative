@@ -475,22 +475,14 @@ export default function PhotoScreen() {
         imageUrl={result?.staticMainImageUrl}
         title="非遗创意作品"
         description="我用智能非遗创作了一幅非遗风格作品，快来看看！"
-        shareUrl={(() => {
-          if (typeof window === 'undefined' || !result) return undefined;
-          const params = new URLSearchParams();
-          const mainUrl = (result as any).staticMainImageUrl || (result as any).mainImageUrl;
-          if (mainUrl) {
-            params.set('mainImageUrl', mainUrl);
-            params.set('imageUrl', mainUrl);
-          }
-          const subs = (result as any).subImageUrls;
-          if (Array.isArray(subs)) {
-            subs.forEach((u: string, i: number) => u && params.set(`subImageUrl${i + 1}`, u));
-          }
-          params.set('title', '非遗创意作品');
-          params.set('description', '我用智能非遗创作了一幅非遗风格作品，快来看看！');
-          return `${window.location.origin}/detail?${params.toString()}`;
-        })()}
+        shareUrl={undefined}
+        shareData={result ? {
+          type: 'photo',
+          title: '非遗创意作品',
+          description: '我用智能非遗创作了一幅非遗风格作品，快来看看！',
+          mainImageUrl: (result as any).staticMainImageUrl || (result as any).mainImageUrl || '',
+          subImageUrls: Array.isArray((result as any).subImageUrls) ? (result as any).subImageUrls : [],
+        } : undefined}
       />
     </Screen>
   );

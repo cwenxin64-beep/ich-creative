@@ -8,6 +8,7 @@ import { ThemedView } from '@/components/ThemedView';
 import { FontAwesome6 } from '@expo/vector-icons';
 import { Video, ResizeMode, AVPlaybackStatusSuccess, AVPlaybackStatus, Audio } from 'expo-av';
 import { styles } from '@/components/detail.styles';
+import { getApiBaseUrl } from '@/utils/api';
 
 type DetailParams = {
   imageUrl?: string;
@@ -19,6 +20,7 @@ type DetailParams = {
   description?: string;
   title?: string;
   type?: string;
+  shareId?: string;
 };
 
 export default function DetailScreen() {
@@ -29,12 +31,30 @@ export default function DetailScreen() {
   const [videoStatus, setVideoStatus] = useState<AVPlaybackStatusSuccess | null>(null);
   const [audioSound, setAudioSound] = useState<Audio.Sound | null>(null);
   const [audioPlaying, setAudioPlaying] = useState(false);
+  const [remoteData, setRemoteData] = useState<DetailParams | null>(null);
+  const [loadingShare, setLoadingShare] = useState(false);
   const videoRef = useRef<Video>(null);
 
+  // 如果 URL 里带 shareId，就从后端拉数据
+  useEffect(() => {
+    if (!params.shareId) return;
+    setLoadingShare(true);
+    fetch(`${getApiBaseUrl()}/api/v1/share/${params.shareId}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data && !data.error) {
+          setRemoteData(data as DetailParams);
+        }
+      })
+      .catch((e) => console.error('load share failed:', e))
+      .finally(() => setLoadingShare(false));
+  }, [params.shareId]);
+
+  const data: DetailParams = remoteData || params;
   const screenWidth = Dimensions.get('window').width;
-  const mainImageUri = params.imageUrl || params.mainImageUrl || '';
-  const videoUri = params.videoUrl || '';
-  const audioUri = params.audioUrl || '';
+  const mainImageUri = data.imageUrl || data.mainImageUrl || '';
+  const videoUri = data.videoUrl || '';
+  const audioUri = data.audioUrl || '';
   const hasVideo = !!videoUri;
   const hasAudio = !!audioUri;
 
@@ -170,25 +190,25 @@ export default function DetailScreen() {
         </View>
 
         {/* Sub Images */}
-        {(params.subImageUrl1 || params.subImageUrl2) && (
+        {(data.subImageUrl1 || data.subImageUrl2) && (
           <View style={styles.subImagesContainer}>
             <ThemedText variant="caption" color={theme.textMuted} style={styles.subImagesTitle}>
               作品多角度展示
             </ThemedText>
             <View style={styles.subImagesGrid}>
-              {params.subImageUrl1 && (
+              {data.subImageUrl1 && (
                 <View style={styles.subImageWrapper}>
                   <Image
-                    source={{ uri: params.subImageUrl1 }}
+                    source={{ uri: data.subImageUrl1 }}
                     style={styles.subImage}
                     resizeMode="cover"
                   />
                 </View>
               )}
-              {params.subImageUrl2 && (
+              {data.subImageUrl2 && (
                 <View style={styles.subImageWrapper}>
                   <Image
-                    source={{ uri: params.subImageUrl2 }}
+                    source={{ uri: data.subImageUrl2 }}
                     style={styles.subImage}
                     resizeMode="cover"
                   />
@@ -201,18 +221,18 @@ export default function DetailScreen() {
         {/* Info Section */}
         <ThemedView level="root" style={styles.infoSection}>
           <ThemedText variant="h4" color={theme.textPrimary} style={styles.infoTitle}>
-            {params.title || '作品信息'}
+            {data.title || '作品信息'}
           </ThemedText>
           <ThemedText variant="body" color={theme.textSecondary} style={styles.infoText}>
             {hasVideo ? '动态视频作品' : hasAudio ? '音频作品' : '静态图片作品'}
           </ThemedText>
-          {params.description && (
+          {data.description && (
             <ThemedView level="default" style={styles.descriptionSection}>
               <ThemedText variant="small" color={theme.textPrimary} style={styles.descriptionLabel}>
                 创意描述
               </ThemedText>
               <ThemedText variant="caption" color={theme.textSecondary} style={styles.descriptionText}>
-                {params.description.length > 20 ? params.description.substring(0, 20) + '...' : params.description}
+                {data.description.length > 20 ? data.description.substring(0, 20) + '...' : data.description}
               </ThemedText>
             </ThemedView>
           )}

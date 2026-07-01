@@ -768,18 +768,14 @@ export default function PlayScreen() {
         imageUrl={shareTarget?.imageUrl}
         title="非遗交互作品"
         description={`我创造了一个${shareTarget?.type || '非遗'}作品，快来看看吧！`}
-        shareUrl={(() => {
-          if (typeof window === 'undefined' || !shareTarget) return undefined;
-          const params = new URLSearchParams();
-          if (shareTarget.imageUrl) {
-            params.set('mainImageUrl', shareTarget.imageUrl);
-            params.set('imageUrl', shareTarget.imageUrl);
-          }
-          if ((shareTarget as any).videoUrl) params.set('videoUrl', (shareTarget as any).videoUrl);
-          params.set('title', '非遗交互作品');
-          params.set('description', `我创造了一个${shareTarget?.type || '非遗'}作品，快来看看吧！`);
-          return `${window.location.origin}/detail?${params.toString()}`;
-        })()}
+        shareUrl={undefined}
+        shareData={shareTarget ? {
+          type: 'play',
+          title: '非遗交互作品',
+          description: `我创造了一个${shareTarget?.type || '非遗'}作品，快来看看吧！`,
+          mainImageUrl: shareTarget.imageUrl || '',
+          videoUrl: (shareTarget as any).videoUrl || '',
+        } : undefined}
       />
     </Screen>
   );

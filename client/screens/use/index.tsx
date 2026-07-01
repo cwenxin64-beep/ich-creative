@@ -743,16 +743,13 @@ export default function UseScreen() {
         imageUrl={shareTarget?.mainImageUrl || shareTarget?.imageUrl}
         title={`${shareTarget?.category || '非遗'}作品`}
         description={`我用智能非遗定制了${shareTarget?.category || '非遗'}作品，快来看看！`}
-        shareUrl={(() => {
-          if (typeof window === 'undefined' || !shareTarget) return undefined;
-          const params = new URLSearchParams({
-            type: 'image',
-            imageUrl: shareTarget?.mainImageUrl || shareTarget?.imageUrl || '',
-            title: `${shareTarget?.category || '非遗'}作品`,
-            description: `我用智能非遗定制了${shareTarget?.category || '非遗'}作品，快来看看！`,
-          });
-          return `${window.location.origin}/detail?${params.toString()}`;
-        })()}
+        shareUrl={undefined}
+        shareData={shareTarget ? {
+          type: 'image',
+          title: `${shareTarget?.category || '非遗'}作品`,
+          description: `我用智能非遗定制了${shareTarget?.category || '非遗'}作品，快来看看！`,
+          mainImageUrl: shareTarget?.mainImageUrl || shareTarget?.imageUrl || '',
+        } : undefined}
       />
     </Screen>
   );

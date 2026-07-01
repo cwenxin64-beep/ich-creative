@@ -65,6 +65,17 @@ export async function initDatabase() {
     // 创建索引
     await query(`CREATE INDEX IF NOT EXISTS idx_favorites_user_id ON favorites(user_id);`);
 
+    // 创建分享表 - 存储分享的作品数据，用短ID作为分享URL
+    await query(`
+      CREATE TABLE IF NOT EXISTS shares (
+        id VARCHAR(32) PRIMARY KEY,
+        type VARCHAR(50) NOT NULL,
+        data JSONB NOT NULL DEFAULT '{}',
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+      );
+    `);
+    await query(`CREATE INDEX IF NOT EXISTS idx_shares_created_at ON shares(created_at DESC);`);
+
     // 创建音乐生成记录表
     await query(`
       CREATE TABLE IF NOT EXISTS music_generations (

@@ -3,6 +3,18 @@ import { Modal, View, Text, TouchableOpacity, ActivityIndicator, ScrollView } fr
 import { useToast } from '@/hooks/useToast';
 import { buildApiUrl } from '@/utils/api';
 
+interface ShareData {
+  type?: string;
+  favId?: number | string;
+  taskId?: string;
+  mainImage?: string;
+  subImages?: string[];
+  video?: string;
+  audio?: string;
+  description?: string;
+  [key: string]: any;
+}
+
 interface SharePanelProps {
   visible: boolean;
   onClose: () => void;
@@ -11,6 +23,7 @@ interface SharePanelProps {
   title?: string;
   description?: string;
   shareUrl?: string;
+  shareData?: ShareData;
 }
 
 export default function SharePanel({
@@ -21,23 +34,54 @@ export default function SharePanel({
   title = '智能非遗作品',
   description = '让非遗"活"在当代',
   shareUrl,
+  shareData,
 }: SharePanelProps) {
   const { showToast } = useToast();
   const [saving, setSaving] = useState(false);
   const [posterDataUrl, setPosterDataUrl] = useState<string>('');
   const [loading, setLoading] = useState(false);
+  const [qrContent, setQrContent] = useState<string>(shareUrl || (typeof window !== 'undefined' ? window.location.origin : ''));
 
-  const qrContent = shareUrl || (typeof window !== 'undefined' ? window.location.origin : '');
-
-  // 弹窗打开时，通过后端 API 生成完整海报
+  // 弹窗打开时，先创建分享记录，再生成海报（用短分享 URL）
   useEffect(() => {
     if (!visible) {
       setPosterDataUrl('');
       return;
     }
 
-    const generatePoster = async () => {
+    let cancelled = false;
+
+    const run = async () => {
       setLoading(true);
+
+      // 1. 先创建分享记录，拿到 shareId，生成短 URL
+      let finalQrUrl = shareUrl || (typeof window !== 'undefined' ? window.location.origin : '');
+      if (shareData && typeof window !== 'undefined') {
+        try {
+          const createUrl = buildApiUrl('/api/v1/share/create');
+          const createRes = await fetch(createUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              type: shareData.type || 'general',
+              data: { ...shareData, title, description },
+            }),
+          });
+          if (createRes.ok) {
+            const createJson = await createRes.json();
+            if (createJson.success && createJson.shareId) {
+              finalQrUrl = `${window.location.origin}/detail?shareId=${createJson.shareId}`;
+              console.log('[SharePanel] Created share:', createJson.shareId, 'short URL:', finalQrUrl);
+            }
+          }
+        } catch (e) {
+          console.warn('[SharePanel] Create share failed, fallback to long URL:', e);
+        }
+      }
+      if (cancelled) return;
+      setQrContent(finalQrUrl);
+
+      // 2. 生成海报
       try {
         const posterUrl = buildApiUrl('/api/v1/poster');
         const res = await fetch(posterUrl, {
@@ -47,7 +91,7 @@ export default function SharePanel({
             title,
             description,
             imageUrl: imageUrl || '',
-            shareUrl: qrContent,
+            shareUrl: finalQrUrl,
           }),
         });
 
@@ -65,13 +109,13 @@ export default function SharePanel({
       } catch (e) {
         console.error('[SharePanel] Poster generation error:', e);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
-    const timer = setTimeout(generatePoster, 300);
-    return () => clearTimeout(timer);
-  }, [visible, title, description, imageUrl, qrContent]);
+    const timer = setTimeout(run, 300);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [visible, title, description, imageUrl, shareUrl, shareData]);
 
   // 保存原图/音频
   const saveOriginal = useCallback(async () => {

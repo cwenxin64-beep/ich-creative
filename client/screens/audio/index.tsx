@@ -420,17 +420,13 @@ export default function AudioScreen() {
         audioUrl={result?.audioUrl ? `${getApiBaseUrl()}/api/v1/audio/proxy?url=${encodeURIComponent(result.audioUrl)}` : undefined}
         title="非遗风格音乐"
         description={`我创作了一首非遗风格音乐！曲风：${result?.genre || ''} 情绪：${result?.mood || ''}`}
-        shareUrl={(() => {
-          if (typeof window === 'undefined' || !result?.audioUrl) return undefined;
-          const audioProxied = `${getApiBaseUrl()}/api/v1/audio/proxy?url=${encodeURIComponent(result.audioUrl)}`;
-          const params = new URLSearchParams({
-            type: 'audio',
-            audioUrl: audioProxied,
-            title: '非遗风格音乐',
-            description: `我创作了一首非遗风格音乐！曲风：${result?.genre || ''} 情绪：${result?.mood || ''}`,
-          });
-          return `${window.location.origin}/detail?${params.toString()}`;
-        })()}
+        shareUrl={undefined}
+        shareData={result?.audioUrl ? {
+          type: 'audio',
+          title: '非遗风格音乐',
+          description: `我创作了一首非遗风格音乐！曲风：${result?.genre || ''} 情绪：${result?.mood || ''}`,
+          audioUrl: `${getApiBaseUrl()}/api/v1/audio/proxy?url=${encodeURIComponent(result.audioUrl)}`,
+        } : undefined}
       />
     </Screen>
   );
