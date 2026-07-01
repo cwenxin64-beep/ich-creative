@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { View, TouchableOpacity, ScrollView, Image, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSafeRouter, useSafeSearchParams } from '@/hooks/useSafeRouter';
@@ -6,16 +6,19 @@ import { useTheme } from '@/hooks/useTheme';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { FontAwesome6 } from '@expo/vector-icons';
-import { Video, ResizeMode, AVPlaybackStatusSuccess, AVPlaybackStatus } from 'expo-av';
+import { Video, ResizeMode, AVPlaybackStatusSuccess, AVPlaybackStatus, Audio } from 'expo-av';
 import { styles } from '@/components/detail.styles';
 
 type DetailParams = {
   imageUrl?: string;
   videoUrl?: string;
+  audioUrl?: string;
   mainImageUrl?: string;
   subImageUrl1?: string;
   subImageUrl2?: string;
   description?: string;
+  title?: string;
+  type?: string;
 };
 
 export default function DetailScreen() {
@@ -24,12 +27,52 @@ export default function DetailScreen() {
   const params = useSafeSearchParams<DetailParams>();
 
   const [videoStatus, setVideoStatus] = useState<AVPlaybackStatusSuccess | null>(null);
+  const [audioSound, setAudioSound] = useState<Audio.Sound | null>(null);
+  const [audioPlaying, setAudioPlaying] = useState(false);
   const videoRef = useRef<Video>(null);
 
   const screenWidth = Dimensions.get('window').width;
   const mainImageUri = params.imageUrl || params.mainImageUrl || '';
   const videoUri = params.videoUrl || '';
+  const audioUri = params.audioUrl || '';
   const hasVideo = !!videoUri;
+  const hasAudio = !!audioUri;
+
+  useEffect(() => {
+    return () => {
+      if (audioSound) {
+        audioSound.unloadAsync();
+      }
+    };
+  }, [audioSound]);
+
+  const handleAudioToggle = async () => {
+    try {
+      if (audioSound) {
+        if (audioPlaying) {
+          await audioSound.pauseAsync();
+          setAudioPlaying(false);
+        } else {
+          await audioSound.playAsync();
+          setAudioPlaying(true);
+        }
+      } else {
+        const { sound } = await Audio.Sound.createAsync(
+          { uri: audioUri },
+          { shouldPlay: true }
+        );
+        setAudioSound(sound);
+        setAudioPlaying(true);
+        sound.setOnPlaybackStatusUpdate((status) => {
+          if (status.isLoaded && status.didJustFinish) {
+            setAudioPlaying(false);
+          }
+        });
+      }
+    } catch (e) {
+      console.error('Audio play error:', e);
+    }
+  };
 
   const handleBack = () => {
     if (videoRef.current) {
@@ -97,6 +140,19 @@ export default function DetailScreen() {
                 </TouchableOpacity>
               )}
             </View>
+          ) : hasAudio ? (
+            <View style={[styles.placeholder, { backgroundColor: theme.backgroundTertiary }]}>
+              <TouchableOpacity onPress={handleAudioToggle} style={{ alignItems: 'center' }}>
+                <FontAwesome6
+                  name={audioPlaying ? 'circle-pause' : 'circle-play'}
+                  size={80}
+                  color={theme.textPrimary}
+                />
+                <ThemedText variant="body" color={theme.textPrimary} style={{ marginTop: 16 }}>
+                  {audioPlaying ? '暂停' : '播放'}
+                </ThemedText>
+              </TouchableOpacity>
+            </View>
           ) : mainImageUri ? (
             <Image
               source={{ uri: mainImageUri }}
@@ -145,10 +201,10 @@ export default function DetailScreen() {
         {/* Info Section */}
         <ThemedView level="root" style={styles.infoSection}>
           <ThemedText variant="h4" color={theme.textPrimary} style={styles.infoTitle}>
-            作品信息
+            {params.title || '作品信息'}
           </ThemedText>
           <ThemedText variant="body" color={theme.textSecondary} style={styles.infoText}>
-            {hasVideo ? '动态视频作品' : '静态图片作品'}
+            {hasVideo ? '动态视频作品' : hasAudio ? '音频作品' : '静态图片作品'}
           </ThemedText>
           {params.description && (
             <ThemedView level="default" style={styles.descriptionSection}>

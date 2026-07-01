@@ -619,7 +619,20 @@ export default function FavoritesScreen() {
         audioUrl={shareItem?.metadata?.audioUrl || ''}
         title={shareItem?.title || '非遗作品'}
         description={shareItem?.description || ''}
-        shareUrl={typeof window !== 'undefined' ? window.location.origin : undefined}
+        shareUrl={(() => {
+          if (typeof window === 'undefined' || !shareItem) return undefined;
+          const params = new URLSearchParams();
+          if (shareItem.mainImageUrl) params.set('mainImageUrl', shareItem.mainImageUrl);
+          if (shareItem.imageUrl) params.set('imageUrl', shareItem.imageUrl);
+          if (shareItem.videoUrl) params.set('videoUrl', shareItem.videoUrl);
+          if (shareItem.metadata?.audioUrl) params.set('audioUrl', shareItem.metadata.audioUrl);
+          const subs = shareItem.subImageUrls || [];
+          if (subs[0]) params.set('subImageUrl1', subs[0]);
+          if (subs[1]) params.set('subImageUrl2', subs[1]);
+          if (shareItem.description) params.set('description', shareItem.description);
+          if (shareItem.title) params.set('title', shareItem.title);
+          return `${window.location.origin}/detail?${params.toString()}`;
+        })()}
       />
     </Screen>
   );
