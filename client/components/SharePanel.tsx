@@ -170,7 +170,7 @@ export default function SharePanel({
         }, 100);
         downloaded = true;
         showToast(audioUrl ? '音频已保存' : '图片已保存，可在微信中发送');
-        showInnerTip(audioUrl ? '✓ 音频已保存' : '✓ 图片已保存');
+        showInnerTip(audioUrl ? '✓ 音频已保存' : '✓ 原图已保存');
       } catch (e) {
         // 跨域 fetch 失败，兜底新标签打开原图，让用户手动长按/右键保存
         console.warn('[Share] blob download failed, fallback to open in new tab:', e);
@@ -218,8 +218,8 @@ export default function SharePanel({
         URL.revokeObjectURL(blobUrl);
       }, 100);
 
-      showToast('海报已保存，打开微信发送图片即可');
-      showInnerTip('✓ 海报已保存');
+      showToast('分享图已保存，打开微信发送图片即可');
+      showInnerTip('✓ 分享图已保存');
     } catch (err) {
       console.error('Save poster error:', err);
       showToast('保存失败，请尝试保存原图');
@@ -313,7 +313,7 @@ export default function SharePanel({
               {loading ? (
                 <View style={styles.loadingContainer}>
                   <ActivityIndicator color="#D4A574" size="large" />
-                  <Text style={styles.loadingText}>正在生成海报...</Text>
+                  <Text style={styles.loadingText}>正在生成分享图...</Text>
                 </View>
               ) : posterDataUrl ? (
                 <img
@@ -325,18 +325,18 @@ export default function SharePanel({
                     borderRadius: 12,
                     display: 'block',
                   }}
-                  alt="分享海报"
+                  alt="分享图"
                 />
               ) : (
                 <View style={styles.loadingContainer}>
-                  <Text style={styles.loadingText}>海报生成失败</Text>
+                  <Text style={styles.loadingText}>分享图生成失败</Text>
                 </View>
               )}
             </View>
 
             {/* 分享方式 */}
             <View style={styles.shareMethods}>
-              {/* 保存海报 */}
+              {/* 保存海报（带二维码） */}
               <TouchableOpacity style={styles.methodItem} onPress={saveSharePoster} disabled={saving || loading}>
                 <View style={[styles.methodIcon, { backgroundColor: '#07C160' }]}>
                   {saving ? (
@@ -345,22 +345,22 @@ export default function SharePanel({
                     <Text style={styles.methodEmoji}>🎨</Text>
                   )}
                 </View>
-                <Text style={styles.methodLabel}>保存海报</Text>
-                <Text style={styles.methodHint}>生成海报发微信</Text>
+                <Text style={styles.methodLabel}>保存分享图</Text>
+                <Text style={styles.methodHint}>带二维码，扫码看作品</Text>
               </TouchableOpacity>
 
-              {/* 保存原图 */}
+              {/* 保存原图（纯作品） */}
               {(imageUrl || audioUrl) && (
                 <TouchableOpacity style={styles.methodItem} onPress={saveOriginal} disabled={saving}>
                   <View style={[styles.methodIcon, { backgroundColor: '#4CAF50' }]}>
                     {saving ? (
                       <ActivityIndicator color="#fff" size="small" />
                     ) : (
-                      <Text style={styles.methodEmoji}>{audioUrl ? '🎵' : '📷'}</Text>
+                      <Text style={styles.methodEmoji}>{audioUrl ? '🎵' : '🖼️'}</Text>
                     )}
                   </View>
                   <Text style={styles.methodLabel}>{audioUrl ? '保存音频' : '保存原图'}</Text>
-                  <Text style={styles.methodHint}>{audioUrl ? '存音频发微信' : '存图片发微信'}</Text>
+                  <Text style={styles.methodHint}>{audioUrl ? '纯音频，无二维码' : '纯图片，无二维码'}</Text>
                 </TouchableOpacity>
               )}
 
@@ -370,14 +370,15 @@ export default function SharePanel({
                   <Text style={styles.methodEmoji}>🔗</Text>
                 </View>
                 <Text style={styles.methodLabel}>复制链接</Text>
-                <Text style={styles.methodHint}>粘贴到微信</Text>
+                <Text style={styles.methodHint}>粘贴微信直达作品</Text>
               </TouchableOpacity>
             </View>
 
             {/* 底部提示 */}
             <View style={styles.tips}>
               <Text style={styles.tipsText}>
-                点击「保存海报」生成带二维码的分享图 → 打开微信 → 从相册发送
+                想分享给朋友看：选「保存分享图」（含二维码，朋友扫码就能看）{'\n'}
+                想自己留存作品：选「保存原图」（纯作品，无水印二维码）
               </Text>
             </View>
           </ScrollView>
