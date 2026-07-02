@@ -170,7 +170,7 @@ export default function SharePanel({
         }, 100);
         downloaded = true;
         showToast(audioUrl ? '音频已保存' : '图片已保存，可在微信中发送');
-        showInnerTip(audioUrl ? '✓ 音频已保存' : '✓ 原图已保存');
+        showInnerTip(audioUrl ? '✓ 音频已保存' : '✓ 设计图已保存');
       } catch (e) {
         // 跨域 fetch 失败，兜底新标签打开原图，让用户手动长按/右键保存
         console.warn('[Share] blob download failed, fallback to open in new tab:', e);
@@ -222,8 +222,8 @@ export default function SharePanel({
       showInnerTip('✓ 分享图已保存');
     } catch (err) {
       console.error('Save poster error:', err);
-      showToast('保存失败，请尝试保存原图');
-      showInnerTip('保存失败，请尝试保存原图');
+      showToast('保存失败，请尝试保存设计图');
+      showInnerTip('保存失败，请尝试保存设计图');
     } finally {
       setSaving(false);
     }
@@ -359,7 +359,7 @@ export default function SharePanel({
                       <Text style={styles.methodEmoji}>{audioUrl ? '🎵' : '🖼️'}</Text>
                     )}
                   </View>
-                  <Text style={styles.methodLabel}>{audioUrl ? '保存音频' : '保存原图'}</Text>
+                  <Text style={styles.methodLabel}>{audioUrl ? '保存音频' : '保存设计图'}</Text>
                   <Text style={styles.methodHint}>{audioUrl ? '纯音频，无二维码' : '纯图片，无二维码'}</Text>
                 </TouchableOpacity>
               )}
@@ -378,7 +378,7 @@ export default function SharePanel({
             <View style={styles.tips}>
               <Text style={styles.tipsText}>
                 想分享给朋友看：选「保存分享图」（含二维码，朋友扫码就能看）{'\n'}
-                想自己留存作品：选「保存原图」（纯作品，无水印二维码）
+                想自己留存作品：选「保存设计图」（纯作品，无水印二维码）
               </Text>
             </View>
           </ScrollView>
