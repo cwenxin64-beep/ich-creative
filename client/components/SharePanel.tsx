@@ -140,28 +140,44 @@ export default function SharePanel({
         fullUrl = buildApiUrl(`/api/v1/audio/proxy?url=${encodeURIComponent(audioUrl!)}`);
       }
 
-      const response = await fetch(fullUrl);
-      if (!response.ok) throw new Error('下载失败');
-      const blob = await response.blob();
-      const blobUrl = URL.createObjectURL(blob);
+      let downloaded = false;
+      try {
+        // 尝试 blob 下载（依赖资源 CORS 允许）
+        const response = await fetch(fullUrl, { mode: 'cors' });
+        if (!response.ok) throw new Error('http ' + response.status);
+        const blob = await response.blob();
+        const blobUrl = URL.createObjectURL(blob);
 
-      const ext = audioUrl ? '.mp3' : '.jpg';
-      const fileName = `${title || '非遗作品'}_${Date.now()}${ext}`;
+        const ext = audioUrl ? '.mp3' : '.jpg';
+        const fileName = `${title || '非遗作品'}_${Date.now()}${ext}`;
 
-      const link = document.createElement('a');
-      link.href = blobUrl;
-      link.download = fileName;
-      link.style.display = 'none';
-      document.body.appendChild(link);
-      link.click();
-      setTimeout(() => {
-        document.body.removeChild(link);
-        URL.revokeObjectURL(blobUrl);
-      }, 100);
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = fileName;
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        setTimeout(() => {
+          document.body.removeChild(link);
+          URL.revokeObjectURL(blobUrl);
+        }, 100);
+        downloaded = true;
+        showToast(audioUrl ? '音频已保存' : '图片已保存，可在微信中发送');
+      } catch (e) {
+        // 跨域 fetch 失败，兜底新标签打开原图，让用户手动长按/右键保存
+        console.warn('[Share] blob download failed, fallback to open in new tab:', e);
+        try {
+          window.open(fullUrl, '_blank', 'noopener');
+          showToast(audioUrl ? '已打开音频，长按可保存' : '已打开图片，长按/右键保存');
+          downloaded = true;
+        } catch {
+          // 忽略
+        }
+      }
 
-      showToast(audioUrl ? '音频已保存' : '图片已保存，可在微信中发送');
-    } catch {
-      showToast('保存失败，请长按内容保存');
+      if (!downloaded) {
+        showToast('保存失败，请长按内容保存');
+      }
     } finally {
       setSaving(false);
     }
@@ -201,9 +217,9 @@ export default function SharePanel({
     }
   }, [posterDataUrl, title, showToast]);
 
-  // 复制链接
+  // 复制链接：优先复制短分享链接 qrContent（含作品信息），fallback 到 shareUrl / 域名
   const copyLink = useCallback(async () => {
-    const link = shareUrl || (typeof window !== 'undefined' ? window.location.origin : '');
+    const link = qrContent || shareUrl || (typeof window !== 'undefined' ? window.location.origin : '');
     if (!link) {
       showToast('暂无链接可复制');
       return;
@@ -223,9 +239,14 @@ export default function SharePanel({
       }
       showToast('链接已复制，可粘贴到微信分享');
     } catch {
-      showToast('复制失败，请手动复制');
+      // 剪贴板 API 失败：兜底用 prompt 弹窗让用户手动复制
+      try {
+        window.prompt('请手动复制以下链接：', link);
+      } catch {
+        showToast('复制失败，请手动复制链接');
+      }
     }
-  }, [shareUrl, showToast]);
+  }, [qrContent, shareUrl, showToast]);
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
