@@ -84,11 +84,13 @@ export const createStyles = (theme: Theme) => {
     },
     mainImageContainer: {
       position: 'relative',
-      height: 200,
+      height: 320,
+      backgroundColor: theme.backgroundTertiary,
     },
     mainImage: {
       width: '100%',
       height: '100%',
+      resizeMode: 'contain',
     },
     cardOverlay: {
       position: 'absolute',
@@ -112,8 +114,10 @@ export const createStyles = (theme: Theme) => {
     },
     subImage: {
       flex: 1,
-      height: 80,
+      height: 140,
       borderRadius: BorderRadius.md,
+      resizeMode: 'contain',
+      backgroundColor: theme.backgroundTertiary,
     },
     cardContent: {
       padding: Spacing.md,
@@ -221,9 +225,11 @@ export const createStyles = (theme: Theme) => {
     },
     detailImage: {
       width: '100%',
-      height: 250,
+      height: 380,
       borderRadius: BorderRadius.xl,
       marginBottom: Spacing.lg,
+      resizeMode: 'contain',
+      backgroundColor: theme.backgroundTertiary,
     },
     detailSubImages: {
       flexDirection: 'row',
@@ -233,8 +239,10 @@ export const createStyles = (theme: Theme) => {
     },
     detailSubImage: {
       width: (SCREEN_WIDTH - 48 - Spacing.xl * 2 - Spacing.sm) / 2,
-      height: 100,
+      height: 180,
       borderRadius: BorderRadius.md,
+      resizeMode: 'contain',
+      backgroundColor: theme.backgroundTertiary,
     },
     detailActions: {
       flexDirection: 'row',
