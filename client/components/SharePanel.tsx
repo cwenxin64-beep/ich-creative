@@ -41,6 +41,13 @@ export default function SharePanel({
   const [posterDataUrl, setPosterDataUrl] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [qrContent, setQrContent] = useState<string>(shareUrl || (typeof window !== 'undefined' ? window.location.origin : ''));
+  const [innerTip, setInnerTip] = useState<string>('');
+
+  // 显示弹窗内提示（因为外部 Toast 会被 Modal 遮住）
+  const showInnerTip = useCallback((msg: string) => {
+    setInnerTip(msg);
+    setTimeout(() => setInnerTip(''), 2000);
+  }, []);
 
   // 弹窗打开时，先创建分享记录，再生成海报（用短分享 URL）
   useEffect(() => {
@@ -163,12 +170,14 @@ export default function SharePanel({
         }, 100);
         downloaded = true;
         showToast(audioUrl ? '音频已保存' : '图片已保存，可在微信中发送');
+        showInnerTip(audioUrl ? '✓ 音频已保存' : '✓ 图片已保存');
       } catch (e) {
         // 跨域 fetch 失败，兜底新标签打开原图，让用户手动长按/右键保存
         console.warn('[Share] blob download failed, fallback to open in new tab:', e);
         try {
           window.open(fullUrl, '_blank', 'noopener');
           showToast(audioUrl ? '已打开音频，长按可保存' : '已打开图片，长按/右键保存');
+          showInnerTip('✓ 已在新标签打开，长按/右键保存');
           downloaded = true;
         } catch {
           // 忽略
@@ -177,11 +186,12 @@ export default function SharePanel({
 
       if (!downloaded) {
         showToast('保存失败，请长按内容保存');
+        showInnerTip('保存失败，请长按内容保存');
       }
     } finally {
       setSaving(false);
     }
-  }, [imageUrl, audioUrl, title, showToast]);
+  }, [imageUrl, audioUrl, title, showToast, showInnerTip]);
 
   // 保存海报图片（直接下载后端生成的 PNG）
   const saveSharePoster = useCallback(async () => {
@@ -209,13 +219,15 @@ export default function SharePanel({
       }, 100);
 
       showToast('海报已保存，打开微信发送图片即可');
+      showInnerTip('✓ 海报已保存');
     } catch (err) {
       console.error('Save poster error:', err);
       showToast('保存失败，请尝试保存原图');
+      showInnerTip('保存失败，请尝试保存原图');
     } finally {
       setSaving(false);
     }
-  }, [posterDataUrl, title, showToast]);
+  }, [posterDataUrl, title, showToast, showInnerTip]);
 
   // 复制链接：优先复制短分享链接 qrContent（含作品信息），fallback 到 shareUrl / 域名
   const copyLink = useCallback(async () => {
@@ -238,20 +250,55 @@ export default function SharePanel({
         document.body.removeChild(textArea);
       }
       showToast('链接已复制，可粘贴到微信分享');
+      showInnerTip('✓ 链接已复制');
     } catch {
       // 剪贴板 API 失败：兜底用 prompt 弹窗让用户手动复制
       try {
         window.prompt('请手动复制以下链接：', link);
       } catch {
         showToast('复制失败，请手动复制链接');
+        showInnerTip('复制失败，请手动复制');
       }
     }
-  }, [qrContent, shareUrl, showToast]);
+  }, [qrContent, shareUrl, showToast, showInnerTip]);
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View style={styles.overlay}>
         <View style={styles.container}>
+          {/* 顶部悬浮提示（Modal 内部，不会被遮盖） */}
+          {innerTip ? (
+            <View
+              pointerEvents="none"
+              style={{
+                position: 'absolute',
+                top: 24,
+                left: 0,
+                right: 0,
+                alignItems: 'center',
+                zIndex: 9999,
+              }}
+            >
+              <View
+                style={{
+                  backgroundColor: 'rgba(7, 193, 96, 0.95)',
+                  paddingHorizontal: 24,
+                  paddingVertical: 12,
+                  borderRadius: 24,
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowOpacity: 0.25,
+                  shadowRadius: 8,
+                  elevation: 8,
+                }}
+              >
+                <Text style={{ color: '#fff', fontSize: 15, fontWeight: '600' }}>
+                  {innerTip}
+                </Text>
+              </View>
+            </View>
+          ) : null}
+
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
             {/* 标题 */}
             <View style={styles.header}>
