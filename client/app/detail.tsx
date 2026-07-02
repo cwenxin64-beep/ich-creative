@@ -41,10 +41,26 @@ export default function DetailScreen() {
     setLoadingShare(true);
     fetch(`${getApiBaseUrl()}/api/v1/share/${params.shareId}`)
       .then((r) => r.json())
-      .then((data) => {
-        if (data && !data.error) {
-          setRemoteData(data as DetailParams);
+      .then((resp) => {
+        if (!resp || resp.error) {
+          console.warn('[detail] share fetch bad response:', resp);
+          return;
         }
+        // 后端返回结构：{ shareId, type, data: {...作品字段...}, createdAt }
+        // 真实作品数据在 resp.data 里
+        const payload = (resp && resp.data && typeof resp.data === 'object') ? resp.data : resp;
+        // 兼容存进去的可能是 mainImage / mainImageUrl 两种命名
+        const normalized: DetailParams = {
+          ...payload,
+          imageUrl: payload.imageUrl || payload.mainImageUrl || payload.mainImage || '',
+          mainImageUrl: payload.mainImageUrl || payload.mainImage || '',
+          videoUrl: payload.videoUrl || payload.video || '',
+          audioUrl: payload.audioUrl || payload.audio || '',
+          title: payload.title || '',
+          description: payload.description || '',
+          type: resp.type || payload.type || '',
+        };
+        setRemoteData(normalized);
       })
       .catch((e) => console.error('load share failed:', e))
       .finally(() => setLoadingShare(false));

@@ -69,10 +69,14 @@ export default function SharePanel({
           });
           if (createRes.ok) {
             const createJson = await createRes.json();
-            if (createJson.success && createJson.shareId) {
+            if (createJson && createJson.shareId) {
               finalQrUrl = `${window.location.origin}/detail?shareId=${createJson.shareId}`;
               console.log('[SharePanel] Created share:', createJson.shareId, 'short URL:', finalQrUrl);
+            } else {
+              console.warn('[SharePanel] create response missing shareId:', createJson);
             }
+          } else {
+            console.warn('[SharePanel] create failed status:', createRes.status);
           }
         } catch (e) {
           console.warn('[SharePanel] Create share failed, fallback to long URL:', e);
