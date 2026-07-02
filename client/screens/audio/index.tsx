@@ -42,8 +42,8 @@ export default function AudioScreen() {
   const { toastVisible, toastMessage, showToast, hideToast } = useToast();
 
   const [prompt, setPrompt] = useState('');
-  const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
-  const [selectedMoods, setSelectedMoods] = useState<string[]>([]);
+  const [selectedGenre, setSelectedGenre] = useState<string>('');
+  const [selectedMood, setSelectedMood] = useState<string>('');
   const [selectedDuration, setSelectedDuration] = useState(30);
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -61,12 +61,9 @@ export default function AudioScreen() {
     storageKey?: string;
   } | null>(null);
 
-  const toggleTag = (tag: string, selected: string[], setSelected: (v: string[]) => void) => {
-    if (selected.includes(tag)) {
-      setSelected(selected.filter(t => t !== tag));
-    } else {
-      setSelected([...selected, tag]);
-    }
+  // 单选切换：点相同的再次取消，点不同的替换
+  const selectSingle = (tag: string, current: string, setValue: (v: string) => void) => {
+    setValue(current === tag ? '' : tag);
   };
 
   const handleFavorite = async () => {
@@ -152,8 +149,8 @@ export default function AudioScreen() {
 
     try {
       // 组合完整描述：用户输入 + 选中的标签
-      const genrePart = selectedGenres.length > 0 ? `，曲风：${selectedGenres.join('、')}` : '';
-      const moodPart = selectedMoods.length > 0 ? `，情绪：${selectedMoods.join('、')}` : '';
+      const genrePart = selectedGenre ? `，曲风：${selectedGenre}` : '';
+      const moodPart = selectedMood ? `，情绪：${selectedMood}` : '';
       const fullPrompt = `${prompt.trim()}${genrePart}${moodPart}，时长${selectedDuration}秒`;
 
       const response = await authFetch(buildApiUrl('/api/v1/audio/generate'), {
@@ -217,10 +214,10 @@ export default function AudioScreen() {
           />
         </ThemedView>
 
-        {/* 曲风快捷标签 */}
+        {/* 曲风快捷标签（单选） */}
         <ThemedView level="root" style={styles.section}>
           <ThemedText variant="title" color={theme.textPrimary} style={styles.sectionTitle}>
-            曲风
+            曲风（单选）
           </ThemedText>
           <View style={styles.chipContainer}>
             {GENRE_TAGS.map((tag) => (
@@ -228,14 +225,14 @@ export default function AudioScreen() {
                 key={tag}
                 style={[
                   styles.chip,
-                  selectedGenres.includes(tag) && { backgroundColor: theme.primary, borderColor: theme.primary },
-                  !selectedGenres.includes(tag) && { backgroundColor: theme.backgroundTertiary, borderColor: theme.border },
+                  selectedGenre === tag && { backgroundColor: theme.primary, borderColor: theme.primary },
+                  selectedGenre !== tag && { backgroundColor: theme.backgroundTertiary, borderColor: theme.border },
                 ]}
-                onPress={() => toggleTag(tag, selectedGenres, setSelectedGenres)}
+                onPress={() => selectSingle(tag, selectedGenre, setSelectedGenre)}
               >
                 <ThemedText
                   variant="caption"
-                  color={selectedGenres.includes(tag) ? theme.buttonPrimaryText : theme.textSecondary}
+                  color={selectedGenre === tag ? theme.buttonPrimaryText : theme.textSecondary}
                 >
                   {tag}
                 </ThemedText>
@@ -244,10 +241,10 @@ export default function AudioScreen() {
           </View>
         </ThemedView>
 
-        {/* 情绪快捷标签 */}
+        {/* 情绪快捷标签（单选） */}
         <ThemedView level="root" style={styles.section}>
           <ThemedText variant="title" color={theme.textPrimary} style={styles.sectionTitle}>
-            情绪
+            情绪（单选）
           </ThemedText>
           <View style={styles.chipContainer}>
             {MOOD_TAGS.map((tag) => (
@@ -255,14 +252,14 @@ export default function AudioScreen() {
                 key={tag}
                 style={[
                   styles.chip,
-                  selectedMoods.includes(tag) && { backgroundColor: theme.primary, borderColor: theme.primary },
-                  !selectedMoods.includes(tag) && { backgroundColor: theme.backgroundTertiary, borderColor: theme.border },
+                  selectedMood === tag && { backgroundColor: theme.primary, borderColor: theme.primary },
+                  selectedMood !== tag && { backgroundColor: theme.backgroundTertiary, borderColor: theme.border },
                 ]}
-                onPress={() => toggleTag(tag, selectedMoods, setSelectedMoods)}
+                onPress={() => selectSingle(tag, selectedMood, setSelectedMood)}
               >
                 <ThemedText
                   variant="caption"
-                  color={selectedMoods.includes(tag) ? theme.buttonPrimaryText : theme.textSecondary}
+                  color={selectedMood === tag ? theme.buttonPrimaryText : theme.textSecondary}
                 >
                   {tag}
                 </ThemedText>
