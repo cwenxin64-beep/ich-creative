@@ -321,7 +321,7 @@ export default function FavoritesScreen() {
         <Image
           source={{ uri: item.mainImageUrl }}
           style={styles.mainImage}
-          contentFit="cover"
+          contentFit="contain"
         />
         <View style={styles.cardOverlay}>
           <FontAwesome6
@@ -349,7 +349,7 @@ export default function FavoritesScreen() {
               key={index}
               source={{ uri: url }}
               style={styles.subImage}
-              contentFit="cover"
+              contentFit="contain"
             />
           ))}
         </View>
@@ -467,7 +467,7 @@ export default function FavoritesScreen() {
                         key={index}
                         source={{ uri: url }}
                         style={styles.detailSubImage}
-                        contentFit="cover"
+                        contentFit="contain"
                       />
                     ))}
                   </View>
