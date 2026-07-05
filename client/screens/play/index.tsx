@@ -193,9 +193,32 @@ export default function PlayScreen() {
       return;
     }
 
-    if (!text.trim()) {
-      Alert.alert('提示', '请输入创意描述');
+    // 至少选一个非遗类型或输入文字
+    if (!selectedIchType && !text.trim()) {
+      Alert.alert('提示', '请至少选择一个非遗类型，或输入创意描述');
       return;
+    }
+
+    // 如果用户没输入文字，用选中的标签自动拼一个描述
+    let effectiveText = text.trim();
+    if (!effectiveText) {
+      const ichName = ICH_TYPES.find(i => i.id === selectedIchType)?.name || '';
+      const productName = PRODUCT_TYPES.find(p => p.id === selectedProductType)?.name
+        || (selectedProductType === 'my-material' ? '我的素材' : '');
+      const marketName = TARGET_MARKETS.find(m => m.id === selectedMarket)?.name || '';
+      const interactionNames = selectedInteractionTypes
+        .map(id => INTERACTION_TYPES.find(t => t.id === id)?.name)
+        .filter(Boolean)
+        .join('、');
+
+      const parts: string[] = [];
+      if (ichName) parts.push(`基于「${ichName}」`);
+      if (interactionNames) parts.push(`融合${interactionNames}体验`);
+      if (productName) parts.push(`设计一款${productName}`);
+      if (marketName) parts.push(`面向${marketName}市场`);
+      effectiveText = parts.length > 0
+        ? parts.join('，') + '，突出非遗文化特色与现代审美的融合。'
+        : '创作一件非遗创意作品。';
     }
 
     setLoading(true);
@@ -217,7 +240,7 @@ export default function PlayScreen() {
        * 接口：GET /api/v1/play/status/:taskId (查询状态)
        */
       const requestBody: any = {
-        text,
+        text: effectiveText,
         ichType: selectedIchType,
         interactionTypes: selectedInteractionTypes,
         productType: selectedProductType,
@@ -521,10 +544,10 @@ export default function PlayScreen() {
         <TouchableOpacity
           style={[
             styles.generateButton,
-            { backgroundColor: theme.primary, opacity: loading || !text.trim() ? 0.6 : 1 },
+            { backgroundColor: theme.primary, opacity: loading ? 0.6 : 1 },
           ]}
           onPress={handleGenerate}
-          disabled={loading || !text.trim()}
+          disabled={loading}
         >
           <FontAwesome6 name="star" size={20} color={theme.buttonPrimaryText} />
           <ThemedText variant="title" color={theme.buttonPrimaryText} style={styles.generateButtonText}>
