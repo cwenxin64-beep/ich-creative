@@ -176,9 +176,26 @@ export default function UseScreen() {
       return;
     }
 
-    if (!keywords.trim()) {
-      Alert.alert('提示', '请输入创意关键词');
+    // 至少要选一个非遗类型或输入关键词
+    if (!selectedIchType && !keywords.trim()) {
+      Alert.alert('提示', '请至少选择一个非遗类型，或输入创意关键词');
       return;
+    }
+
+    // 关键词可写可不写；未输入时用选中的标签自动拼一个默认描述
+    let effectiveKeywords = keywords.trim();
+    if (!effectiveKeywords) {
+      const ichName = ICH_TYPES.find(i => i.id === selectedIchType)?.name || '';
+      const interactionName = INTERACTION_TYPES.find(t => t.id === selectedInteractionType)?.name || '';
+      const sceneName = APPLICATION_SCENES.find(s => s.id === selectedScene)?.name
+        || (selectedScene === 'my-material' ? '我的素材' : '');
+      const parts: string[] = [];
+      if (ichName) parts.push(`结合「${ichName}」`);
+      if (interactionName) parts.push(`面向${interactionName}`);
+      if (sceneName) parts.push(`应用于${sceneName}`);
+      effectiveKeywords = parts.length > 0
+        ? parts.join('，') + '，展现非遗文化的现代化表达。'
+        : '一件非遗创意定制作品。';
     }
 
     setLoading(true);
@@ -200,7 +217,7 @@ export default function UseScreen() {
        * Body 参数：keywords: string, ichType: string, interactionType: string, applicationScene: string, material?: any
        */
       const requestBody: any = {
-        keywords,
+        keywords: effectiveKeywords,
         ichType: selectedIchType,
         interactionType: selectedInteractionType,
         applicationScene: selectedScene,
@@ -426,10 +443,10 @@ export default function UseScreen() {
         <ThemedView level="root" style={styles.inputSection}>
           <View style={styles.sectionHeader}>
             <ThemedText variant="title" color={theme.textPrimary} style={styles.inputLabel}>
-              创意关键词
+              创意关键词（可选）
             </ThemedText>
             <ThemedText variant="caption" color={theme.textMuted} style={styles.sectionTip}>
-              输入风格关键词，AI 将据此生成设计方案
+              💡 可写可不写，留空时会用选中的类型自动生成描述
             </ThemedText>
           </View>
           <TextInput
@@ -512,10 +529,10 @@ export default function UseScreen() {
         <TouchableOpacity
           style={[
             styles.generateButton,
-            { backgroundColor: theme.primary, opacity: loading || !keywords.trim() ? 0.6 : 1 },
+            { backgroundColor: theme.primary, opacity: loading ? 0.6 : 1 },
           ]}
           onPress={handleGenerate}
-          disabled={loading || !keywords.trim()}
+          disabled={loading}
         >
           <FontAwesome6 name="wand-magic-sparkles" size={20} color={theme.buttonPrimaryText} />
           <ThemedText variant="title" color={theme.buttonPrimaryText} style={styles.generateButtonText}>

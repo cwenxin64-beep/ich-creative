@@ -185,10 +185,9 @@ export default function PhotoScreen() {
       return;
     }
 
-    if (!description.trim()) {
-      Alert.alert('提示', '请输入创意描述');
-      return;
-    }
+    // 描述可写可不写；未输入时使用默认创意描述
+    const effectiveDescription = description.trim()
+      || '基于原图元素进行非遗风格的创意再创作，突出中国传统美学与现代设计的融合。';
 
     setLoading(true);
     setProgress(0);
@@ -209,7 +208,7 @@ export default function PhotoScreen() {
 
       const formData = new FormData();
       formData.append('file', file as any);
-      formData.append('description', description);
+      formData.append('description', effectiveDescription);
       formData.append('outputType', outputType);
 
       // Step 1: 发起异步生成请求
@@ -370,10 +369,10 @@ export default function PhotoScreen() {
         <TouchableOpacity
           style={[
             styles.generateButton,
-            { backgroundColor: theme.primary, opacity: loading || !selectedMedia || !description.trim() ? 0.6 : 1 },
+            { backgroundColor: theme.primary, opacity: loading || !selectedMedia ? 0.6 : 1 },
           ]}
           onPress={handleGenerate}
-          disabled={loading || !selectedMedia || !description.trim()}
+          disabled={loading || !selectedMedia}
         >
           <FontAwesome6 name="star" size={20} color={theme.buttonPrimaryText} />
           <ThemedText variant="title" color={theme.buttonPrimaryText} style={styles.generateButtonText}>

@@ -128,9 +128,15 @@ export default function AudioScreen() {
   };
 
   const handleGenerate = async () => {
-    if (!prompt.trim()) {
-      Alert.alert('提示', '请输入音乐描述');
-      return;
+    // 描述可写可不写；未输入时用选中的曲风/情绪拼一个默认描述
+    let effectivePrompt = prompt.trim();
+    if (!effectivePrompt) {
+      const parts: string[] = [];
+      if (selectedGenre) parts.push(selectedGenre);
+      if (selectedMood) parts.push(selectedMood);
+      effectivePrompt = parts.length > 0
+        ? `一段${parts.join('、')}风格的非遗音乐`
+        : '一段中国传统非遗风格的音乐';
     }
 
     setLoading(true);
@@ -151,7 +157,7 @@ export default function AudioScreen() {
       // 组合完整描述：用户输入 + 选中的标签
       const genrePart = selectedGenre ? `，曲风：${selectedGenre}` : '';
       const moodPart = selectedMood ? `，情绪：${selectedMood}` : '';
-      const fullPrompt = `${prompt.trim()}${genrePart}${moodPart}，时长${selectedDuration}秒`;
+      const fullPrompt = `${effectivePrompt}${genrePart}${moodPart}，时长${selectedDuration}秒`;
 
       const response = await authFetch(buildApiUrl('/api/v1/audio/generate'), {
         method: 'POST',
@@ -299,10 +305,10 @@ export default function AudioScreen() {
         <TouchableOpacity
           style={[
             styles.generateButton,
-            { backgroundColor: theme.primary, opacity: loading || !prompt.trim() ? 0.6 : 1 },
+            { backgroundColor: theme.primary, opacity: loading ? 0.6 : 1 },
           ]}
           onPress={handleGenerate}
-          disabled={loading || !prompt.trim()}
+          disabled={loading}
         >
           <FontAwesome6 name="star" size={20} color={theme.buttonPrimaryText} />
           <ThemedText variant="title" color={theme.buttonPrimaryText} style={styles.generateButtonText}>
