@@ -1,0 +1,32 @@
+.detail-image,
+.detail-video {
+  width: 100%;
+  height: 680rpx;
+  border-radius: 20rpx;
+  background: rgba(232, 225, 216, 0.45);
+}
+
+.audio-panel {
+  padding: 60rpx 24rpx;
+  text-align: center;
+}
+
+.audio-icon {
+  width: 160rpx;
+  height: 160rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 24rpx;
+  border-radius: 80rpx;
+  background: rgba(184, 134, 11, 0.12);
+  color: #b8860b;
+  font-size: 80rpx;
+}
+
+.detail-desc {
+  margin-top: 24rpx;
+  color: #8b8680;
+  font-size: 28rpx;
+  line-height: 1.6;
+}

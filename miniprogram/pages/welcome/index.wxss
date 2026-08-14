@@ -1,0 +1,53 @@
+.welcome-page {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.hero {
+  margin-bottom: 48rpx;
+}
+
+.brand {
+  display: block;
+  color: #5d5a58;
+  font-size: 72rpx;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.tagline {
+  display: block;
+  margin-top: 18rpx;
+  color: #8b8680;
+  font-size: 30rpx;
+}
+
+.intro {
+  margin-bottom: 32rpx;
+}
+
+.intro-title {
+  display: block;
+  color: #5d5a58;
+  font-size: 34rpx;
+  font-weight: 700;
+}
+
+.intro-text {
+  display: block;
+  margin-top: 14rpx;
+  color: #8b8680;
+  font-size: 27rpx;
+  line-height: 1.6;
+}
+
+.actions-col {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}
+
+.quiet {
+  color: #a8a098;
+}

@@ -1,4 +1,98 @@
-# Expo App + Express.js
+# 智能非遗
+
+## 项目功能简介
+
+这是一个 AI 非遗创作项目，可以生成非遗风格图片、音乐、互动作品和实用设计，也支持普通用户提交定制需求单、手艺人接单。
+
+## 技术架构
+
+- `client/`：Expo 前端，负责原来的 App/Web 页面。
+- `server/`：Express 后端，负责登录、生成任务、收藏、素材、分享、定制需求单和接单接口。
+- `miniprogram/`：微信原生小程序，复用现有后端接口。
+
+## 微信小程序版本
+
+小程序目录：
+
+```text
+miniprogram/
+```
+
+打开方式：
+
+1. 打开微信开发者工具。
+2. 导入 `miniprogram` 目录。
+3. 开发阶段可使用测试 AppID。
+4. 正式发布前，把 `miniprogram/project.config.json` 里的 `appid` 换成正式小程序 AppID。
+
+小程序后端地址在：
+
+```text
+miniprogram/utils/api.js
+```
+
+发布前需要在微信小程序后台配置合法域名：
+
+```text
+https://cc-4gicfmjy884d01bf-1388119917.ap-shanghai.app.tcloudbase.com
+```
+
+请求和上传都会带 `X-WX-SERVICE: ich-server`，用于路由到当前项目的云托管服务。
+
+定制需求单接口：
+
+- `POST /api/v1/use/customization-order`：普通用户提交需求单。
+- `GET /api/v1/use/customization-orders`：普通用户看自己的单；手艺人看待接单和自己已接单。
+- `POST /api/v1/use/customization-orders/:id/accept`：手艺人接单。
+- `POST /api/v1/use/customization-orders/:id/payment-intent`：支付预留接口，当前不调用真实支付。
+
+## 本地运行方法
+
+Expo + Express 版本：
+
+```bash
+coze dev
+```
+
+微信小程序版本：用微信开发者工具导入 `miniprogram` 目录。
+
+## 部署方法和命令
+
+现有项目沿用原部署方式：
+
+```bash
+pnpm i
+pnpm build
+pnpm start
+```
+
+微信小程序需要在微信开发者工具中上传。
+
+## 测试方法和常用命令
+
+```bash
+pnpm i
+pnpm build
+```
+
+本次小程序迁移额外做了配置解析和脚本语法检查。
+
+## 搜索记录
+
+- `skills.sh`：已访问技能目录，没有找到专门针对“Expo 转微信小程序”的可直接使用技能。
+- GitHub：搜索微信小程序、Taro、React、Express 迁移参考时没有返回稳定可复用结果。
+- 结论：本次采用微信原生小程序格式直接迁移，避免新增外部依赖。
+
+## 已完成功能
+
+- Expo 前端主流程。
+- Express 后端接口。
+- 微信小程序版本：首页、登录注册、手艺人注册、拍非遗、唱非遗、玩非遗、创非遗、定制需求单、接单大厅、收藏、素材、详情。
+
+## 待办事项
+
+- 接入真实微信支付。
+- 正式发布前配置微信小程序合法域名和正式 AppID。
 
 ## 目录结构规范（严格遵循）
 

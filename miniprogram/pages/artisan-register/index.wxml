@@ -1,0 +1,39 @@
+<view class="page">
+  <view class="header">
+    <button class="back" bindtap="goBack">‹</button>
+    <view>
+      <view class="title">手艺人注册</view>
+      <view class="subtitle">提交非遗传承与合作信息</view>
+    </view>
+  </view>
+
+  <view class="card">
+    <view class="section">
+      <view class="field-label">姓名</view>
+      <input class="input" value="{{name}}" placeholder="请输入姓名" data-field="name" bindinput="onInput" />
+    </view>
+    <view class="section">
+      <view class="field-label">登录邮箱</view>
+      <input class="input" value="{{email}}" placeholder="请输入邮箱" data-field="email" bindinput="onInput" />
+    </view>
+    <view class="section">
+      <view class="field-label">登录密码</view>
+      <input class="input" password value="{{password}}" placeholder="至少 6 位" data-field="password" bindinput="onInput" />
+    </view>
+    <view class="section">
+      <view class="field-label">联系方式</view>
+      <input class="input" value="{{contact}}" placeholder="请输入手机或邮箱" data-field="contact" bindinput="onInput" />
+    </view>
+    <view class="section">
+      <view class="field-label">非遗项目</view>
+      <input class="input" value="{{craft}}" placeholder="例如：剪纸、陶瓷、古琴" data-field="craft" bindinput="onInput" />
+    </view>
+    <view class="section">
+      <view class="field-label">简介</view>
+      <textarea class="textarea" value="{{description}}" placeholder="简单介绍你的技艺和合作方向" data-field="description" bindinput="onInput" />
+    </view>
+    <button class="primary-btn {{loading ? 'disabled' : ''}}" loading="{{loading}}" disabled="{{loading}}" bindtap="submit">
+      {{loading ? '注册中' : '注册为手艺人'}}
+    </button>
+  </view>
+</view>

@@ -12,8 +12,25 @@ __pycache__/
 *.egg-info/
 /.env
 .env
+.env.*
+**/.env
+**/.env.*
+
+# Local deployment packages
+deploy/
+
+# Local caches
+.pnpm-store/
+node-compile-cache/
+jiti/
+user/
+
+# WeChat DevTools local private config
+**/project.private.config.json
 
 # JS/TS bundlers & build outputs
+.expo/
+**/.expo/
 .next
 .nuxt
 .turbo

@@ -1,0 +1,56 @@
+.option-section {
+  margin-bottom: 24rpx;
+}
+
+.progress-card {
+  margin-top: 22rpx;
+}
+
+.progress-bar {
+  height: 16rpx;
+  margin-bottom: 18rpx;
+  overflow: hidden;
+  border-radius: 8rpx;
+  background: rgba(232, 225, 216, 0.6);
+}
+
+.progress-inner {
+  height: 100%;
+  border-radius: 8rpx;
+  background: #b8860b;
+}
+
+.result-block {
+  margin-top: 36rpx;
+}
+
+.small-title {
+  margin-bottom: 20rpx;
+  font-size: 36rpx;
+}
+
+.result-card {
+  margin-bottom: 24rpx;
+}
+
+.result-type {
+  margin-bottom: 18rpx;
+  color: #8b8680;
+  font-size: 26rpx;
+  font-weight: 700;
+}
+
+.result-video {
+  width: 100%;
+  height: 520rpx;
+  border-radius: 20rpx;
+  overflow: hidden;
+}
+
+.empty-mini {
+  padding: 80rpx 0;
+  border-radius: 20rpx;
+  background: rgba(232, 225, 216, 0.45);
+  color: #a8a098;
+  text-align: center;
+}

@@ -1,0 +1,43 @@
+<view class="page favorites-page">
+  <view class="header">
+    <button class="back" bindtap="goBack">‹</button>
+    <view>
+      <view class="title">我的收藏</view>
+      <view class="subtitle">保存过的图片、音乐和文创作品</view>
+    </view>
+  </view>
+
+  <view class="toolbar">
+    <button class="ghost-btn toolbar-btn" bindtap="fetchFavorites">刷新</button>
+    <button class="ghost-btn toolbar-btn" bindtap="syncMaterials">同步素材</button>
+  </view>
+
+  <view wx:if="{{loading}}" class="empty">加载中...</view>
+  <view wx:elif="{{!favorites.length}}" class="empty">暂无收藏作品</view>
+
+  <view wx:else>
+    <view wx:for="{{favorites}}" wx:key="id" class="card favorite-card">
+      <view class="favorite-main" data-index="{{index}}" bindtap="goDetail">
+        <view wx:if="{{item.type == 'music'}}" class="music-cover">♪</view>
+        <image wx:elif="{{item.mainImageUrl}}" class="thumb" src="{{item.mainImageUrl}}" mode="aspectFill" />
+        <view wx:else class="placeholder">作品</view>
+
+        <view class="favorite-info">
+          <view class="favorite-title">{{item.title}}</view>
+          <view class="small-text">{{item.type == 'music' ? '音乐作品' : '图片作品'}}</view>
+          <view class="small-text">{{item.dateText}}</view>
+        </view>
+      </view>
+
+      <view wx:if="{{item.subImageUrls.length}}" class="sub-row">
+        <image wx:for="{{item.subImageUrls}}" wx:for-item="url" wx:key="*this" class="sub-thumb" src="{{url}}" mode="aspectFill" />
+      </view>
+
+      <view class="actions">
+        <button class="ghost-btn" data-index="{{index}}" bindtap="goDetail">详情</button>
+        <button class="ghost-btn" data-index="{{index}}" open-type="share">分享</button>
+        <button class="danger-btn" data-id="{{item.id}}" bindtap="confirmDelete">删除</button>
+      </view>
+    </view>
+  </view>
+</view>

@@ -525,8 +525,20 @@ router.post('/generate', upload.single('file'), async (req: Request, res: Respon
     const file = req.file;
     const description = req.body.description || '';
     const outputType = req.body.outputType === 'dynamic' ? 'dynamic' : 'static';
+    const fileBase64 = typeof req.body.fileBase64 === 'string' ? req.body.fileBase64 : '';
+    const mimeType = typeof req.body.mimeType === 'string' ? req.body.mimeType : 'image/jpeg';
 
-    if (!file) {
+    let fileBuffer: Buffer | null = file?.buffer || null;
+    let fileMimeType = file?.mimetype || mimeType;
+
+    if (!fileBuffer && fileBase64) {
+      const cleanBase64 = fileBase64.includes(',')
+        ? fileBase64.split(',').pop() || ''
+        : fileBase64;
+      fileBuffer = Buffer.from(cleanBase64, 'base64');
+    }
+
+    if (!fileBuffer) {
       return res.status(400).json({ error: 'No file provided' });
     }
 
@@ -535,7 +547,7 @@ router.post('/generate', upload.single('file'), async (req: Request, res: Respon
     console.log(`Created task ${task.id}, outputType: ${outputType}`);
 
     // 后台执行
-    executeGenerationTask(task.id, file.buffer, file.mimetype, description, outputType).catch(err => {
+    executeGenerationTask(task.id, fileBuffer, fileMimeType, description, outputType).catch(err => {
       console.error(`Task ${task.id} error:`, err);
     });
 

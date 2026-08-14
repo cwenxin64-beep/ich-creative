@@ -1,0 +1,33 @@
+<view class="page detail-page">
+  <view class="header">
+    <button class="back" bindtap="goBack">‹</button>
+    <view>
+      <view class="title">作品详情</view>
+      <view class="subtitle">查看生成结果</view>
+    </view>
+  </view>
+
+  <view wx:if="{{loading}}" class="empty">加载中...</view>
+
+  <view wx:else class="card">
+    <video wx:if="{{videoUrl}}" class="detail-video" src="{{videoUrl}}" poster="{{imageUrl}}" controls></video>
+    <image wx:elif="{{imageUrl}}" class="detail-image" src="{{imageUrl}}" mode="aspectFit" data-url="{{imageUrl}}" bindtap="previewImage" />
+    <view wx:elif="{{audioUrl}}" class="audio-panel">
+      <view class="audio-icon">♪</view>
+      <view class="field-label">非遗音乐作品</view>
+      <button class="primary-btn" bindtap="togglePlay">{{playing ? '暂停' : '播放'}}</button>
+    </view>
+    <view wx:else class="empty">暂无可预览内容</view>
+
+    <view wx:if="{{description}}" class="detail-desc">{{description}}</view>
+
+    <view wx:if="{{subImages.length}}" class="sub-images">
+      <image wx:for="{{subImages}}" wx:key="*this" class="sub-image" src="{{item}}" mode="aspectFill" data-url="{{item}}" bindtap="previewImage" />
+    </view>
+
+    <view class="actions">
+      <button class="ghost-btn" open-type="share">分享</button>
+      <button class="ghost-btn" bindtap="previewImage" wx:if="{{imageUrl}}">预览</button>
+    </view>
+  </view>
+</view>

@@ -1,0 +1,33 @@
+<view class="page">
+  <view class="header">
+    <button class="back" bindtap="goBack">‹</button>
+    <view>
+      <view class="title">我的素材</view>
+      <view class="subtitle">从收藏同步来的创作素材</view>
+    </view>
+  </view>
+
+  <view class="toolbar">
+    <button class="ghost-btn toolbar-btn {{filter == 'all' ? 'active-filter' : ''}}" data-filter="all" bindtap="setFilter">全部</button>
+    <button class="ghost-btn toolbar-btn {{filter == 'image' ? 'active-filter' : ''}}" data-filter="image" bindtap="setFilter">图片</button>
+    <button class="ghost-btn toolbar-btn {{filter == 'music' ? 'active-filter' : ''}}" data-filter="music" bindtap="setFilter">音乐</button>
+  </view>
+
+  <button class="primary-btn sync-btn" bindtap="syncMaterials">从收藏同步</button>
+
+  <view wx:if="{{loading}}" class="empty">加载中...</view>
+  <view wx:elif="{{!filtered.length}}" class="empty">暂无素材</view>
+
+  <view wx:else class="grid material-grid">
+    <view wx:for="{{filtered}}" wx:key="id" class="card material-card">
+      <view data-index="{{index}}" bindtap="goDetail">
+        <view wx:if="{{item.type == 'music'}}" class="material-music">♪</view>
+        <image wx:elif="{{item.sourceUrl}}" class="material-img" src="{{item.sourceUrl}}" mode="aspectFill" />
+        <view wx:else class="material-music">素</view>
+        <view class="material-title">{{item.title}}</view>
+        <view class="small-text">{{item.type == 'music' ? '音乐素材' : '图片素材'}}</view>
+      </view>
+      <button class="danger-btn delete-btn" data-id="{{item.id}}" bindtap="confirmDelete">删除</button>
+    </view>
+  </view>
+</view>

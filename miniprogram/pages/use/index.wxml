@@ -1,0 +1,135 @@
+<view class="page">
+  <view class="header">
+    <view>
+      <view class="title">创非遗</view>
+      <view class="subtitle">{{isCraftsman ? '查看用户需求并接单' : '选择场景，定制非遗实用设计'}}</view>
+    </view>
+  </view>
+
+  <block wx:if="{{isCraftsman}}">
+    <view class="card section order-panel">
+      <view class="order-head">
+        <view>
+          <view class="field-label">接单大厅</view>
+          <view class="small-text">普通用户提交的需求单会出现在这里。</view>
+        </view>
+        <button class="ghost-btn small-btn" loading="{{ordersLoading}}" disabled="{{ordersLoading}}" bindtap="loadOrders">刷新</button>
+      </view>
+    </view>
+
+    <view wx:if="{{availableOrders.length}}" class="order-list">
+      <view wx:for="{{availableOrders}}" wx:key="id" class="card order-card">
+        <view class="order-title-row">
+          <view class="order-title">{{item.title}}</view>
+          <view class="status-badge">{{item.statusText}}</view>
+        </view>
+        <view class="order-desc">{{item.requirements}}</view>
+        <view class="order-meta">{{item.budgetText}} · {{item.createdLabel}}</view>
+        <view class="small-text">联系人：{{item.contactName}} ｜ {{item.contactLine}}</view>
+        <button class="primary-btn order-action" data-id="{{item.id}}" loading="{{acceptingOrderId == item.id}}" disabled="{{acceptingOrderId == item.id}}" bindtap="acceptOrder">
+          {{acceptingOrderId == item.id ? '接单中' : '接单'}}
+        </button>
+      </view>
+    </view>
+    <view wx:else class="empty">暂无待接单需求</view>
+
+    <view wx:if="{{acceptedOrders.length}}" class="section">
+      <view class="title small-title">我的接单</view>
+      <view wx:for="{{acceptedOrders}}" wx:key="id" class="card order-card">
+        <view class="order-title-row">
+          <view class="order-title">{{item.title}}</view>
+          <view class="status-badge accepted">{{item.statusText}}</view>
+        </view>
+        <view class="order-desc">{{item.requirements}}</view>
+        <view class="order-meta">{{item.budgetText}} · {{item.createdLabel}}</view>
+        <view class="small-text">联系人：{{item.contactName}} ｜ {{item.contactLine}}</view>
+      </view>
+    </view>
+  </block>
+
+  <block wx:else>
+    <view class="card section option-section">
+      <view class="field-label">非遗类型</view>
+      <view class="chips">
+        <view wx:for="{{ichTypes}}" wx:key="id" class="chip {{selectedIchType == item.id ? 'active' : ''}}" data-id="{{item.id}}" bindtap="selectIch">{{item.name}}</view>
+      </view>
+    </view>
+
+    <view class="card section option-section">
+      <view class="field-label">体验类型</view>
+      <view class="chips">
+        <view wx:for="{{useInteractions}}" wx:key="id" class="chip {{selectedInteractionType == item.id ? 'active' : ''}}" data-id="{{item.id}}" bindtap="selectInteraction">{{item.name}}</view>
+      </view>
+    </view>
+
+    <view class="card section option-section">
+      <view class="field-label">应用场景</view>
+      <view class="chips">
+        <view wx:for="{{scenes}}" wx:key="id" class="chip {{selectedScene == item.id ? 'active' : ''}}" data-id="{{item.id}}" bindtap="selectScene">{{item.name}}</view>
+      </view>
+    </view>
+
+    <view class="card section option-section">
+      <view class="field-label">创意关键词</view>
+      <textarea class="textarea" value="{{keywords}}" placeholder="例如：中国风、简约、现代、传统" bindinput="onKeywords" />
+    </view>
+
+    <button class="primary-btn {{loading ? 'disabled' : ''}}" loading="{{loading}}" disabled="{{loading}}" bindtap="generate">
+      {{loading ? '定制中 ' + progress + '%' : '定制生成'}}
+    </button>
+
+    <button class="ghost-btn customize-btn" bindtap="toggleOrderForm">{{showOrderForm ? '收起需求单' : '非遗创意产品定制'}}</button>
+
+    <view wx:if="{{showOrderForm}}" class="card section order-form">
+      <view class="field-label">定制需求单</view>
+      <input class="input form-input" value="{{orderForm.title}}" placeholder="需求标题，例如：定制手机壳" data-field="title" bindinput="onOrderInput" />
+      <input class="input form-input" value="{{orderForm.contactName}}" placeholder="联系人称呼" data-field="contactName" bindinput="onOrderInput" />
+      <input class="input form-input" value="{{orderForm.contactPhone}}" placeholder="手机号" data-field="contactPhone" bindinput="onOrderInput" />
+      <input class="input form-input" value="{{orderForm.contactWechat}}" placeholder="微信号，可选" data-field="contactWechat" bindinput="onOrderInput" />
+      <input class="input form-input" type="number" value="{{orderForm.budgetAmount}}" placeholder="预算金额，单位元，可选" data-field="budgetAmount" bindinput="onOrderInput" />
+      <textarea class="textarea form-input" value="{{orderForm.requirements}}" placeholder="详细描述你想定制什么、用途、风格、数量等" data-field="requirements" bindinput="onOrderInput" />
+      <button class="primary-btn {{orderSubmitting ? 'disabled' : ''}}" loading="{{orderSubmitting}}" disabled="{{orderSubmitting}}" bindtap="submitOrder">
+        {{orderSubmitting ? '提交中' : '提交需求单'}}
+      </button>
+    </view>
+
+    <view wx:if="{{myOrders.length}}" class="section">
+      <view class="title small-title">我的需求单</view>
+      <view wx:for="{{myOrders}}" wx:key="id" class="card order-card">
+        <view class="order-title-row">
+          <view class="order-title">{{item.title}}</view>
+          <view class="status-badge {{item.status == 'accepted' ? 'accepted' : ''}}">{{item.statusText}}</view>
+        </view>
+        <view class="order-desc">{{item.requirements}}</view>
+        <view class="order-meta">{{item.budgetText}} · {{item.createdLabel}}</view>
+        <view wx:if="{{item.artisan}}" class="small-text">接单手艺人：{{item.artisan.username}}</view>
+        <view class="small-text">支付状态：{{item.paymentStatusText}}</view>
+      </view>
+    </view>
+
+    <view wx:if="{{loading}}" class="card progress-card">
+      <view class="progress-bar">
+        <view class="progress-inner" style="width: {{progress}}%;"></view>
+      </view>
+      <view class="small-text">正在定制，通常需要 1-2 分钟。</view>
+    </view>
+
+    <view wx:if="{{results.length}}" class="result-block">
+      <view class="title small-title">定制结果</view>
+      <view wx:for="{{results}}" wx:key="localId" class="card result-card">
+        <view class="result-type">{{item.categoryText || '非遗作品'}}</view>
+        <image wx:if="{{item.mainImageUrl}}" class="result-image" src="{{item.mainImageUrl}}" mode="aspectFit" data-url="{{item.mainImageUrl}}" bindtap="previewImage" />
+        <view wx:else class="empty-mini">生成结果暂无预览图</view>
+        <view class="sub-images">
+          <image wx:if="{{item.subImageUrl1}}" class="sub-image" src="{{item.subImageUrl1}}" mode="aspectFill" data-url="{{item.subImageUrl1}}" bindtap="previewImage" />
+          <image wx:if="{{item.subImageUrl2}}" class="sub-image" src="{{item.subImageUrl2}}" mode="aspectFill" data-url="{{item.subImageUrl2}}" bindtap="previewImage" />
+        </view>
+        <view class="actions">
+          <button class="ghost-btn" data-index="{{index}}" bindtap="toggleFavorite">{{item.favorited ? '已收藏' : '收藏'}}</button>
+          <button class="ghost-btn" data-index="{{index}}" bindtap="goDetail">详情</button>
+          <button class="ghost-btn" data-index="{{index}}" open-type="share">分享</button>
+        </view>
+      </view>
+    </view>
+  </block>
+</view>

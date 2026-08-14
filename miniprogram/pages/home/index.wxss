@@ -1,0 +1,139 @@
+.home-head {
+  margin: 44rpx 0 34rpx;
+  text-align: center;
+}
+
+.home-title {
+  color: #5d5a58;
+  font-size: 60rpx;
+  font-weight: 300;
+  line-height: 1.2;
+}
+
+.user-card {
+  display: flex;
+  align-items: center;
+  margin-bottom: 32rpx;
+}
+
+.avatar {
+  width: 96rpx;
+  height: 96rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 24rpx;
+  border-radius: 28rpx;
+  background: rgba(184, 134, 11, 0.12);
+  color: #b8860b;
+  font-weight: 700;
+}
+
+.user-info {
+  flex: 1;
+}
+
+.user-name {
+  color: #5d5a58;
+  font-size: 32rpx;
+  font-weight: 700;
+}
+
+.arrow {
+  color: #a8a098;
+  font-size: 48rpx;
+}
+
+.feature-list {
+  display: flex;
+  flex-direction: column;
+  gap: 24rpx;
+  margin-bottom: 28rpx;
+}
+
+.feature {
+  min-height: 176rpx;
+  display: flex;
+  align-items: center;
+  padding: 28rpx;
+}
+
+.feature-icon {
+  width: 112rpx;
+  height: 112rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 112rpx;
+  margin-right: 24rpx;
+  border-radius: 30rpx;
+  font-size: 34rpx;
+  font-weight: 800;
+}
+
+.feature-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.feature-title {
+  color: #5d5a58;
+  font-size: 34rpx;
+  font-weight: 700;
+}
+
+.feature-subtitle {
+  margin-top: 8rpx;
+  font-size: 24rpx;
+  font-weight: 700;
+}
+
+.feature-desc {
+  margin-top: 14rpx;
+  color: #8b8680;
+  font-size: 25rpx;
+  line-height: 1.5;
+}
+
+.feature-arrow {
+  margin-left: 16rpx;
+  color: #a8a098;
+  font-size: 48rpx;
+}
+
+.shortcut-row {
+  display: flex;
+  gap: 20rpx;
+  margin-top: 4rpx;
+}
+
+.shortcut {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 18rpx;
+  min-height: 112rpx;
+  padding: 24rpx;
+  color: #5d5a58;
+  font-size: 28rpx;
+  font-weight: 700;
+}
+
+.shortcut-icon {
+  width: 58rpx;
+  height: 58rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 29rpx;
+  color: #ffffff;
+  font-size: 24rpx;
+}
+
+.heart {
+  background: #ec4899;
+}
+
+.box {
+  background: #8b5cf6;
+}

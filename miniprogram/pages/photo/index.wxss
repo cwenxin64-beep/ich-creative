@@ -1,0 +1,91 @@
+.option-section {
+  margin-bottom: 24rpx;
+}
+
+.upload-actions {
+  display: flex;
+  gap: 20rpx;
+}
+
+.upload-choice {
+  flex: 1;
+  min-height: 260rpx;
+  padding: 36rpx 20rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 28rpx;
+  background: rgba(232, 225, 216, 0.38);
+}
+
+.upload-title {
+  margin-bottom: 12rpx;
+  color: #5d5a58;
+  font-size: 30rpx;
+  font-weight: 700;
+}
+
+.upload-icon {
+  width: 88rpx;
+  height: 88rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 18rpx;
+  border-radius: 28rpx;
+  background: rgba(184, 134, 11, 0.14);
+  color: #b8860b;
+  font-size: 32rpx;
+  font-weight: 800;
+}
+
+.preview {
+  width: 100%;
+  height: 460rpx;
+  border-radius: 20rpx;
+  background: rgba(232, 225, 216, 0.42);
+}
+
+.image-actions,
+.next-actions {
+  display: flex;
+  gap: 16rpx;
+  margin-top: 18rpx;
+}
+
+.image-actions button,
+.next-actions button {
+  flex: 1;
+}
+
+.progress-card {
+  margin-top: 22rpx;
+}
+
+.progress-bar {
+  height: 16rpx;
+  margin-bottom: 18rpx;
+  overflow: hidden;
+  border-radius: 8rpx;
+  background: rgba(232, 225, 216, 0.6);
+}
+
+.progress-inner {
+  height: 100%;
+  border-radius: 8rpx;
+  background: #b8860b;
+}
+
+.result-block {
+  margin-top: 36rpx;
+}
+
+.small-title {
+  margin-bottom: 20rpx;
+  font-size: 36rpx;
+}
+
+.analysis {
+  margin-top: 22rpx;
+}

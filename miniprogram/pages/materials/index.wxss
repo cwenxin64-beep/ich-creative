@@ -1,0 +1,58 @@
+.toolbar {
+  display: flex;
+  gap: 12rpx;
+  margin-bottom: 18rpx;
+}
+
+.toolbar-btn {
+  flex: 1;
+  min-height: 72rpx;
+  font-size: 26rpx;
+}
+
+.active-filter {
+  border-color: #b8860b;
+  color: #b8860b;
+}
+
+.sync-btn {
+  margin-bottom: 24rpx;
+}
+
+.material-grid {
+  align-items: start;
+}
+
+.material-card {
+  padding: 18rpx;
+}
+
+.material-img,
+.material-music {
+  width: 100%;
+  height: 240rpx;
+  border-radius: 18rpx;
+  background: rgba(232, 225, 216, 0.45);
+}
+
+.material-music {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #b8860b;
+  font-size: 64rpx;
+  font-weight: 700;
+}
+
+.material-title {
+  margin: 16rpx 0 8rpx;
+  color: #5d5a58;
+  font-size: 28rpx;
+  font-weight: 700;
+}
+
+.delete-btn {
+  min-height: 68rpx;
+  margin-top: 16rpx;
+  font-size: 24rpx;
+}

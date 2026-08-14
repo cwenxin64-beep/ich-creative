@@ -1,0 +1,73 @@
+<view class="page">
+  <view class="header">
+    <view>
+      <view class="title">玩非遗</view>
+      <view class="subtitle">选择非遗元素，生成海报、卡片、数字人等作品</view>
+    </view>
+  </view>
+
+  <view class="card section option-section">
+    <view class="field-label">非遗类型</view>
+    <view class="chips">
+      <view wx:for="{{ichTypes}}" wx:key="id" class="chip {{selectedIchType == item.id ? 'active' : ''}}" data-id="{{item.id}}" bindtap="selectIch">{{item.name}}</view>
+    </view>
+  </view>
+
+  <view class="card section option-section">
+    <view class="field-label">体验载体（最多两个）</view>
+    <view class="chips">
+      <view wx:for="{{playInteractions}}" wx:key="id" class="chip {{item.active ? 'active' : ''}}" data-id="{{item.id}}" bindtap="toggleInteraction">{{item.name}}</view>
+    </view>
+  </view>
+
+  <view class="card section option-section">
+    <view class="field-label">产品类型</view>
+    <view class="chips">
+      <view wx:for="{{productTypes}}" wx:key="id" class="chip {{selectedProductType == item.id ? 'active' : ''}}" data-id="{{item.id}}" bindtap="selectProduct">{{item.name}}</view>
+    </view>
+  </view>
+
+  <view class="card section option-section">
+    <view class="field-label">目标市场</view>
+    <view class="chips">
+      <view wx:for="{{markets}}" wx:key="id" class="chip {{selectedMarket == item.id ? 'active' : ''}}" data-id="{{item.id}}" bindtap="selectMarket">{{item.name}}</view>
+    </view>
+  </view>
+
+  <view class="card section option-section">
+    <view class="field-label">创意描述</view>
+    <textarea class="textarea" value="{{text}}" placeholder="例如：设计一张融合剪纸元素的春节贺卡" bindinput="onText" />
+  </view>
+
+  <button class="primary-btn {{loading ? 'disabled' : ''}}" loading="{{loading}}" disabled="{{loading}}" bindtap="generate">
+    {{loading ? '生成中 ' + progress + '%' : '开始创作'}}
+  </button>
+
+  <view wx:if="{{loading}}" class="card progress-card">
+    <view class="progress-bar">
+      <view class="progress-inner" style="width: {{progress}}%;"></view>
+    </view>
+    <view class="small-text">正在生成，通常需要 1-2 分钟。</view>
+  </view>
+
+  <view wx:if="{{results.length}}" class="result-block">
+    <view class="title small-title">生成结果</view>
+    <view wx:for="{{results}}" wx:key="localId" class="card result-card">
+      <view class="result-type">{{item.type || '非遗作品'}}</view>
+      <video wx:if="{{item.videoUrl}}" class="result-video" src="{{item.videoUrl}}" poster="{{item.mainImageUrl}}" controls></video>
+      <image wx:elif="{{item.mainImageUrl}}" class="result-image" src="{{item.mainImageUrl}}" mode="aspectFit" data-url="{{item.mainImageUrl}}" bindtap="previewImage" />
+      <view wx:else class="empty-mini">生成结果暂无预览图</view>
+
+      <view class="sub-images">
+        <image wx:if="{{item.subImageUrl1}}" class="sub-image" src="{{item.subImageUrl1}}" mode="aspectFill" data-url="{{item.subImageUrl1}}" bindtap="previewImage" />
+        <image wx:if="{{item.subImageUrl2}}" class="sub-image" src="{{item.subImageUrl2}}" mode="aspectFill" data-url="{{item.subImageUrl2}}" bindtap="previewImage" />
+      </view>
+
+      <view class="actions">
+        <button class="ghost-btn" data-index="{{index}}" bindtap="toggleFavorite">{{item.favorited ? '已收藏' : '收藏'}}</button>
+        <button class="ghost-btn" data-index="{{index}}" bindtap="goDetail">详情</button>
+        <button class="ghost-btn" data-index="{{index}}" open-type="share">分享</button>
+      </view>
+    </view>
+  </view>
+</view>

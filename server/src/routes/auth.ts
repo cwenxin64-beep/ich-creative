@@ -58,7 +58,21 @@ function getDeviceIdentity(req: Request): string {
 // ============ 注册 ============
 router.post('/register', async (req, res) => {
   try {
-    const { username, email, password } = req.body;
+    const {
+      username,
+      email,
+      password,
+      role,
+      artisanName,
+      artisanContact,
+      artisanCraft,
+      artisanDescription,
+    } = req.body;
+    const requestedRole = role === 'craftsman' ? 'craftsman' : 'user';
+    const savedArtisanName = requestedRole === 'craftsman' ? String(artisanName || username).trim() : '';
+    const savedArtisanContact = requestedRole === 'craftsman' ? String(artisanContact || '').trim() : '';
+    const savedArtisanCraft = requestedRole === 'craftsman' ? String(artisanCraft || '').trim() : '';
+    const savedArtisanDescription = requestedRole === 'craftsman' ? String(artisanDescription || '').trim() : '';
 
     // 验证必填字段
     if (!username || !email || !password) {
@@ -79,6 +93,10 @@ router.post('/register', async (req, res) => {
     // 验证用户名长度
     if (username.length < 2 || username.length > 20) {
       return res.status(400).json({ success: false, error: '用户名长度2-20位' });
+    }
+
+    if (requestedRole === 'craftsman' && !savedArtisanCraft) {
+      return res.status(400).json({ success: false, error: '请填写手艺人非遗项目' });
     }
 
     // 检查邮箱是否已注册
@@ -104,16 +122,55 @@ router.post('/register', async (req, res) => {
     if (deviceUser.rows.length > 0) {
       // 升级匿名用户为注册用户，保留原有收藏和素材数据
       const updateResult = await query(
-        'UPDATE users SET username = $1, email = $2, password_hash = $3, role = $4 WHERE id = $5 RETURNING id, username, email, role, created_at',
-        [username, email, hashedPassword, 'user', deviceUser.rows[0].id]
+        `UPDATE users
+         SET username = $1,
+             email = $2,
+             password_hash = $3,
+             role = $4,
+             artisan_name = $5,
+             artisan_contact = $6,
+             artisan_craft = $7,
+             artisan_description = $8
+         WHERE id = $9
+         RETURNING id, username, email, role, created_at`,
+        [
+          username,
+          email,
+          hashedPassword,
+          requestedRole,
+          savedArtisanName,
+          savedArtisanContact,
+          savedArtisanCraft,
+          savedArtisanDescription,
+          deviceUser.rows[0].id,
+        ]
       );
       user = updateResult.rows[0];
       console.log(`[AUTH] Upgraded anonymous user ${user.id} to registered: ${email}`);
     } else {
       // 创建新用户
       const insertResult = await query(
-        'INSERT INTO users (username, email, password_hash, role) VALUES ($1, $2, $3, $4) RETURNING id, username, email, role, created_at',
-        [username, email, hashedPassword, 'user']
+        `INSERT INTO users (
+           username,
+           email,
+           password_hash,
+           role,
+           artisan_name,
+           artisan_contact,
+           artisan_craft,
+           artisan_description
+         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+         RETURNING id, username, email, role, created_at`,
+        [
+          username,
+          email,
+          hashedPassword,
+          requestedRole,
+          savedArtisanName,
+          savedArtisanContact,
+          savedArtisanCraft,
+          savedArtisanDescription,
+        ]
       );
       user = insertResult.rows[0];
       console.log(`[AUTH] New user registered: ${email}`);

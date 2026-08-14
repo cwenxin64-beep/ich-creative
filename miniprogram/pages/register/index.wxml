@@ -1,0 +1,33 @@
+<view class="page">
+  <view class="header">
+    <button class="back" bindtap="goBack">‹</button>
+    <view>
+      <view class="title">注册</view>
+      <view class="subtitle">创建账号，保存你的作品</view>
+    </view>
+  </view>
+
+  <view class="card form">
+    <view class="section">
+      <view class="field-label">昵称</view>
+      <input class="input" value="{{username}}" placeholder="请输入昵称" bindinput="onUsername" />
+    </view>
+
+    <view class="section">
+      <view class="field-label">邮箱</view>
+      <input class="input" value="{{email}}" placeholder="请输入邮箱" bindinput="onEmail" />
+    </view>
+
+    <view class="section">
+      <view class="field-label">密码</view>
+      <input class="input" password value="{{password}}" placeholder="至少 6 位" bindinput="onPassword" />
+    </view>
+
+    <button class="primary-btn {{loading ? 'disabled' : ''}}" loading="{{loading}}" disabled="{{loading}}" bindtap="submit">
+      {{loading ? '注册中' : '注册'}}
+    </button>
+  </view>
+
+  <button class="ghost-btn link-btn" bindtap="goLogin">已有账号，去登录</button>
+  <button class="ghost-btn link-btn" bindtap="goArtisan">我是手艺人</button>
+</view>

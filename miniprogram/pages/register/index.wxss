@@ -1,0 +1,7 @@
+.form {
+  margin-bottom: 24rpx;
+}
+
+.link-btn {
+  margin-top: 20rpx;
+}

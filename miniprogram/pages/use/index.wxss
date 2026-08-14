@@ -1,0 +1,129 @@
+.option-section {
+  margin-bottom: 24rpx;
+}
+
+.customize-btn {
+  margin-top: 20rpx;
+}
+
+.order-panel {
+  margin-bottom: 24rpx;
+}
+
+.order-head,
+.order-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18rpx;
+}
+
+.small-btn {
+  min-width: 136rpx;
+  min-height: 72rpx;
+  padding: 0 22rpx;
+  font-size: 26rpx;
+}
+
+.order-list {
+  margin-bottom: 36rpx;
+}
+
+.order-card {
+  margin-bottom: 24rpx;
+}
+
+.order-title {
+  flex: 1;
+  color: #5d5a58;
+  font-size: 32rpx;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.status-badge {
+  flex: 0 0 auto;
+  padding: 10rpx 16rpx;
+  border-radius: 999rpx;
+  background: rgba(184, 134, 11, 0.14);
+  color: #b8860b;
+  font-size: 22rpx;
+  font-weight: 700;
+}
+
+.status-badge.accepted {
+  background: rgba(123, 160, 91, 0.16);
+  color: #6f924f;
+}
+
+.order-desc {
+  margin-top: 18rpx;
+  color: #5d5a58;
+  font-size: 28rpx;
+  line-height: 1.6;
+}
+
+.order-meta {
+  margin: 18rpx 0 10rpx;
+  color: #8b8680;
+  font-size: 24rpx;
+  line-height: 1.4;
+}
+
+.order-action {
+  margin-top: 22rpx;
+}
+
+.order-form {
+  margin-top: 24rpx;
+}
+
+.form-input {
+  margin-bottom: 18rpx;
+}
+
+.progress-card {
+  margin-top: 22rpx;
+}
+
+.progress-bar {
+  height: 16rpx;
+  margin-bottom: 18rpx;
+  overflow: hidden;
+  border-radius: 8rpx;
+  background: rgba(232, 225, 216, 0.6);
+}
+
+.progress-inner {
+  height: 100%;
+  border-radius: 8rpx;
+  background: #b8860b;
+}
+
+.result-block {
+  margin-top: 36rpx;
+}
+
+.small-title {
+  margin-bottom: 20rpx;
+  font-size: 36rpx;
+}
+
+.result-card {
+  margin-bottom: 24rpx;
+}
+
+.result-type {
+  margin-bottom: 18rpx;
+  color: #8b8680;
+  font-size: 26rpx;
+  font-weight: 700;
+}
+
+.empty-mini {
+  padding: 80rpx 0;
+  border-radius: 20rpx;
+  background: rgba(232, 225, 216, 0.45);
+  color: #a8a098;
+  text-align: center;
+}

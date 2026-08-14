@@ -1,8 +1,57 @@
 import express, { type Request, type Response } from 'express';
 import { S3Storage } from 'coze-coding-dev-sdk';
 import { taskStore } from '../task-queue';
+import { query } from '../storage/database/pg-client';
+import { authMiddleware } from './auth';
 
 const router = express.Router();
+
+const ORDER_STATUS_TEXT: Record<string, string> = {
+  pending: '待接单',
+  accepted: '已接单',
+  completed: '已完成',
+  canceled: '已取消',
+};
+
+function isCraftsmanRole(role?: string) {
+  return role === 'craftsman' || role === 'artisan';
+}
+
+function normalizeOrder(row: any) {
+  return {
+    id: row.id,
+    title: row.title,
+    contactName: row.contact_name || '',
+    contactPhone: row.contact_phone || '',
+    contactWechat: row.contact_wechat || '',
+    ichType: row.ich_type || '',
+    interactionType: row.interaction_type || '',
+    applicationScene: row.application_scene || '',
+    keywords: row.keywords || '',
+    requirements: row.requirements || '',
+    budgetAmount: Number(row.budget_amount || 0),
+    status: row.status || 'pending',
+    statusText: ORDER_STATUS_TEXT[row.status] || row.status || '待接单',
+    paymentStatus: row.payment_status || 'unpaid',
+    paymentAmount: Number(row.payment_amount || 0),
+    paymentProvider: row.payment_provider || '',
+    paymentOrderId: row.payment_order_id || '',
+    createdAt: row.created_at,
+    acceptedAt: row.accepted_at,
+    updatedAt: row.updated_at,
+    user: {
+      id: row.user_id,
+      username: row.user_username || '',
+    },
+    artisan: row.artisan_id
+      ? {
+          id: row.artisan_id,
+          username: row.artisan_username || '',
+          craft: row.artisan_craft || '',
+        }
+      : null,
+  };
+}
 
 // 初始化对象存储
 const storage = new S3Storage({
@@ -292,6 +341,242 @@ async function executeCustomizeTask(taskId: string, params: {
     });
   }
 }
+
+/**
+ * POST /api/v1/use/customization-order
+ * 普通用户提交定制需求单，支付字段先预留但不触发真实支付
+ */
+router.post('/customization-order', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    if (isCraftsmanRole(req.user?.role)) {
+      return res.status(403).json({ success: false, error: '手艺人账号用于接单，请用普通用户账号提交需求' });
+    }
+
+    const {
+      title,
+      contactName,
+      contactPhone,
+      contactWechat,
+      ichType = '',
+      interactionType = '',
+      applicationScene = '',
+      keywords = '',
+      requirements,
+      budgetAmount = 0,
+      metadata = {},
+    } = req.body;
+
+    const cleanTitle = String(title || '非遗定制需求').trim();
+    const cleanRequirements = String(requirements || keywords || '').trim();
+
+    if (!cleanRequirements) {
+      return res.status(400).json({ success: false, error: '请填写定制需求' });
+    }
+
+    const amount = Math.max(0, Math.round(Number(budgetAmount) || 0));
+
+    const result = await query(
+      `
+      WITH inserted AS (
+        INSERT INTO customization_orders (
+          user_id,
+          title,
+          contact_name,
+          contact_phone,
+          contact_wechat,
+          ich_type,
+          interaction_type,
+          application_scene,
+          keywords,
+          requirements,
+          budget_amount,
+          payment_amount,
+          payment_status,
+          metadata
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $11, 'unpaid', $12)
+        RETURNING *
+      )
+      SELECT inserted.*, u.username AS user_username, a.username AS artisan_username, a.artisan_craft AS artisan_craft
+      FROM inserted
+      LEFT JOIN users u ON inserted.user_id = u.id
+      LEFT JOIN users a ON inserted.artisan_id = a.id
+      `,
+      [
+        req.user!.userId,
+        cleanTitle,
+        contactName || '',
+        contactPhone || '',
+        contactWechat || '',
+        ichType,
+        interactionType,
+        applicationScene,
+        keywords,
+        cleanRequirements,
+        amount,
+        metadata,
+      ]
+    );
+
+    res.status(201).json({
+      success: true,
+      message: '需求单已提交',
+      order: normalizeOrder(result.rows[0]),
+    });
+  } catch (error) {
+    console.error('[USE] Create customization order error:', error);
+    res.status(500).json({ success: false, error: '提交需求单失败' });
+  }
+});
+
+/**
+ * GET /api/v1/use/customization-orders
+ * 普通用户看自己的需求单；手艺人看待接单和自己已接单
+ */
+router.get('/customization-orders', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const craftsman = isCraftsmanRole(req.user?.role);
+    const sql = craftsman
+      ? `
+        SELECT o.*, u.username AS user_username, a.username AS artisan_username, a.artisan_craft AS artisan_craft
+        FROM customization_orders o
+        LEFT JOIN users u ON o.user_id = u.id
+        LEFT JOIN users a ON o.artisan_id = a.id
+        WHERE (o.status = 'pending' AND o.artisan_id IS NULL) OR o.artisan_id = $1
+        ORDER BY CASE WHEN o.status = 'pending' THEN 0 ELSE 1 END, o.created_at DESC
+      `
+      : `
+        SELECT o.*, u.username AS user_username, a.username AS artisan_username, a.artisan_craft AS artisan_craft
+        FROM customization_orders o
+        LEFT JOIN users u ON o.user_id = u.id
+        LEFT JOIN users a ON o.artisan_id = a.id
+        WHERE o.user_id = $1
+        ORDER BY o.created_at DESC
+      `;
+
+    const result = await query(sql, [req.user!.userId]);
+
+    res.json({
+      success: true,
+      role: craftsman ? 'craftsman' : 'user',
+      orders: result.rows.map(normalizeOrder),
+    });
+  } catch (error) {
+    console.error('[USE] List customization orders error:', error);
+    res.status(500).json({ success: false, error: '获取需求单失败' });
+  }
+});
+
+/**
+ * POST /api/v1/use/customization-orders/:id/accept
+ * 手艺人接单
+ */
+router.post('/customization-orders/:id/accept', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    if (!isCraftsmanRole(req.user?.role)) {
+      return res.status(403).json({ success: false, error: '只有手艺人可以接单' });
+    }
+
+    const orderId = Number(req.params.id);
+    if (!Number.isInteger(orderId) || orderId <= 0) {
+      return res.status(400).json({ success: false, error: '订单不存在' });
+    }
+
+    const result = await query(
+      `
+      WITH updated AS (
+        UPDATE customization_orders
+        SET artisan_id = $1,
+            status = 'accepted',
+            accepted_at = NOW(),
+            updated_at = NOW()
+        WHERE id = $2 AND status = 'pending' AND artisan_id IS NULL
+        RETURNING *
+      )
+      SELECT updated.*, u.username AS user_username, a.username AS artisan_username, a.artisan_craft AS artisan_craft
+      FROM updated
+      LEFT JOIN users u ON updated.user_id = u.id
+      LEFT JOIN users a ON updated.artisan_id = a.id
+      `,
+      [req.user!.userId, orderId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(409).json({ success: false, error: '订单已被接走或状态不可接单' });
+    }
+
+    res.json({
+      success: true,
+      message: '接单成功',
+      order: normalizeOrder(result.rows[0]),
+    });
+  } catch (error) {
+    console.error('[USE] Accept customization order error:', error);
+    res.status(500).json({ success: false, error: '接单失败' });
+  }
+});
+
+/**
+ * POST /api/v1/use/customization-orders/:id/payment-intent
+ * 支付预留接口：只创建本系统支付意向，不调用真实支付渠道
+ */
+router.post('/customization-orders/:id/payment-intent', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const orderId = Number(req.params.id);
+    const amount = Math.max(0, Math.round(Number(req.body.amount) || 0));
+
+    if (!Number.isInteger(orderId) || orderId <= 0) {
+      return res.status(400).json({ success: false, error: '订单不存在' });
+    }
+
+    const orderResult = await query(
+      'SELECT id, user_id, budget_amount, payment_status FROM customization_orders WHERE id = $1 LIMIT 1',
+      [orderId]
+    );
+
+    if (orderResult.rows.length === 0) {
+      return res.status(404).json({ success: false, error: '订单不存在' });
+    }
+
+    const order = orderResult.rows[0];
+    if (order.user_id !== req.user!.userId) {
+      return res.status(403).json({ success: false, error: '不能操作别人的订单' });
+    }
+
+    if (order.payment_status === 'paid') {
+      return res.status(409).json({ success: false, error: '订单已支付' });
+    }
+
+    const paymentAmount = amount || Number(order.budget_amount || 0);
+    const paymentOrderId = `reserved_${orderId}_${Date.now()}`;
+
+    await query(
+      `UPDATE customization_orders
+       SET payment_status = 'pending',
+           payment_amount = $1,
+           payment_provider = 'reserved',
+           payment_order_id = $2,
+           updated_at = NOW()
+       WHERE id = $3`,
+      [paymentAmount, paymentOrderId, orderId]
+    );
+
+    res.json({
+      success: true,
+      message: '支付接口已预留，尚未接入真实支付',
+      payment: {
+        orderId,
+        paymentOrderId,
+        amount: paymentAmount,
+        provider: 'reserved',
+        status: 'pending',
+      },
+    });
+  } catch (error) {
+    console.error('[USE] Create payment intent error:', error);
+    res.status(500).json({ success: false, error: '创建支付意向失败' });
+  }
+});
 
 /**
  * POST /api/v1/use/customize

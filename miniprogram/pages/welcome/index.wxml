@@ -1,0 +1,17 @@
+<view class="page welcome-page">
+  <view class="hero">
+    <text class="brand">智能非遗</text>
+    <text class="tagline">用 AI 让非遗活在当代</text>
+  </view>
+
+  <view class="card intro">
+    <text class="intro-title">开始创作</text>
+    <text class="intro-text">登录后可以保存收藏、同步素材，并继续生成图片、音乐和文创设计。</text>
+  </view>
+
+  <view class="actions-col">
+    <button class="primary-btn" bindtap="goRegister">注册账号</button>
+    <button class="ghost-btn" bindtap="goLogin">已有账号，去登录</button>
+    <button class="ghost-btn quiet" bindtap="goHome">先逛逛</button>
+  </view>
+</view>

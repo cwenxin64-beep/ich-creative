@@ -16,6 +16,10 @@ export async function initDatabase() {
         device_id VARCHAR(255),
         role VARCHAR(50) DEFAULT 'user',
         nickname VARCHAR(255),
+        artisan_name VARCHAR(255),
+        artisan_contact VARCHAR(255),
+        artisan_craft VARCHAR(255),
+        artisan_description TEXT,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
       );
     `);
@@ -29,6 +33,10 @@ export async function initDatabase() {
       `ALTER TABLE users ADD COLUMN IF NOT EXISTS device_id VARCHAR(255)`,
       `ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(50) DEFAULT 'user'`,
       `ALTER TABLE users ADD COLUMN IF NOT EXISTS nickname VARCHAR(255)`,
+      `ALTER TABLE users ADD COLUMN IF NOT EXISTS artisan_name VARCHAR(255)`,
+      `ALTER TABLE users ADD COLUMN IF NOT EXISTS artisan_contact VARCHAR(255)`,
+      `ALTER TABLE users ADD COLUMN IF NOT EXISTS artisan_craft VARCHAR(255)`,
+      `ALTER TABLE users ADD COLUMN IF NOT EXISTS artisan_description TEXT`,
       `ALTER TABLE users ADD COLUMN IF NOT EXISTS created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()`,
       `ALTER TABLE users ALTER COLUMN device_id DROP NOT NULL`,
     ];
@@ -116,6 +124,71 @@ export async function initDatabase() {
 
     await query(`CREATE INDEX IF NOT EXISTS idx_materials_user_id ON materials(user_id);`);
     await query(`CREATE INDEX IF NOT EXISTS idx_materials_source ON materials(source_type, source_id);`);
+
+    // 创建定制订单表：普通用户提交，手艺人接单；支付字段先预留，后续接微信支付不用重建订单结构
+    await query(`
+      CREATE TABLE IF NOT EXISTS customization_orders (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        artisan_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        title VARCHAR(255) NOT NULL,
+        contact_name VARCHAR(255),
+        contact_phone VARCHAR(255),
+        contact_wechat VARCHAR(255),
+        ich_type VARCHAR(100),
+        interaction_type VARCHAR(100),
+        application_scene VARCHAR(100),
+        keywords TEXT,
+        requirements TEXT NOT NULL,
+        budget_amount INTEGER DEFAULT 0,
+        status VARCHAR(50) DEFAULT 'pending',
+        payment_status VARCHAR(50) DEFAULT 'unpaid',
+        payment_amount INTEGER DEFAULT 0,
+        payment_provider VARCHAR(50),
+        payment_order_id VARCHAR(255),
+        metadata JSONB DEFAULT '{}',
+        accepted_at TIMESTAMP WITH TIME ZONE,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+      );
+    `);
+
+    const orderAlterStatements = [
+      `ALTER TABLE customization_orders ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES users(id) ON DELETE CASCADE`,
+      `ALTER TABLE customization_orders ADD COLUMN IF NOT EXISTS artisan_id INTEGER REFERENCES users(id) ON DELETE SET NULL`,
+      `ALTER TABLE customization_orders ADD COLUMN IF NOT EXISTS title VARCHAR(255) NOT NULL DEFAULT '非遗定制需求'`,
+      `ALTER TABLE customization_orders ADD COLUMN IF NOT EXISTS contact_name VARCHAR(255)`,
+      `ALTER TABLE customization_orders ADD COLUMN IF NOT EXISTS contact_phone VARCHAR(255)`,
+      `ALTER TABLE customization_orders ADD COLUMN IF NOT EXISTS contact_wechat VARCHAR(255)`,
+      `ALTER TABLE customization_orders ADD COLUMN IF NOT EXISTS ich_type VARCHAR(100)`,
+      `ALTER TABLE customization_orders ADD COLUMN IF NOT EXISTS interaction_type VARCHAR(100)`,
+      `ALTER TABLE customization_orders ADD COLUMN IF NOT EXISTS application_scene VARCHAR(100)`,
+      `ALTER TABLE customization_orders ADD COLUMN IF NOT EXISTS keywords TEXT`,
+      `ALTER TABLE customization_orders ADD COLUMN IF NOT EXISTS requirements TEXT NOT NULL DEFAULT ''`,
+      `ALTER TABLE customization_orders ADD COLUMN IF NOT EXISTS budget_amount INTEGER DEFAULT 0`,
+      `ALTER TABLE customization_orders ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'pending'`,
+      `ALTER TABLE customization_orders ADD COLUMN IF NOT EXISTS payment_status VARCHAR(50) DEFAULT 'unpaid'`,
+      `ALTER TABLE customization_orders ADD COLUMN IF NOT EXISTS payment_amount INTEGER DEFAULT 0`,
+      `ALTER TABLE customization_orders ADD COLUMN IF NOT EXISTS payment_provider VARCHAR(50)`,
+      `ALTER TABLE customization_orders ADD COLUMN IF NOT EXISTS payment_order_id VARCHAR(255)`,
+      `ALTER TABLE customization_orders ADD COLUMN IF NOT EXISTS metadata JSONB DEFAULT '{}'`,
+      `ALTER TABLE customization_orders ADD COLUMN IF NOT EXISTS accepted_at TIMESTAMP WITH TIME ZONE`,
+      `ALTER TABLE customization_orders ADD COLUMN IF NOT EXISTS created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()`,
+      `ALTER TABLE customization_orders ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()`,
+    ];
+
+    for (const sql of orderAlterStatements) {
+      try {
+        await query(sql);
+      } catch {
+        // 表结构兼容处理，忽略已存在字段
+      }
+    }
+
+    await query(`CREATE INDEX IF NOT EXISTS idx_customization_orders_user_id ON customization_orders(user_id);`);
+    await query(`CREATE INDEX IF NOT EXISTS idx_customization_orders_artisan_id ON customization_orders(artisan_id);`);
+    await query(`CREATE INDEX IF NOT EXISTS idx_customization_orders_status ON customization_orders(status);`);
+    await query(`CREATE INDEX IF NOT EXISTS idx_customization_orders_created_at ON customization_orders(created_at DESC);`);
 
     console.log('[DB] Database tables initialized successfully');
   } catch (err) {
