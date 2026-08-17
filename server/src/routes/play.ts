@@ -1,6 +1,7 @@
 import express, { type Request, type Response } from 'express';
 import { taskStore } from '../task-queue';
 import { S3Storage } from 'coze-coding-dev-sdk';
+import { getWorkflowId, runCozeWorkflow } from '../services/coze-workflows';
 
 const router = express.Router();
 
@@ -19,6 +20,86 @@ const VOLCENGINE_BASE_URL = process.env.VOLCENGINE_BASE_URL || 'https://ark.cn-b
 const TEXT_MODEL = process.env.VOLCENGINE_TEXT_MODEL || 'ep-20260326185613-8d6lx';
 const IMAGE_MODEL = process.env.VOLCENGINE_IMAGE_MODEL || 'ep-20260326185459-8rt74';
 const VIDEO_MODEL = process.env.VOLCENGINE_VIDEO_MODEL || 'ep-20260326185806-4fgdw';
+
+const PLAY_WORKFLOW_IDS: Record<string, string> = {
+  poster: getWorkflowId('COZE_WORKFLOW_PLAY_POSTER', '7664277744931356714'),
+  festival: getWorkflowId('COZE_WORKFLOW_PLAY_FESTIVAL', '7664277928193556534'),
+  birthday: getWorkflowId('COZE_WORKFLOW_PLAY_BIRTHDAY', '7657855187197231155'),
+  newyear: getWorkflowId('COZE_WORKFLOW_PLAY_NEWYEAR', '7651475766619078719'),
+  dynamic: getWorkflowId('COZE_WORKFLOW_PLAY_DYNAMIC', '7664273298331287552'),
+  avatar: getWorkflowId('COZE_WORKFLOW_PLAY_AVATAR', '7664277197901512740'),
+  interactive: getWorkflowId('COZE_WORKFLOW_PLAY_INTERACTIVE', '7664260581930844206'),
+};
+
+const PLAY_PRODUCT_NAMES: Record<string, string> = {
+  poster: '海报',
+  festival: '节日卡',
+  birthday: '生日卡',
+  newyear: '新年卡',
+  dynamic: '动态海报',
+  avatar: '数字人',
+  interactive: '可交互文创产品',
+};
+
+const PLAY_INTERACTION_NAMES: Record<string, string> = {
+  craft: '工艺',
+  visual: '视觉',
+  auditory: '听觉',
+  behavior: '行为',
+};
+
+const TARGET_MARKET_NAMES: Record<string, string> = {
+  america: '美洲',
+  europe: '欧洲',
+  asia: '亚洲',
+  oceania: '大洋洲',
+};
+
+const PLAY_ICH_TYPE_NAMES: Record<string, string> = {
+  jingdezhen: '景德镇陶瓷',
+  guqin: '古琴艺术',
+  xiangyunsha: '香云纱',
+  ru: '汝瓷',
+  luban: '鲁班锁',
+  silkworm: '桑蚕丝织技艺',
+  'paper-cut': '中国剪纸',
+  taiji: '太极拳',
+  jingju: '京剧',
+  other: '其他',
+};
+
+function resolveName(map: Record<string, string>, id = '') {
+  return map[id] || id;
+}
+
+function buildPlayWorkflowParameters(params: {
+  text: string;
+  ichType: string;
+  productType: string;
+  interactionTypes: string[];
+  targetMarket: string;
+  material: string;
+}) {
+  const ichName = resolveName(PLAY_ICH_TYPE_NAMES, params.ichType);
+  const interactionText = params.interactionTypes
+    .map((id) => resolveName(PLAY_INTERACTION_NAMES, id))
+    .filter(Boolean)
+    .join('、');
+  const productName = resolveName(PLAY_PRODUCT_NAMES, params.productType);
+  const marketName = resolveName(TARGET_MARKET_NAMES, params.targetMarket) || '中国';
+  const designRequirement = [
+    params.text,
+    ichName ? `非遗类型：${ichName}` : '',
+    params.material ? `参考素材：${params.material}` : '',
+  ].filter(Boolean).join('；');
+
+  return {
+    design_requirement: designRequirement,
+    experience_type: interactionText || '视觉体验',
+    product_type: productName,
+    target_market: marketName,
+  };
+}
 
 /**
  * 直接调用火山引擎 LLM API
@@ -515,11 +596,85 @@ ${productType || '生成所有类型：海报、节日卡、生日卡、新年�
 }
 
 /**
+ * 执行 Coze 工作流生成任务
+ */
+async function executeCozeGenerationTask(
+  taskId: string,
+  text: string,
+  ichType: string,
+  productType: string,
+  interactionTypes: string[],
+  targetMarket: string,
+  material: string
+) {
+  try {
+    taskStore.update(taskId, { status: 'processing', progress: 10 });
+    console.log(`[${taskId}] Coze workflow task started`);
+
+    const allProductTypes = ['poster', 'festival', 'birthday', 'newyear', 'dynamic', 'avatar', 'interactive'];
+    const targetProductTypes = productType && productType !== 'all' ? [productType] : allProductTypes;
+    const results: any[] = [];
+
+    for (let i = 0; i < targetProductTypes.length; i++) {
+      const currentType = targetProductTypes[i];
+      const workflowId = PLAY_WORKFLOW_IDS[currentType];
+      if (!workflowId) {
+        throw new Error(`未配置 ${currentType} 对应的 Coze 工作流`);
+      }
+
+      const workflowParameters = buildPlayWorkflowParameters({
+        text,
+        ichType,
+        productType: currentType,
+        interactionTypes,
+        targetMarket,
+        material,
+      });
+
+      const workflowResult = await runCozeWorkflow(workflowId, workflowParameters);
+      const imageUrl = workflowResult.output;
+
+      results.push({
+        type: currentType,
+        mediaType: 'image',
+        mainImageUrl: imageUrl,
+        subImageUrl1: imageUrl,
+        subImageUrl2: imageUrl,
+        creativeDescription: text,
+        metadata: {
+          workflowId,
+          workflowParameters,
+        },
+      });
+
+      const progress = 10 + Math.round(((i + 1) / targetProductTypes.length) * 80);
+      taskStore.update(taskId, { progress });
+    }
+
+    taskStore.update(taskId, {
+      status: 'completed',
+      progress: 100,
+      result: {
+        success: true,
+        provider: 'coze-workflow',
+        results,
+      },
+    });
+  } catch (error: any) {
+    console.error(`[${taskId}] Coze workflow task failed:`, error);
+    taskStore.update(taskId, {
+      status: 'failed',
+      error: error.message || 'Unknown error',
+    });
+  }
+}
+
+/**
  * POST /api/v1/play/generate - 创建生成任务
  */
 router.post('/generate', async (req: Request, res: Response) => {
   try {
-    const { text, ichType = '', interactionType = '', productType = '', targetMarket = '', material } = req.body;
+    const { text, ichType = '', interactionTypes = [], interactionType = '', productType = '', targetMarket = '', material } = req.body;
 
     if (!text) {
       return res.status(400).json({ error: 'No text description provided' });
@@ -532,7 +687,11 @@ router.post('/generate', async (req: Request, res: Response) => {
     console.log(`Created task ${task.id}`);
 
     // 后台执行
-    executeGenerationTask(task.id, text, ichType, productType, interactionType, targetMarket, material || '').catch(err => {
+    const cleanInteractionTypes = Array.isArray(interactionTypes)
+      ? interactionTypes
+      : String(interactionType || '').split(',').filter(Boolean);
+
+    executeCozeGenerationTask(task.id, text, ichType, productType, cleanInteractionTypes, targetMarket, material || '').catch(err => {
       console.error(`Task ${task.id} error:`, err);
     });
 

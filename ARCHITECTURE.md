@@ -31,6 +31,8 @@
 - 小程序页面调用 `miniprogram/utils/api.js`。
 - `api.js` 请求 `server/src/routes/*` 中已有接口。
 - 生成类页面先创建任务，再轮询状态接口。
+- `server/src/services/coze-workflows.ts` 统一调用 Coze 工作流，Token 只从后端环境变量读取。
+- `server/src/routes/photo.ts`、`server/src/routes/play.ts`、`server/src/routes/use.ts` 创建任务后调用 Coze 工作流，并按原接口格式返回结果。
 - 收藏页把收藏同步到素材，素材页读取同步结果。
 - 普通用户通过 `POST /api/v1/use/customization-order` 提交定制需求单。
 - 手艺人通过 `GET /api/v1/use/customization-orders` 查看待接单，通过 `POST /api/v1/use/customization-orders/:id/accept` 接单。
@@ -41,3 +43,4 @@
 - 后端继续复用现有 Express 服务，原因是生成、收藏、素材、分享逻辑都已在后端实现。
 - `miniprogram` 独立成目录，原因是可以直接导入微信开发者工具，同时保留原来的前端代码。
 - 定制订单表预留支付字段和支付意向接口，原因是后续接微信支付时不需要重建订单主流程。
+- Coze 工作流只在后端调用，原因是小程序端不能暴露 API Token。

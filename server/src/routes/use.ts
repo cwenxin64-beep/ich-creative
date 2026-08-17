@@ -3,6 +3,7 @@ import { S3Storage } from 'coze-coding-dev-sdk';
 import { taskStore } from '../task-queue';
 import { query } from '../storage/database/pg-client';
 import { authMiddleware } from './auth';
+import { getWorkflowId, runCozeWorkflow } from '../services/coze-workflows';
 
 const router = express.Router();
 
@@ -84,6 +85,69 @@ const VOLCENGINE_BASE_URL = process.env.VOLCENGINE_BASE_URL || 'https://ark.cn-b
 // 模型 ID 配置（使用推理接入点 ID）
 const TEXT_MODEL = process.env.VOLCENGINE_TEXT_MODEL || 'ep-20260326185613-8d6lx';
 const IMAGE_MODEL = process.env.VOLCENGINE_IMAGE_MODEL || 'ep-20260326185459-8rt74';
+
+const USE_WORKFLOW_IDS: Record<string, string> = {
+  fashion: getWorkflowId('COZE_WORKFLOW_USE_FASHION', '7639041545900245007'),
+  home: getWorkflowId('COZE_WORKFLOW_USE_HOME', '7651488708608950314'),
+  art: getWorkflowId('COZE_WORKFLOW_USE_ART', '7651590834337300499'),
+  gifts: getWorkflowId('COZE_WORKFLOW_USE_GIFTS', '7657855187197231155'),
+};
+
+const USE_CATEGORY_NAMES: Record<string, string> = {
+  fashion: '时尚配饰',
+  home: '家居装饰',
+  art: '艺术品',
+  gifts: '礼品',
+};
+
+const ICH_TYPE_NAMES: Record<string, string> = {
+  jingdezhen: '景德镇陶瓷',
+  guqin: '古琴艺术',
+  xiangyunsha: '香云纱',
+  ru: '汝瓷',
+  luban: '鲁班锁',
+  silkworm: '桑蚕丝织技艺',
+  'paper-cut': '中国剪纸',
+  taiji: '太极拳',
+  jingju: '京剧',
+  other: '其他',
+};
+
+const USE_INTERACTION_NAMES: Record<string, string> = {
+  inheritor: '传承人',
+  creator: '创作者',
+  explorer: '探索者',
+  artist: '艺术家',
+  consumer: '消费者',
+};
+
+function getName(map: Record<string, string>, id = '') {
+  return map[id] || id;
+}
+
+function buildUseWorkflowParameters(params: {
+  keywords: string;
+  ichType: string;
+  interactionType: string;
+  category: string;
+  material?: string;
+}) {
+  const ichName = getName(ICH_TYPE_NAMES, params.ichType);
+  const experienceType = getName(USE_INTERACTION_NAMES, params.interactionType) || '创意定制';
+  const productType = USE_CATEGORY_NAMES[params.category] || params.category;
+  const designRequirement = [
+    params.keywords,
+    ichName ? `非遗类型：${ichName}` : '',
+    params.material ? `参考素材：${params.material}` : '',
+  ].filter(Boolean).join('；');
+
+  return {
+    design_requirement: designRequirement,
+    experience_type: experienceType,
+    product_type: productType,
+    target_market: '中国年轻消费市场',
+  };
+}
 
 /**
  * 直接调用火山引擎 LLM API
@@ -236,72 +300,6 @@ async function executeCustomizeTask(taskId: string, params: {
   console.log(`[Task ${taskId}] Starting customization: ichType=${ichType}, applicationScene=${applicationScene}, keywords="${keywords}"`);
 
   try {
-    // 构建设计 Prompt
-    const designPrompt = `你是一位非物质文化遗产创意设计专家。请根据用户关键词，生成精准的定制产品设计方案。
-
-## 用户关键词
-"${keywords}"
-
-## 任务要求
-为每个应用场景生成：
-1. **创意描述**：20个汉字，包含关键词+寓意+效果
-2. **生图Prompt**：用于AI生图，必须具体、详细、可执行
-
-## 输出格式（JSON）
-{
-  "fashion": {
-    "creativeDescription": "20字创意描述",
-    "mainPrompt": "时尚配饰正面展示，[产品类型]，[非遗图案]，现代时尚摄影",
-    "ichElements": ["非遗元素"],
-    "colorPalette": ["配色方案"]
-  },
-  "home": {
-    "creativeDescription": "20字创意描述",
-    "mainPrompt": "家居装饰品正面展示，[产品类型]，[非遗元素]，温馨场景摄影",
-    "ichElements": ["非遗元素"],
-    "colorPalette": ["配色方案"]
-  },
-  "art": {
-    "creativeDescription": "20字创意描述",
-    "mainPrompt": "艺术品正面展示，[产品类型]，[非遗技艺]，画廊级摄影",
-    "ichElements": ["非遗元素"],
-    "colorPalette": ["配色方案"]
-  },
-  "gifts": {
-    "creativeDescription": "20字创意描述",
-    "mainPrompt": "礼品正面展示，[产品类型]，[非遗元素]，精致礼品摄影",
-    "ichElements": ["非遗元素"],
-    "colorPalette": ["配色方案"]
-  }
-}
-
-请严格按照以上要求输出JSON：`;
-
-    taskStore.update(taskId, { progress: 10 });
-
-    // Step 1: 分析并生成 prompts
-    const analysisResponse = await callVolcengineLLM([
-      { role: 'user', content: designPrompt }
-    ]);
-
-    taskStore.update(taskId, { progress: 30 });
-
-    // 解析 JSON
-    let prompts;
-    try {
-      let content = analysisResponse.trim();
-      if (content.startsWith('```')) {
-        content = content.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/,'').trim();
-      }
-      prompts = JSON.parse(content);
-    } catch (parseError) {
-      console.error(`[Task ${taskId}] JSON parse error:`, parseError);
-      taskStore.update(taskId, { status: 'failed', error: 'AI 响应格式错误，请重试' });
-      return;
-    }
-    console.log(`[Task ${taskId}] Generated design prompts:`, Object.keys(prompts));
-
-    // Step 2: 生成产品图片
     const results: any[] = [];
     const categories = ['fashion', 'home', 'art', 'gifts'];
     const targetCategories = applicationScene && applicationScene !== 'all' 
@@ -312,29 +310,35 @@ async function executeCustomizeTask(taskId: string, params: {
     let completedCategories = 0;
 
     for (const category of targetCategories) {
-      const promptData = prompts[category];
-      if (!promptData) continue;
-
-      try {
-        const imageUrl = await callVolcengineImage(promptData.mainPrompt);
-        
-        results.push({
-          category,
-          mainImageUrl: imageUrl,
-          subImageUrl1: imageUrl,
-          subImageUrl2: imageUrl,
-          creativeDescription: promptData.creativeDescription || '',
-          metadata: {
-            ichElements: promptData.ichElements,
-            colorPalette: promptData.colorPalette
-          }
-        });
-      } catch (error) {
-        console.error(`[Task ${taskId}] Failed to generate ${category} product:`, error);
+      const workflowId = USE_WORKFLOW_IDS[category];
+      if (!workflowId) {
+        throw new Error(`未配置 ${category} 对应的 Coze 工作流`);
       }
+
+      const workflowParams = buildUseWorkflowParameters({
+        keywords,
+        ichType,
+        interactionType,
+        category,
+        material,
+      });
+      const workflowResult = await runCozeWorkflow(workflowId, workflowParams);
+      const imageUrl = workflowResult.output;
+
+      results.push({
+        category,
+        mainImageUrl: imageUrl,
+        subImageUrl1: imageUrl,
+        subImageUrl2: imageUrl,
+        creativeDescription: keywords,
+        metadata: {
+          workflowId,
+          workflowParameters: workflowParams,
+        },
+      });
       
       completedCategories++;
-      const progress = 30 + Math.round((completedCategories / totalCategories) * 60);
+      const progress = 10 + Math.round((completedCategories / totalCategories) * 80);
       taskStore.update(taskId, { progress });
     }
 
@@ -347,7 +351,7 @@ async function executeCustomizeTask(taskId: string, params: {
         success: true,
         results,
         keywords,
-        prompts
+        provider: 'coze-workflow'
       }
     });
   } catch (error) {

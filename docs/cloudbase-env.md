@@ -26,8 +26,36 @@ COZE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.xxxxxxxxxxxxx
 # NODE_ENV=production
 
 # ========================================
+# Coze 工作流变量（接大模型工作流必需）
+# ========================================
+
+# 扣子工作流 API Token，只能配置在后端环境变量里，不要写进小程序代码
+COZE_WORKFLOW_TOKEN=pat_xxxxxxxxxxxxxxxxx
+
+# 默认使用 https://api.coze.cn/v1/workflow/run，一般不用改
+# COZE_WORKFLOW_API_URL=https://api.coze.cn/v1/workflow/run
+
+# 拍非遗工作流
+COZE_WORKFLOW_PHOTO=7664883313395990579
+
+# 玩非遗工作流
+COZE_WORKFLOW_PLAY_POSTER=7664277744931356714
+COZE_WORKFLOW_PLAY_FESTIVAL=7664277928193556534
+COZE_WORKFLOW_PLAY_BIRTHDAY=7657855187197231155
+COZE_WORKFLOW_PLAY_NEWYEAR=7651475766619078719
+COZE_WORKFLOW_PLAY_DYNAMIC=7664273298331287552
+COZE_WORKFLOW_PLAY_AVATAR=7664277197901512740
+COZE_WORKFLOW_PLAY_INTERACTIVE=7664260581930844206
+
+# 创非遗工作流
+COZE_WORKFLOW_USE_FASHION=7639041545900245007
+COZE_WORKFLOW_USE_HOME=7651488708608950314
+COZE_WORKFLOW_USE_ART=7651590834337300499
+COZE_WORKFLOW_USE_GIFTS=7657855187197231155
+
+# ========================================
 # 注意事项
 # ========================================
-# 1. coze-coding-dev-sdk 会自动从请求头获取认证信息，无需配置 API Key
-# 2. 只有 Supabase 数据库需要配置环境变量
-# 3. 请将 xxxxxxxxxxx 替换为你的实际值
+# 1. COZE_WORKFLOW_TOKEN 只能放在 CloudBase 后端环境变量中，不能放进小程序。
+# 2. 工作流 ID 已按当前版本填入，如在扣子里复制了新工作流，可只改对应变量。
+# 3. 请将 xxxxxxxxxxx 替换为你的实际值。

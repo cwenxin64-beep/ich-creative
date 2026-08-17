@@ -7,7 +7,7 @@
 ## 技术架构
 
 - `client/`：Expo 前端，负责原来的 App/Web 页面。
-- `server/`：Express 后端，负责登录、生成任务、收藏、素材、分享、定制需求单和接单接口。
+- `server/`：Express 后端，负责登录、生成任务、Coze 工作流调用、收藏、素材、分享、定制需求单和接单接口。
 - `miniprogram/`：微信原生小程序，复用现有后端接口。
 
 ## 微信小程序版本
@@ -45,6 +45,13 @@ https://cc-4gicfmjy884d01bf-1388119917.ap-shanghai.app.tcloudbase.com
 - `GET /api/v1/use/customization-orders`：普通用户看自己的单；手艺人看待接单和自己已接单。
 - `POST /api/v1/use/customization-orders/:id/accept`：手艺人接单。
 - `POST /api/v1/use/customization-orders/:id/payment-intent`：支付预留接口，当前不调用真实支付。
+
+大模型工作流：
+
+- `拍非遗`、`玩非遗`、`创非遗` 的生成入口已改为后端调用 Coze 工作流。
+- 小程序不保存 Coze Token，只继续请求自己的后端。
+- 后端部署时需要在 CloudBase 环境变量中配置 `COZE_WORKFLOW_TOKEN`。
+- 工作流 ID 配置见 `docs/cloudbase-env.md`。
 
 ## 本地运行方法
 

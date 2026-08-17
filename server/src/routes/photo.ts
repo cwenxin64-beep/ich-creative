@@ -2,6 +2,7 @@ import express, { type Request, type Response } from 'express';
 import multer from 'multer';
 import { taskStore } from '../task-queue';
 import { S3Storage } from 'coze-coding-dev-sdk';
+import { getWorkflowId, runCozeWorkflow, uploadWorkflowInputImage } from '../services/coze-workflows';
 
 const router = express.Router();
 
@@ -25,6 +26,7 @@ const VOLCENGINE_BASE_URL = process.env.VOLCENGINE_BASE_URL || 'https://ark.cn-b
 const VISION_MODEL = process.env.VOLCENGINE_VISION_MODEL || 'ep-20260326172427-vtr25';
 const IMAGE_MODEL = process.env.VOLCENGINE_IMAGE_MODEL || 'ep-20260326185459-8rt74';
 const VIDEO_MODEL = process.env.VOLCENGINE_VIDEO_MODEL || 'ep-20260326185806-4fgdw';
+const PHOTO_WORKFLOW_ID = getWorkflowId('COZE_WORKFLOW_PHOTO', '7664883313395990579');
 
 /**
  * 直接调用火山引擎 LLM API
@@ -518,6 +520,58 @@ async function executeGenerationTask(
 }
 
 /**
+ * 执行 Coze 图片工作流任务
+ */
+async function executeCozePhotoTask(
+  taskId: string,
+  fileBuffer: Buffer,
+  mimetype: string,
+  description: string
+) {
+  try {
+    taskStore.update(taskId, { status: 'processing', progress: 10 });
+    console.log(`[${taskId}] Coze photo workflow task started`);
+
+    const referenceImageUrl = await uploadWorkflowInputImage(storage, fileBuffer, mimetype, taskId);
+    taskStore.update(taskId, { progress: 30 });
+
+    const workflowParameters = {
+      input: description || '基于原图元素进行非遗风格的创意再创作，突出中国传统美学与现代设计的融合。',
+      reference_image: referenceImageUrl,
+    };
+    const workflowResult = await runCozeWorkflow(PHOTO_WORKFLOW_ID, workflowParameters);
+    const imageUrl = workflowResult.output;
+
+    taskStore.update(taskId, {
+      status: 'completed',
+      progress: 100,
+      result: {
+        success: true,
+        provider: 'coze-workflow',
+        analysis: {
+          creativeDescription: description || '非遗风格创意图片',
+          workflowId: PHOTO_WORKFLOW_ID,
+        },
+        mainImageUrl: imageUrl,
+        subImageUrl1: imageUrl,
+        subImageUrl2: imageUrl,
+        staticMainImageUrl: imageUrl,
+        metadata: {
+          referenceImageUrl,
+          workflowParameters,
+        },
+      },
+    });
+  } catch (error: any) {
+    console.error(`[${taskId}] Coze photo workflow task failed:`, error);
+    taskStore.update(taskId, {
+      status: 'failed',
+      error: error.message || 'Unknown error',
+    });
+  }
+}
+
+/**
  * POST /api/v1/photo/generate - 创建生成任务
  */
 router.post('/generate', upload.single('file'), async (req: Request, res: Response) => {
@@ -547,7 +601,7 @@ router.post('/generate', upload.single('file'), async (req: Request, res: Respon
     console.log(`Created task ${task.id}, outputType: ${outputType}`);
 
     // 后台执行
-    executeGenerationTask(task.id, fileBuffer, fileMimeType, description, outputType).catch(err => {
+    executeCozePhotoTask(task.id, fileBuffer, fileMimeType, description).catch(err => {
       console.error(`Task ${task.id} error:`, err);
     });
 
