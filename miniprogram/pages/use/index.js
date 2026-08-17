@@ -1,6 +1,6 @@
 const api = require('../../utils/api');
 const constants = require('../../utils/constants');
-const { encodeParam } = require('../../utils/format');
+const { normalizeFavorite, encodeParam } = require('../../utils/format');
 
 const CATEGORY_NAMES = {
   fashion: '时尚配饰',
@@ -16,8 +16,35 @@ const PAYMENT_STATUS_NAMES = {
   refunded: '已退款'
 };
 
+const REFERENCE_SOURCE_NAMES = {
+  current: '本次生成',
+  favorite: '我的收藏'
+};
+
 function isCraftsmanRole(role) {
   return role === 'craftsman' || role === 'artisan';
+}
+
+function normalizeReferenceWork(source, item, index) {
+  const subImageUrls = item.subImageUrls || [item.subImageUrl1, item.subImageUrl2].filter(Boolean);
+  const mainImageUrl = item.mainImageUrl || item.imageUrl || '';
+
+  if (!mainImageUrl) {
+    return null;
+  }
+
+  return {
+    id: `${source}:${item.id || item.favoriteId || item.localId || index}`,
+    source,
+    sourceText: REFERENCE_SOURCE_NAMES[source] || '参考作品',
+    sourceId: String(item.id || item.favoriteId || item.localId || ''),
+    type: item.type || 'use',
+    title: item.title || item.categoryText || '非遗参考作品',
+    description: item.description || item.creativeDescription || '',
+    mainImageUrl,
+    subImageUrls,
+    metadata: item.metadata || {}
+  };
 }
 
 function formatOrder(order) {
@@ -27,7 +54,8 @@ function formatOrder(order) {
     contactLine: contactLine || '未填写联系方式',
     createdLabel: order.createdAt ? String(order.createdAt).slice(0, 10) : '',
     statusText: order.statusText || '待接单',
-    paymentStatusText: PAYMENT_STATUS_NAMES[order.paymentStatus] || '未支付'
+    paymentStatusText: PAYMENT_STATUS_NAMES[order.paymentStatus] || '未支付',
+    referenceWork: order.referenceWork || (order.metadata && order.metadata.referenceWork) || null
   });
 }
 
@@ -46,6 +74,7 @@ Page({
     isCraftsman: false,
     ordersLoading: false,
     orderSubmitting: false,
+    referencesLoading: false,
     acceptingOrderId: '',
     showOrderForm: false,
     orderForm: {
@@ -56,6 +85,10 @@ Page({
       requirements: '',
       budgetAmount: ''
     },
+    favoriteReferenceWorks: [],
+    referenceWorks: [],
+    selectedReferenceId: '',
+    selectedReferenceWork: null,
     myOrders: [],
     availableOrders: [],
     acceptedOrders: []
@@ -164,7 +197,12 @@ Page({
       return;
     }
 
-    this.setData({ showOrderForm: !this.data.showOrderForm });
+    const nextVisible = !this.data.showOrderForm;
+    this.setData({ showOrderForm: nextVisible }, () => {
+      if (nextVisible) {
+        this.refreshReferenceWorks();
+      }
+    });
   },
 
   resetOrderForm() {
@@ -177,7 +215,81 @@ Page({
         contactWechat: '',
         requirements: '',
         budgetAmount: ''
-      }
+      },
+      selectedReferenceId: '',
+      selectedReferenceWork: null
+    });
+  },
+
+  rebuildReferenceWorks() {
+    const currentWorks = this.data.results
+      .map((item, index) => normalizeReferenceWork('current', item, index))
+      .filter(Boolean);
+
+    this.setData({
+      referenceWorks: currentWorks.concat(this.data.favoriteReferenceWorks)
+    });
+  },
+
+  async refreshReferenceWorks() {
+    this.rebuildReferenceWorks();
+
+    if (!api.isAuthenticated()) return;
+
+    this.setData({ referencesLoading: true });
+    try {
+      const data = await api.request('/api/v1/favorites');
+      if (!data.success) throw new Error(data.message || '加载参考作品失败');
+
+      const favoriteReferenceWorks = (data.favorites || [])
+        .map((item, index) => normalizeReferenceWork('favorite', normalizeFavorite(item), index))
+        .filter(Boolean);
+
+      this.setData({ favoriteReferenceWorks }, () => this.rebuildReferenceWorks());
+    } catch (error) {
+      api.showError(error, '加载参考作品失败');
+    } finally {
+      this.setData({ referencesLoading: false });
+    }
+  },
+
+  selectReferenceWork(event) {
+    const id = event.currentTarget.dataset.id;
+    const selected = this.data.referenceWorks.find((item) => item.id === id);
+    if (!selected) return;
+
+    if (this.data.selectedReferenceId === id) {
+      this.clearReferenceWork();
+      return;
+    }
+
+    this.setData({
+      selectedReferenceId: id,
+      selectedReferenceWork: selected
+    });
+  },
+
+  clearReferenceWork() {
+    this.setData({
+      selectedReferenceId: '',
+      selectedReferenceWork: null
+    });
+  },
+
+  useResultAsReference(event) {
+    if (!api.ensureLogin()) return;
+
+    const index = Number(event.currentTarget.dataset.index);
+    const selected = normalizeReferenceWork('current', this.data.results[index] || {}, index);
+    if (!selected) return;
+
+    this.setData({
+      showOrderForm: true,
+      selectedReferenceId: selected.id,
+      selectedReferenceWork: selected
+    }, () => {
+      this.refreshReferenceWorks();
+      wx.showToast({ title: '已加入需求单', icon: 'success' });
     });
   },
 
@@ -214,7 +326,10 @@ Page({
           applicationScene: this.data.selectedScene,
           keywords: this.data.keywords.trim(),
           requirements,
-          budgetAmount: form.budgetAmount
+          budgetAmount: form.budgetAmount,
+          metadata: {
+            referenceWork: this.data.selectedReferenceWork
+          }
         }
       });
 
@@ -297,7 +412,7 @@ Page({
         favoriteId: ''
       }));
 
-      this.setData({ results, progress: 100 });
+      this.setData({ results, progress: 100 }, () => this.rebuildReferenceWorks());
     } catch (error) {
       api.showError(error, '生成失败');
     } finally {
@@ -353,6 +468,12 @@ Page({
       .flatMap((item) => [item.mainImageUrl, item.subImageUrl1, item.subImageUrl2])
       .filter(Boolean);
     wx.previewImage({ current, urls });
+  },
+
+  previewOrderReference(event) {
+    const current = event.currentTarget.dataset.url;
+    if (!current) return;
+    wx.previewImage({ current, urls: [current] });
   },
 
   goDetail(event) {

@@ -17,7 +17,22 @@ function isCraftsmanRole(role?: string) {
   return role === 'craftsman' || role === 'artisan';
 }
 
+function parseMetadata(value: any) {
+  if (!value) return {};
+  if (typeof value === 'string') {
+    try {
+      return JSON.parse(value);
+    } catch {
+      return {};
+    }
+  }
+  return value;
+}
+
 function normalizeOrder(row: any) {
+  const metadata = parseMetadata(row.metadata);
+  const referenceWork = metadata.referenceWork || null;
+
   return {
     id: row.id,
     title: row.title,
@@ -36,6 +51,8 @@ function normalizeOrder(row: any) {
     paymentAmount: Number(row.payment_amount || 0),
     paymentProvider: row.payment_provider || '',
     paymentOrderId: row.payment_order_id || '',
+    metadata,
+    referenceWork,
     createdAt: row.created_at,
     acceptedAt: row.accepted_at,
     updatedAt: row.updated_at,

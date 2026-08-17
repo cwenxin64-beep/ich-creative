@@ -24,6 +24,13 @@
           <view class="status-badge">{{item.statusText}}</view>
         </view>
         <view class="order-desc">{{item.requirements}}</view>
+        <view wx:if="{{item.referenceWork && item.referenceWork.mainImageUrl}}" class="order-reference" data-url="{{item.referenceWork.mainImageUrl}}" bindtap="previewOrderReference">
+          <image class="reference-thumb" src="{{item.referenceWork.mainImageUrl}}" mode="aspectFill" />
+          <view class="reference-info">
+            <view class="reference-title">{{item.referenceWork.title}}</view>
+            <view class="small-text">{{item.referenceWork.sourceText || '参考作品'}}</view>
+          </view>
+        </view>
         <view class="order-meta">{{item.budgetText}} · {{item.createdLabel}}</view>
         <view class="small-text">联系人：{{item.contactName}} ｜ {{item.contactLine}}</view>
         <button class="primary-btn order-action" data-id="{{item.id}}" loading="{{acceptingOrderId == item.id}}" disabled="{{acceptingOrderId == item.id}}" bindtap="acceptOrder">
@@ -41,6 +48,13 @@
           <view class="status-badge accepted">{{item.statusText}}</view>
         </view>
         <view class="order-desc">{{item.requirements}}</view>
+        <view wx:if="{{item.referenceWork && item.referenceWork.mainImageUrl}}" class="order-reference" data-url="{{item.referenceWork.mainImageUrl}}" bindtap="previewOrderReference">
+          <image class="reference-thumb" src="{{item.referenceWork.mainImageUrl}}" mode="aspectFill" />
+          <view class="reference-info">
+            <view class="reference-title">{{item.referenceWork.title}}</view>
+            <view class="small-text">{{item.referenceWork.sourceText || '参考作品'}}</view>
+          </view>
+        </view>
         <view class="order-meta">{{item.budgetText}} · {{item.createdLabel}}</view>
         <view class="small-text">联系人：{{item.contactName}} ｜ {{item.contactLine}}</view>
       </view>
@@ -87,6 +101,30 @@
       <input class="input form-input" value="{{orderForm.contactPhone}}" placeholder="手机号" data-field="contactPhone" bindinput="onOrderInput" />
       <input class="input form-input" value="{{orderForm.contactWechat}}" placeholder="微信号，可选" data-field="contactWechat" bindinput="onOrderInput" />
       <input class="input form-input" type="number" value="{{orderForm.budgetAmount}}" placeholder="预算金额，单位元，可选" data-field="budgetAmount" bindinput="onOrderInput" />
+      <view class="reference-picker">
+        <view class="reference-head">
+          <view class="field-label">参考作品</view>
+          <button class="ghost-btn small-btn" loading="{{referencesLoading}}" disabled="{{referencesLoading}}" bindtap="refreshReferenceWorks">刷新</button>
+        </view>
+        <view wx:if="{{selectedReferenceWork}}" class="selected-reference">
+          <image class="reference-thumb" src="{{selectedReferenceWork.mainImageUrl}}" mode="aspectFill" data-url="{{selectedReferenceWork.mainImageUrl}}" bindtap="previewOrderReference" />
+          <view class="reference-info">
+            <view class="reference-title">{{selectedReferenceWork.title}}</view>
+            <view class="small-text">{{selectedReferenceWork.sourceText}}</view>
+          </view>
+          <button class="ghost-btn clear-reference" bindtap="clearReferenceWork">移除</button>
+        </view>
+        <scroll-view wx:if="{{referenceWorks.length}}" class="reference-scroll" scroll-x>
+          <view class="reference-row">
+            <view wx:for="{{referenceWorks}}" wx:key="id" class="reference-option {{selectedReferenceId == item.id ? 'active' : ''}}" data-id="{{item.id}}" bindtap="selectReferenceWork">
+              <image class="reference-option-image" src="{{item.mainImageUrl}}" mode="aspectFill" />
+              <view class="reference-option-title">{{item.title}}</view>
+              <view class="reference-source">{{item.sourceText}}</view>
+            </view>
+          </view>
+        </scroll-view>
+        <view wx:else class="small-text">先生成作品，或收藏一个作品后再刷新。</view>
+      </view>
       <textarea class="textarea form-input" value="{{orderForm.requirements}}" placeholder="详细描述你想定制什么、用途、风格、数量等" data-field="requirements" bindinput="onOrderInput" />
       <button class="primary-btn {{orderSubmitting ? 'disabled' : ''}}" loading="{{orderSubmitting}}" disabled="{{orderSubmitting}}" bindtap="submitOrder">
         {{orderSubmitting ? '提交中' : '提交需求单'}}
@@ -101,6 +139,13 @@
           <view class="status-badge {{item.status == 'accepted' ? 'accepted' : ''}}">{{item.statusText}}</view>
         </view>
         <view class="order-desc">{{item.requirements}}</view>
+        <view wx:if="{{item.referenceWork && item.referenceWork.mainImageUrl}}" class="order-reference" data-url="{{item.referenceWork.mainImageUrl}}" bindtap="previewOrderReference">
+          <image class="reference-thumb" src="{{item.referenceWork.mainImageUrl}}" mode="aspectFill" />
+          <view class="reference-info">
+            <view class="reference-title">{{item.referenceWork.title}}</view>
+            <view class="small-text">{{item.referenceWork.sourceText || '参考作品'}}</view>
+          </view>
+        </view>
         <view class="order-meta">{{item.budgetText}} · {{item.createdLabel}}</view>
         <view wx:if="{{item.artisan}}" class="small-text">接单手艺人：{{item.artisan.username}}</view>
         <view class="small-text">支付状态：{{item.paymentStatusText}}</view>
@@ -126,6 +171,7 @@
         </view>
         <view class="actions">
           <button class="ghost-btn" data-index="{{index}}" bindtap="toggleFavorite">{{item.favorited ? '已收藏' : '收藏'}}</button>
+          <button class="ghost-btn" data-index="{{index}}" bindtap="useResultAsReference">定制</button>
           <button class="ghost-btn" data-index="{{index}}" bindtap="goDetail">详情</button>
           <button class="ghost-btn" data-index="{{index}}" open-type="share">分享</button>
         </view>

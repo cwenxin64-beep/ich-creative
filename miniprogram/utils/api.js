@@ -3,6 +3,7 @@ const SERVICE_NAME = 'ich-server';
 const TOKEN_KEY = 'auth_access_token';
 const REFRESH_KEY = 'auth_refresh_token';
 const USER_KEY = 'auth_user';
+let refreshPromise = null;
 
 function buildUrl(path) {
   const cleanPath = path.startsWith('/') ? path : `/${path}`;
@@ -13,7 +14,75 @@ function getToken() {
   return wx.getStorageSync(TOKEN_KEY) || '';
 }
 
+function getRefreshToken() {
+  return wx.getStorageSync(REFRESH_KEY) || '';
+}
+
+function getResponseMessage(res, defaultMessage) {
+  return (res.data && (res.data.message || res.data.error)) || defaultMessage;
+}
+
+function canRefreshAuth(path) {
+  return !path.startsWith('/api/v1/auth/login')
+    && !path.startsWith('/api/v1/auth/register')
+    && !path.startsWith('/api/v1/auth/refresh');
+}
+
+function refreshAuth() {
+  if (refreshPromise) {
+    return refreshPromise;
+  }
+
+  const refreshToken = getRefreshToken();
+  if (!refreshToken) {
+    clearAuth();
+    return Promise.reject(new Error('登录已过期，请重新登录'));
+  }
+
+  refreshPromise = new Promise((resolve, reject) => {
+    wx.request({
+      url: buildUrl('/api/v1/auth/refresh'),
+      method: 'POST',
+      data: { refreshToken },
+      header: {
+        'Content-Type': 'application/json',
+        'X-WX-SERVICE': SERVICE_NAME
+      },
+      success(res) {
+        if (res.statusCode >= 200 && res.statusCode < 300 && res.data && res.data.accessToken && res.data.refreshToken && res.data.user) {
+          saveAuth(res.data);
+          resolve(res.data);
+          return;
+        }
+
+        clearAuth();
+        reject(new Error(getResponseMessage(res, '登录已过期，请重新登录')));
+      },
+      fail(error) {
+        reject(new Error(error.errMsg || '刷新登录状态失败'));
+      }
+    });
+  });
+
+  refreshPromise = refreshPromise.then(
+    (data) => {
+      refreshPromise = null;
+      return data;
+    },
+    (error) => {
+      refreshPromise = null;
+      throw error;
+    }
+  );
+
+  return refreshPromise;
+}
+
 function request(path, options = {}) {
+  return requestOnce(path, options, true);
+}
+
+function requestOnce(path, options = {}, allowRefresh) {
   const token = getToken();
   const header = Object.assign({}, options.header || {});
 
@@ -37,6 +106,15 @@ function request(path, options = {}) {
           resolve(res.data);
           return;
         }
+
+        if (res.statusCode === 401 && allowRefresh && canRefreshAuth(path)) {
+          refreshAuth()
+            .then(() => requestOnce(path, options, false))
+            .then(resolve)
+            .catch(reject);
+          return;
+        }
+
         reject(new Error((res.data && (res.data.message || res.data.error)) || `请求失败：${res.statusCode}`));
       },
       fail(error) {
@@ -47,6 +125,10 @@ function request(path, options = {}) {
 }
 
 function upload(path, filePath, formData = {}) {
+  return uploadOnce(path, filePath, formData, true);
+}
+
+function uploadOnce(path, filePath, formData = {}, allowRefresh) {
   const token = getToken();
   const header = {
     'X-WX-SERVICE': SERVICE_NAME
@@ -65,6 +147,14 @@ function upload(path, filePath, formData = {}) {
       header,
       success(res) {
         if (res.statusCode < 200 || res.statusCode >= 300) {
+          if (res.statusCode === 401 && allowRefresh && canRefreshAuth(path)) {
+            refreshAuth()
+              .then(() => uploadOnce(path, filePath, formData, false))
+              .then(resolve)
+              .catch(reject);
+            return;
+          }
+
           reject(new Error(`上传失败：${res.statusCode}`));
           return;
         }
@@ -176,6 +266,7 @@ module.exports = {
   clearAuth,
   getUser,
   getToken,
+  getRefreshToken,
   isAuthenticated,
   ensureLogin,
   showError,
