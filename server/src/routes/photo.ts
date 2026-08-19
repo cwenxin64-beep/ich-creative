@@ -1,8 +1,8 @@
 import express, { type Request, type Response } from 'express';
 import multer from 'multer';
 import { taskStore } from '../task-queue';
-import { S3Storage } from 'coze-coding-dev-sdk';
 import { getWorkflowId, runCozeWorkflow, uploadWorkflowInputImage } from '../services/coze-workflows';
+import { createObjectStorage } from '../services/object-storage';
 
 const router = express.Router();
 
@@ -12,11 +12,7 @@ const upload = multer({
 });
 
 // 初始化对象存储
-const storage = new S3Storage({
-  endpointUrl: process.env.COZE_BUCKET_ENDPOINT_URL,
-  bucketName: process.env.COZE_BUCKET_NAME,
-  region: 'cn-beijing',
-});
+const storage = createObjectStorage();
 
 // 火山引擎 API 配置
 const VOLCENGINE_API_KEY = process.env.COZE_API_KEY || process.env.VOLCENGINE_API_KEY || '';

@@ -1,7 +1,7 @@
 import express, { type Request, type Response } from 'express';
 import crypto from 'crypto';
-import { S3Storage } from 'coze-coding-dev-sdk';
 import { query } from '../storage/database/pg-client';
+import { createObjectStorage } from '../services/object-storage';
 
 const router = express.Router();
 
@@ -14,13 +14,7 @@ const VOLC_MUSIC_SERVICE = 'imagination';
 const VOLC_MUSIC_VERSION = '2024-08-12';
 
 // 初始化对象存储
-const storage = new S3Storage({
-  endpointUrl: process.env.COZE_BUCKET_ENDPOINT_URL,
-  accessKey: '',
-  secretKey: '',
-  bucketName: process.env.COZE_BUCKET_NAME,
-  region: 'cn-beijing',
-});
+const storage = createObjectStorage();
 
 /**
  * HMAC-SHA256 签名工具函数

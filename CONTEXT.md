@@ -19,6 +19,7 @@
 - 已保存接 Coze 工作流前的小程序版本，本地标签是 `v1-before-coze-workflow`，提交是 `b3f515c`。
 - 已切到新分支 `feature/coze-workflow`，后续接 Coze 工作流都在这个分支上做。
 - 已在新版分支接入 Coze 工作流：拍非遗、玩非遗、创非遗生成入口改为后端调用 Coze，大模型 Token 只从后端环境变量读取。
+- 已修复 Coze 工作流接入后的对象存储变量兼容问题：后端现在能识别旧的 `S3_BUCKET`、`S3_REGION`、`S3_ACCESS_KEY_ID`、`S3_SECRET_ACCESS_KEY` 配置。
 
 # 上次停在
 
@@ -39,6 +40,7 @@
 - 创非遗需求单里已增加参考作品选择区；生成结果卡片可一键作为定制参考。
 - 当前停在 `feature/coze-workflow` 分支，下一步可以开始接 Coze 工作流。
 - 当前停在 `feature/coze-workflow` 分支，Coze 工作流代码已接入，部署前需要在 CloudBase 后端环境变量配置 `COZE_WORKFLOW_TOKEN`。
+- 当前拍非遗对象存储配置已兼容旧变量名，重新部署后可直接复用之前云端已有的 S3/COS 环境变量。
 
 # 近期关键决定
 
@@ -64,3 +66,4 @@
 - 参考作品保存在订单 `metadata.referenceWork`，不新增数据库字段，避免影响后续支付字段和旧订单。
 - 原版本用 Git 标签固定，新功能用新分支推进，原因是后续接 Coze 如果不稳定，可以随时回到接入前版本。
 - Coze 工作流统一走 `server/src/services/coze-workflows.ts`，原因是小程序端不能暴露 Token，后续换工作流只改环境变量或映射表。
+- 对象存储初始化统一走 `server/src/services/object-storage.ts`，原因是拍/唱/玩/创都需要同一套上传配置，避免变量名重复写散。
