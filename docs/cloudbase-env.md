@@ -40,6 +40,7 @@ COZE_WORKFLOW_PHOTO=7664883313395990579
 
 # 图片/音频对象存储
 # 新变量优先；如果已配置旧变量 S3_BUCKET、S3_REGION、S3_ACCESS_KEY_ID、S3_SECRET_ACCESS_KEY，代码会自动兼容。
+# 使用 S3_* 密钥时不需要配置 COZE_WORKLOAD_IDENTITY_API_KEY。
 COZE_BUCKET_ENDPOINT_URL=https://your-bucket.cos.ap-shanghai.myqcloud.com
 COZE_BUCKET_NAME=your-bucket-1234567890
 COZE_BUCKET_REGION=ap-shanghai
