@@ -21,6 +21,7 @@
 - 已在新版分支接入 Coze 工作流：拍非遗、玩非遗、创非遗生成入口改为后端调用 Coze，大模型 Token 只从后端环境变量读取。
 - 已修复 Coze 工作流接入后的对象存储变量兼容问题：后端现在能识别旧的 `S3_BUCKET`、`S3_REGION`、`S3_ACCESS_KEY_ID`、`S3_SECRET_ACCESS_KEY` 配置。
 - 已修复对象存储 SDK 仍要求 `COZE_WORKLOAD_IDENTITY_API_KEY` 的问题：检测到旧 `S3_*` 密钥时改为直接用 S3/COS 签名上传。
+- 已将拍非遗改回后端直接调用大模型/生图接口，不再调用扣子工作流。
 
 # 上次停在
 
@@ -43,6 +44,7 @@
 - 当前停在 `feature/coze-workflow` 分支，Coze 工作流代码已接入，部署前需要在 CloudBase 后端环境变量配置 `COZE_WORKFLOW_TOKEN`。
 - 当前拍非遗对象存储配置已兼容旧变量名，重新部署后可直接复用之前云端已有的 S3/COS 环境变量。
 - 当前拍非遗上传不再依赖 `COZE_WORKLOAD_IDENTITY_API_KEY`；部署最新代码后应使用 `S3_*` 变量上传原图。
+- 当前拍非遗不再读取 `COZE_WORKFLOW_PHOTO`，运行依赖 `VOLCENGINE_API_KEY` 或 `COZE_API_KEY`。
 
 # 近期关键决定
 
@@ -70,3 +72,4 @@
 - Coze 工作流统一走 `server/src/services/coze-workflows.ts`，原因是小程序端不能暴露 Token，后续换工作流只改环境变量或映射表。
 - 对象存储初始化统一走 `server/src/services/object-storage.ts`，原因是拍/唱/玩/创都需要同一套上传配置，避免变量名重复写散。
 - 对象存储在存在 `S3_ACCESS_KEY_ID` 和 `S3_SECRET_ACCESS_KEY` 时不再走 Coze SDK 令牌逻辑，原因是 CloudBase 生产环境没有 `COZE_WORKLOAD_IDENTITY_API_KEY`。
+- 拍非遗改回直接调用模型，原因是用户明确要求拍非遗不调用工作流。

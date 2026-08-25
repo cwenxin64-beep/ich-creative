@@ -35,9 +35,6 @@ COZE_WORKFLOW_TOKEN=pat_xxxxxxxxxxxxxxxxx
 # 默认使用 https://api.coze.cn/v1/workflow/run，一般不用改
 # COZE_WORKFLOW_API_URL=https://api.coze.cn/v1/workflow/run
 
-# 拍非遗工作流
-COZE_WORKFLOW_PHOTO=7664883313395990579
-
 # 图片/音频对象存储
 # 新变量优先；如果已配置旧变量 S3_BUCKET、S3_REGION、S3_ACCESS_KEY_ID、S3_SECRET_ACCESS_KEY，代码会自动兼容。
 # 使用 S3_* 密钥时不需要配置 COZE_WORKLOAD_IDENTITY_API_KEY。
