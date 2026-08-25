@@ -131,9 +131,14 @@ function buildUseWorkflowParameters(params: {
   const ichName = getName(ICH_TYPE_NAMES, params.ichType);
   const experienceType = getName(USE_INTERACTION_NAMES, params.interactionType) || '创意定制';
   const productType = USE_CATEGORY_NAMES[params.category] || params.category;
+  const coreProduct = params.keywords.trim();
   const designRequirement = [
-    params.keywords,
+    `核心产品：${coreProduct}`,
     ichName ? `非遗类型：${ichName}` : '',
+    `应用品类：${productType}`,
+    `体验对象：${experienceType}`,
+    `生成要求：画面主体必须是“${coreProduct}”本体，并将${ichName || '非遗'}元素融合到产品造型、材质、纹样或结构中`,
+    '禁止偏离：不要把包装盒、礼盒、海报、说明卡、展示牌作为主体；如出现包装，只能作为辅助背景',
     params.material ? `参考素材：${params.material}` : '',
   ].filter(Boolean).join('；');
 
