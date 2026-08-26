@@ -17,14 +17,33 @@ const TEXT_MODEL = process.env.VOLCENGINE_TEXT_MODEL || 'ep-20260326185613-8d6lx
 const IMAGE_MODEL = process.env.VOLCENGINE_IMAGE_MODEL || 'ep-20260326185459-8rt74';
 const VIDEO_MODEL = process.env.VOLCENGINE_VIDEO_MODEL || 'ep-20260326185806-4fgdw';
 
-const PLAY_WORKFLOW_IDS: Record<string, string> = {
-  poster: getWorkflowId('COZE_WORKFLOW_PLAY_POSTER', '7664277744931356714'),
-  festival: getWorkflowId('COZE_WORKFLOW_PLAY_FESTIVAL', '7664277928193556534'),
-  birthday: getWorkflowId('COZE_WORKFLOW_PLAY_BIRTHDAY', '7657855187197231155'),
-  newyear: getWorkflowId('COZE_WORKFLOW_PLAY_NEWYEAR', '7651475766619078719'),
-  dynamic: getWorkflowId('COZE_WORKFLOW_PLAY_DYNAMIC', '7664273298331287552'),
-  avatar: getWorkflowId('COZE_WORKFLOW_PLAY_AVATAR', '7664277197901512740'),
-  interactive: getWorkflowId('COZE_WORKFLOW_PLAY_INTERACTIVE', '7664260581930844206'),
+const PLAY_WORKFLOW_IDS: Record<string, string[]> = {
+  poster: [
+    getWorkflowId('COZE_WORKFLOW_PLAY_POSTER', '7678261053490200639'),
+    getWorkflowId('COZE_WORKFLOW_PLAY_POSTER_ALT', '7678261713996726314'),
+  ],
+  festival: [
+    getWorkflowId('COZE_WORKFLOW_PLAY_FESTIVAL', '7678261114291159075'),
+    getWorkflowId('COZE_WORKFLOW_PLAY_FESTIVAL_ALT', '7678261667716677683'),
+  ],
+  birthday: [
+    getWorkflowId('COZE_WORKFLOW_PLAY_BIRTHDAY', '7678261226972102692'),
+    getWorkflowId('COZE_WORKFLOW_PLAY_BIRTHDAY_ALT', '7678261512381988905'),
+    getWorkflowId('COZE_WORKFLOW_PLAY_BIRTHDAY_EXTRA', '7678261565473292340'),
+  ],
+  newyear: [
+    getWorkflowId('COZE_WORKFLOW_PLAY_NEWYEAR', '7678261114291159075'),
+  ],
+  dynamic: [
+    getWorkflowId('COZE_WORKFLOW_PLAY_DYNAMIC', '7678261053490200639'),
+  ],
+  avatar: [
+    getWorkflowId('COZE_WORKFLOW_PLAY_AVATAR', '7678261285805703194'),
+  ],
+  interactive: [
+    getWorkflowId('COZE_WORKFLOW_PLAY_INTERACTIVE', '7678260824640798755'),
+    getWorkflowId('COZE_WORKFLOW_PLAY_INTERACTIVE_ALT', '7678261767479214143'),
+  ],
 };
 
 const PLAY_PRODUCT_NAMES: Record<string, string> = {
@@ -86,6 +105,9 @@ function buildPlayWorkflowParameters(params: {
   const designRequirement = [
     params.text,
     ichName ? `非遗类型：${ichName}` : '',
+    productName ? `创作类型：${productName}` : '',
+    interactionText ? `体验方式：${interactionText}` : '',
+    marketName ? `目标市场：${marketName}` : '',
     params.material ? `参考素材：${params.material}` : '',
   ].filter(Boolean).join('；');
 
@@ -609,11 +631,14 @@ async function executeCozeGenerationTask(
 
     const allProductTypes = ['poster', 'festival', 'birthday', 'newyear', 'dynamic', 'avatar', 'interactive'];
     const targetProductTypes = productType && productType !== 'all' ? [productType] : allProductTypes;
+    const workflowEntries = targetProductTypes.flatMap((currentType) => {
+      const workflowIds = PLAY_WORKFLOW_IDS[currentType] || [];
+      return workflowIds.map((workflowId, variantIndex) => ({ currentType, workflowId, variantIndex }));
+    });
     const results: any[] = [];
 
-    for (let i = 0; i < targetProductTypes.length; i++) {
-      const currentType = targetProductTypes[i];
-      const workflowId = PLAY_WORKFLOW_IDS[currentType];
+    for (let i = 0; i < workflowEntries.length; i++) {
+      const { currentType, workflowId, variantIndex } = workflowEntries[i];
       if (!workflowId) {
         throw new Error(`未配置 ${currentType} 对应的 Coze 工作流`);
       }
@@ -639,11 +664,12 @@ async function executeCozeGenerationTask(
         creativeDescription: text,
         metadata: {
           workflowId,
+          variantIndex,
           workflowParameters,
         },
       });
 
-      const progress = 10 + Math.round(((i + 1) / targetProductTypes.length) * 80);
+      const progress = 10 + Math.round(((i + 1) / workflowEntries.length) * 80);
       taskStore.update(taskId, { progress });
     }
 

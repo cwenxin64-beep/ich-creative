@@ -2,7 +2,6 @@ import express, { type Request, type Response } from 'express';
 import { taskStore } from '../task-queue';
 import { query } from '../storage/database/pg-client';
 import { authMiddleware } from './auth';
-import { getWorkflowId, runCozeWorkflow } from '../services/coze-workflows';
 import { createObjectStorage } from '../services/object-storage';
 
 const router = express.Router();
@@ -82,13 +81,6 @@ const VOLCENGINE_BASE_URL = process.env.VOLCENGINE_BASE_URL || 'https://ark.cn-b
 const TEXT_MODEL = process.env.VOLCENGINE_TEXT_MODEL || 'ep-20260326185613-8d6lx';
 const IMAGE_MODEL = process.env.VOLCENGINE_IMAGE_MODEL || 'ep-20260326185459-8rt74';
 
-const USE_WORKFLOW_IDS: Record<string, string> = {
-  fashion: getWorkflowId('COZE_WORKFLOW_USE_FASHION', '7639041545900245007'),
-  home: getWorkflowId('COZE_WORKFLOW_USE_HOME', '7651488708608950314'),
-  art: getWorkflowId('COZE_WORKFLOW_USE_ART', '7651590834337300499'),
-  gifts: getWorkflowId('COZE_WORKFLOW_USE_GIFTS', '7657855187197231155'),
-};
-
 const USE_CATEGORY_NAMES: Record<string, string> = {
   fashion: '时尚配饰',
   home: '家居装饰',
@@ -148,6 +140,29 @@ function buildUseWorkflowParameters(params: {
     product_type: productType,
     target_market: '中国年轻消费市场',
   };
+}
+
+function buildUseImagePrompt(params: {
+  keywords: string;
+  ichType: string;
+  interactionType: string;
+  category: string;
+  material?: string;
+}) {
+  const ichName = getName(ICH_TYPE_NAMES, params.ichType) || '中国非遗';
+  const experienceType = getName(USE_INTERACTION_NAMES, params.interactionType) || '消费者';
+  const productType = USE_CATEGORY_NAMES[params.category] || params.category;
+  const coreProduct = params.keywords.trim();
+
+  return [
+    `设计一款真实可制作的非遗现代文创产品，产品主体必须是“${coreProduct}”。`,
+    `应用品类：${productType}。`,
+    `融合非遗类型：${ichName}，把非遗元素体现在产品本体的造型、材质、纹样、结构或表面工艺中。`,
+    `面向对象：${experienceType}。`,
+    '画面要求：单个产品本体清晰居中，占画面主要面积，干净浅色背景，高级产品摄影质感。',
+    '禁止偏离：不要把包装盒、礼盒、海报、说明卡、展示牌作为主体；如果出现包装，只能作为很小的辅助背景。',
+    params.material ? `参考素材：${params.material}。` : '',
+  ].filter(Boolean).join('\n');
 }
 
 /**
@@ -311,20 +326,21 @@ async function executeCustomizeTask(taskId: string, params: {
     let completedCategories = 0;
 
     for (const category of targetCategories) {
-      const workflowId = USE_WORKFLOW_IDS[category];
-      if (!workflowId) {
-        throw new Error(`未配置 ${category} 对应的 Coze 工作流`);
-      }
-
-      const workflowParams = buildUseWorkflowParameters({
+      const generationParameters = buildUseWorkflowParameters({
         keywords,
         ichType,
         interactionType,
         category,
         material,
       });
-      const workflowResult = await runCozeWorkflow(workflowId, workflowParams);
-      const imageUrl = workflowResult.output;
+      const imagePrompt = buildUseImagePrompt({
+        keywords,
+        ichType,
+        interactionType,
+        category,
+        material,
+      });
+      const imageUrl = await callVolcengineImage(imagePrompt);
 
       results.push({
         category,
@@ -333,8 +349,8 @@ async function executeCustomizeTask(taskId: string, params: {
         subImageUrl2: imageUrl,
         creativeDescription: keywords,
         metadata: {
-          workflowId,
-          workflowParameters: workflowParams,
+          generationParameters,
+          imagePrompt,
         },
       });
       
@@ -352,7 +368,7 @@ async function executeCustomizeTask(taskId: string, params: {
         success: true,
         results,
         keywords,
-        provider: 'coze-workflow'
+        provider: 'volcengine-direct'
       }
     });
   } catch (error) {
