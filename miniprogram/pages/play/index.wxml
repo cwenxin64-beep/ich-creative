@@ -14,13 +14,6 @@
   </view>
 
   <view class="card section option-section">
-    <view class="field-label">体验载体（最多两个）</view>
-    <view class="chips">
-      <view wx:for="{{playInteractions}}" wx:key="id" class="chip {{item.active ? 'active' : ''}}" data-id="{{item.id}}" bindtap="toggleInteraction">{{item.name}}</view>
-    </view>
-  </view>
-
-  <view class="card section option-section">
     <view class="field-label">产品类型</view>
     <view class="chips">
       <view wx:for="{{productTypes}}" wx:key="id" class="chip {{selectedProductType == item.id ? 'active' : ''}}" data-id="{{item.id}}" bindtap="selectProduct">{{item.name}}</view>

@@ -5,11 +5,9 @@ const { encodeParam } = require('../../utils/format');
 Page({
   data: {
     ichTypes: constants.ICH_TYPES,
-    playInteractions: constants.PLAY_INTERACTIONS,
     productTypes: constants.PRODUCT_TYPES,
     markets: constants.TARGET_MARKETS,
     selectedIchType: '',
-    selectedInteractionTypes: [],
     selectedProductType: '',
     selectedMarket: '',
     text: '',
@@ -31,29 +29,6 @@ Page({
   selectIch(event) {
     const id = event.currentTarget.dataset.id;
     this.setData({ selectedIchType: this.data.selectedIchType === id ? '' : id });
-  },
-
-  toggleInteraction(event) {
-    const id = event.currentTarget.dataset.id;
-    const selected = this.data.selectedInteractionTypes.slice();
-    const index = selected.indexOf(id);
-
-    if (index >= 0) {
-      selected.splice(index, 1);
-    } else {
-      if (selected.length >= 2) {
-        wx.showToast({ title: '最多选择两个', icon: 'none' });
-        return;
-      }
-      selected.push(id);
-    }
-
-    this.setData({
-      selectedInteractionTypes: selected,
-      playInteractions: constants.PLAY_INTERACTIONS.map((item) => Object.assign({}, item, {
-        active: selected.indexOf(item.id) >= 0
-      }))
-    });
   },
 
   selectProduct(event) {
@@ -85,14 +60,9 @@ Page({
     const ichName = (constants.ICH_TYPES.find((item) => item.id === this.data.selectedIchType) || {}).name || '';
     const productName = (constants.PRODUCT_TYPES.find((item) => item.id === this.data.selectedProductType) || {}).name || '';
     const marketName = (constants.TARGET_MARKETS.find((item) => item.id === this.data.selectedMarket) || {}).name || '';
-    const interactionNames = this.data.selectedInteractionTypes
-      .map((id) => (constants.PLAY_INTERACTIONS.find((item) => item.id === id) || {}).name)
-      .filter(Boolean)
-      .join('、');
 
     const parts = [];
     if (ichName) parts.push(`基于「${ichName}」`);
-    if (interactionNames) parts.push(`融合${interactionNames}体验`);
     if (productName) parts.push(`设计一款${productName}`);
     if (marketName) parts.push(`面向${marketName}市场`);
 
@@ -115,7 +85,6 @@ Page({
         data: {
           text,
           ichType: this.data.selectedIchType,
-          interactionTypes: this.data.selectedInteractionTypes,
           productType: this.data.selectedProductType,
           targetMarket: this.data.selectedMarket
         }

@@ -70,7 +70,7 @@
     </view>
 
     <view class="card section option-section">
-      <view class="field-label">体验类型</view>
+      <view class="field-label">风格</view>
       <view class="chips">
         <view wx:for="{{useInteractions}}" wx:key="id" class="chip {{selectedInteractionType == item.id ? 'active' : ''}}" data-id="{{item.id}}" bindtap="selectInteraction">{{item.name}}</view>
       </view>

@@ -101,12 +101,12 @@ const ICH_TYPE_NAMES: Record<string, string> = {
   other: '其他',
 };
 
-const USE_INTERACTION_NAMES: Record<string, string> = {
-  inheritor: '传承人',
-  creator: '创作者',
-  explorer: '探索者',
-  artist: '艺术家',
-  consumer: '消费者',
+const USE_STYLE_NAMES: Record<string, string> = {
+  chinese: '中国风',
+  minimal: '简约',
+  modern: '现代',
+  traditional: '传统',
+  luxury: '轻奢',
 };
 
 function getName(map: Record<string, string>, id = '') {
@@ -121,14 +121,14 @@ function buildUseWorkflowParameters(params: {
   material?: string;
 }) {
   const ichName = getName(ICH_TYPE_NAMES, params.ichType);
-  const experienceType = getName(USE_INTERACTION_NAMES, params.interactionType) || '创意定制';
+  const styleName = getName(USE_STYLE_NAMES, params.interactionType) || '现代';
   const productType = USE_CATEGORY_NAMES[params.category] || params.category;
   const coreProduct = params.keywords.trim();
   const designRequirement = [
     `核心产品：${coreProduct}`,
     ichName ? `非遗类型：${ichName}` : '',
     `应用品类：${productType}`,
-    `体验对象：${experienceType}`,
+    `设计风格：${styleName}`,
     `生成要求：画面主体必须是“${coreProduct}”本体，并将${ichName || '非遗'}元素融合到产品造型、材质、纹样或结构中`,
     '禁止偏离：不要把包装盒、礼盒、海报、说明卡、展示牌作为主体；如出现包装，只能作为辅助背景',
     params.material ? `参考素材：${params.material}` : '',
@@ -136,7 +136,7 @@ function buildUseWorkflowParameters(params: {
 
   return {
     design_requirement: designRequirement,
-    experience_type: experienceType,
+    experience_type: styleName,
     product_type: productType,
     target_market: '中国年轻消费市场',
   };
@@ -150,7 +150,7 @@ function buildUseImagePrompt(params: {
   material?: string;
 }) {
   const ichName = getName(ICH_TYPE_NAMES, params.ichType) || '中国非遗';
-  const experienceType = getName(USE_INTERACTION_NAMES, params.interactionType) || '消费者';
+  const styleName = getName(USE_STYLE_NAMES, params.interactionType) || '现代';
   const productType = USE_CATEGORY_NAMES[params.category] || params.category;
   const coreProduct = params.keywords.trim();
 
@@ -158,7 +158,7 @@ function buildUseImagePrompt(params: {
     `设计一款真实可制作的非遗现代文创产品，产品主体必须是“${coreProduct}”。`,
     `应用品类：${productType}。`,
     `融合非遗类型：${ichName}，把非遗元素体现在产品本体的造型、材质、纹样、结构或表面工艺中。`,
-    `面向对象：${experienceType}。`,
+    `设计风格：${styleName}。`,
     '画面要求：单个产品本体清晰居中，占画面主要面积，干净浅色背景，高级产品摄影质感。',
     '禁止偏离：不要把包装盒、礼盒、海报、说明卡、展示牌作为主体；如果出现包装，只能作为很小的辅助背景。',
     params.material ? `参考素材：${params.material}。` : '',

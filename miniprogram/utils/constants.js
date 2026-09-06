@@ -36,11 +36,11 @@ const TARGET_MARKETS = [
 ];
 
 const USE_INTERACTIONS = [
-  { id: 'inheritor', name: '传承人' },
-  { id: 'creator', name: '创作者' },
-  { id: 'explorer', name: '探索者' },
-  { id: 'artist', name: '艺术家' },
-  { id: 'consumer', name: '消费者' }
+  { id: 'chinese', name: '中国风' },
+  { id: 'minimal', name: '简约' },
+  { id: 'modern', name: '现代' },
+  { id: 'traditional', name: '传统' },
+  { id: 'luxury', name: '轻奢' }
 ];
 
 const APPLICATION_SCENES = [

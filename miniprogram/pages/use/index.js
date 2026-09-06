@@ -158,11 +158,11 @@ Page({
 
   buildDefaultKeywords() {
     const ichName = (constants.ICH_TYPES.find((item) => item.id === this.data.selectedIchType) || {}).name || '';
-    const interactionName = (constants.USE_INTERACTIONS.find((item) => item.id === this.data.selectedInteractionType) || {}).name || '';
+    const styleName = (constants.USE_INTERACTIONS.find((item) => item.id === this.data.selectedInteractionType) || {}).name || '';
     const sceneName = (constants.APPLICATION_SCENES.find((item) => item.id === this.data.selectedScene) || {}).name || '';
     const parts = [];
     if (ichName) parts.push(`结合「${ichName}」`);
-    if (interactionName) parts.push(`面向${interactionName}`);
+    if (styleName) parts.push(`${styleName}风格`);
     if (sceneName) parts.push(`应用于${sceneName}`);
     return parts.length ? `${parts.join('，')}，展现非遗文化的现代化表达。` : '一件非遗创意定制作品。';
   },
