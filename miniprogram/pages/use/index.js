@@ -49,13 +49,26 @@ function normalizeReferenceWork(source, item, index) {
 
 function formatOrder(order) {
   const contactLine = [order.contactPhone, order.contactWechat].filter(Boolean).join(' / ');
+  const referenceWork = order.referenceWork || (order.metadata && order.metadata.referenceWork) || null;
+  const referenceImageUrl = referenceWork
+    ? referenceWork.mainImageUrl
+      || referenceWork.imageUrl
+      || referenceWork.url
+      || (referenceWork.subImageUrls && referenceWork.subImageUrls[0])
+      || referenceWork.subImageUrl1
+      || ''
+    : '';
+
   return Object.assign({}, order, {
     budgetText: order.budgetAmount ? `预算 ${order.budgetAmount} 元` : '预算面议',
     contactLine: contactLine || '未填写联系方式',
     createdLabel: order.createdAt ? String(order.createdAt).slice(0, 10) : '',
     statusText: order.statusText || '待接单',
     paymentStatusText: PAYMENT_STATUS_NAMES[order.paymentStatus] || '未支付',
-    referenceWork: order.referenceWork || (order.metadata && order.metadata.referenceWork) || null
+    referenceWork,
+    orderImageUrl: referenceImageUrl,
+    orderImageTitle: referenceWork && referenceWork.title ? referenceWork.title : '参考图片',
+    orderImageSource: referenceWork && referenceWork.sourceText ? referenceWork.sourceText : '参考作品'
   });
 }
 
@@ -314,6 +327,8 @@ Page({
 
     this.setData({ orderSubmitting: true });
     try {
+      const defaultReferenceWork = this.data.selectedReferenceWork
+        || normalizeReferenceWork('current', this.data.results[0] || {}, 0);
       const data = await api.request('/api/v1/use/customization-order', {
         method: 'POST',
         data: {
@@ -328,7 +343,7 @@ Page({
           requirements,
           budgetAmount: form.budgetAmount,
           metadata: {
-            referenceWork: this.data.selectedReferenceWork
+            referenceWork: defaultReferenceWork
           }
         }
       });

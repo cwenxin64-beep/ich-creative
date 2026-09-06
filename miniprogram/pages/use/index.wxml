@@ -24,11 +24,11 @@
           <view class="status-badge">{{item.statusText}}</view>
         </view>
         <view class="order-desc">{{item.requirements}}</view>
-        <view wx:if="{{item.referenceWork && item.referenceWork.mainImageUrl}}" class="order-reference" data-url="{{item.referenceWork.mainImageUrl}}" bindtap="previewOrderReference">
-          <image class="reference-thumb" src="{{item.referenceWork.mainImageUrl}}" mode="aspectFill" />
+        <view wx:if="{{item.orderImageUrl}}" class="order-reference" data-url="{{item.orderImageUrl}}" bindtap="previewOrderReference">
+          <image class="reference-thumb" src="{{item.orderImageUrl}}" mode="aspectFill" />
           <view class="reference-info">
-            <view class="reference-title">{{item.referenceWork.title}}</view>
-            <view class="small-text">{{item.referenceWork.sourceText || '参考作品'}}</view>
+            <view class="reference-title">{{item.orderImageTitle}}</view>
+            <view class="small-text">{{item.orderImageSource}}</view>
           </view>
         </view>
         <view class="order-meta">{{item.budgetText}} · {{item.createdLabel}}</view>
@@ -48,11 +48,11 @@
           <view class="status-badge accepted">{{item.statusText}}</view>
         </view>
         <view class="order-desc">{{item.requirements}}</view>
-        <view wx:if="{{item.referenceWork && item.referenceWork.mainImageUrl}}" class="order-reference" data-url="{{item.referenceWork.mainImageUrl}}" bindtap="previewOrderReference">
-          <image class="reference-thumb" src="{{item.referenceWork.mainImageUrl}}" mode="aspectFill" />
+        <view wx:if="{{item.orderImageUrl}}" class="order-reference" data-url="{{item.orderImageUrl}}" bindtap="previewOrderReference">
+          <image class="reference-thumb" src="{{item.orderImageUrl}}" mode="aspectFill" />
           <view class="reference-info">
-            <view class="reference-title">{{item.referenceWork.title}}</view>
-            <view class="small-text">{{item.referenceWork.sourceText || '参考作品'}}</view>
+            <view class="reference-title">{{item.orderImageTitle}}</view>
+            <view class="small-text">{{item.orderImageSource}}</view>
           </view>
         </view>
         <view class="order-meta">{{item.budgetText}} · {{item.createdLabel}}</view>
@@ -139,11 +139,11 @@
           <view class="status-badge {{item.status == 'accepted' ? 'accepted' : ''}}">{{item.statusText}}</view>
         </view>
         <view class="order-desc">{{item.requirements}}</view>
-        <view wx:if="{{item.referenceWork && item.referenceWork.mainImageUrl}}" class="order-reference" data-url="{{item.referenceWork.mainImageUrl}}" bindtap="previewOrderReference">
-          <image class="reference-thumb" src="{{item.referenceWork.mainImageUrl}}" mode="aspectFill" />
+        <view wx:if="{{item.orderImageUrl}}" class="order-reference" data-url="{{item.orderImageUrl}}" bindtap="previewOrderReference">
+          <image class="reference-thumb" src="{{item.orderImageUrl}}" mode="aspectFill" />
           <view class="reference-info">
-            <view class="reference-title">{{item.referenceWork.title}}</view>
-            <view class="small-text">{{item.referenceWork.sourceText || '参考作品'}}</view>
+            <view class="reference-title">{{item.orderImageTitle}}</view>
+            <view class="small-text">{{item.orderImageSource}}</view>
           </view>
         </view>
         <view class="order-meta">{{item.budgetText}} · {{item.createdLabel}}</view>

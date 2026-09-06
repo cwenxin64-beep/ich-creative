@@ -17,6 +17,17 @@ function isCraftsmanRole(role?: string) {
   return role === 'craftsman' || role === 'artisan';
 }
 
+function getReferenceImageUrl(referenceWork: any) {
+  if (!referenceWork) return '';
+
+  return referenceWork.mainImageUrl
+    || referenceWork.imageUrl
+    || referenceWork.url
+    || referenceWork.subImageUrls?.[0]
+    || referenceWork.subImageUrl1
+    || '';
+}
+
 function parseMetadata(value: any) {
   if (!value) return {};
   if (typeof value === 'string') {
@@ -32,6 +43,13 @@ function parseMetadata(value: any) {
 function normalizeOrder(row: any) {
   const metadata = parseMetadata(row.metadata);
   const referenceWork = metadata.referenceWork || null;
+  const referenceImageUrl = getReferenceImageUrl(referenceWork);
+  const normalizedReferenceWork = referenceWork && referenceImageUrl
+    ? {
+      ...referenceWork,
+      mainImageUrl: referenceImageUrl,
+    }
+    : referenceWork;
 
   return {
     id: row.id,
@@ -52,7 +70,7 @@ function normalizeOrder(row: any) {
     paymentProvider: row.payment_provider || '',
     paymentOrderId: row.payment_order_id || '',
     metadata,
-    referenceWork,
+    referenceWork: normalizedReferenceWork,
     createdAt: row.created_at,
     acceptedAt: row.accepted_at,
     updatedAt: row.updated_at,
