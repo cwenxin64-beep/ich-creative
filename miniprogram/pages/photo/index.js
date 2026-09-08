@@ -20,7 +20,11 @@ Page({
   },
 
   onDescription(event) {
-    this.setData({ description: event.detail.value });
+    const description = event.detail && typeof event.detail.value === 'string'
+      ? event.detail.value
+      : '';
+    if (description === this.data.description) return;
+    this.setData({ description });
   },
 
   clearCreationState(extraData) {

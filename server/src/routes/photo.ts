@@ -183,6 +183,41 @@ async function withRetry<T>(fn: () => Promise<T>, retries = 3, delay = 3000, con
   throw lastError;
 }
 
+function buildObjectPreservingPrompt(prompt: string, description: string, shotType: string): string {
+  const userRequirement = description.trim() || '根据原图主体叠加非遗文化纹样';
+
+  return [
+    `用户需求：${userRequirement}`,
+    `画面类型：${shotType}`,
+    '必须保留上传图片中的原始主体：主体品类、外形轮廓、比例、开口/把手/边缘等关键结构、材质质感和主体颜色不能改变。',
+    '只能在原始主体表面做非遗纹样、图案、色彩或局部装饰融合，不要重新设计成另一件产品。',
+    '如果原图是普通杯子，就保持普通杯子；禁止变成保温杯、随行杯、水壶、礼盒、包装盒或展示道具。',
+    '背景保持简洁，产品主体清晰居中，真实产品摄影质感。',
+    `具体生成提示：${prompt}`,
+  ].join('\n');
+}
+
+function normalizePhotoAnalysisPrompts(analysisData: any, description: string, isDynamic: boolean) {
+  return {
+    ...analysisData,
+    mainPrompt: buildObjectPreservingPrompt(
+      String(analysisData?.mainPrompt || description || '非遗纹样产品设计'),
+      description,
+      isDynamic ? '原物动态展示主镜头' : '原物正面全景'
+    ),
+    subPrompt1: buildObjectPreservingPrompt(
+      String(analysisData?.subPrompt1 || description || '非遗纹样细节'),
+      description,
+      isDynamic ? '原物纹样细节动态镜头' : '原物纹样细节特写'
+    ),
+    subPrompt2: buildObjectPreservingPrompt(
+      String(analysisData?.subPrompt2 || description || '非遗纹样侧面展示'),
+      description,
+      isDynamic ? '原物环绕展示镜头' : '原物侧面或俯视角度'
+    ),
+  };
+}
+
 /**
  * 创建视频生成任务
  */
@@ -327,14 +362,17 @@ async function executeGenerationTask(
 "${description || '根据图片内容自动创作'}"
 
 ## 任务要求
-1. **识别图片中的元素**：分析图片中的颜色、形状、风格、文化元素
-2. **提取非遗元素**：识别与非物质文化遗产相关的元素
-3. **生成创意描述**：用20个汉字概括，包含：关键词+寓意+效果
-4. **生成视频Prompt**：用于AI生成视频，必须具体、详细、可执行，描述镜头运动和视觉效果
+1. **识别原图主体**：先判断图片里的真实主体是什么产品，记录它的品类、外形、比例、颜色、材质、关键结构
+2. **保留原图主体**：后续创作只能给这个主体叠加非遗纹样或局部装饰，不能换成另一件产品
+3. **提取非遗元素**：根据用户需求选择合适的非遗纹样、图案、色彩或工艺
+4. **生成创意描述**：用20个汉字概括，包含：原主体+非遗元素+效果
+5. **生成视频Prompt**：用于AI生成视频，必须具体、详细、可执行，描述镜头运动和视觉效果
 
 ## 视频Prompt要求（非常重要！）
 - 三个Prompt必须是**同一个场景/产品**的**三个不同运镜方式**
-- 必须保持：相同的主体、相同的风格、相同的场景
+- 必须保持：原图主体的产品品类、外形轮廓、比例、材质、主体颜色、关键结构
+- 只允许变化：主体表面的非遗纹样、局部装饰、灯光和镜头运动
+- 禁止把原图主体改成另一种产品；如果原图是杯子，不能变成保温杯、水壶、礼盒或包装
 - 区别仅在于镜头运动：
   - mainPrompt：开场全景，镜头缓慢推进
   - subPrompt1：细节特写，聚焦核心元素，镜头微移
@@ -343,10 +381,11 @@ async function executeGenerationTask(
 ## 输出格式（JSON）
 {
   "creativeDescription": "20字创意描述",
+  "sourceObject": "原图主体品类、外形、材质、颜色、关键结构",
   "ichElements": ["非遗元素1", "非遗元素2"],
-  "mainPrompt": "视频开场，[场景描述]，[主体描述]，[镜头运动：缓慢推进]，高品质电影感",
-  "subPrompt1": "细节特写，[聚焦部位]，[细节展示]，[镜头运动：微移]，微距摄影感",
-  "subPrompt2": "环绕展示，[主体]，[立体感]，[镜头运动：环绕旋转]，流畅运镜"
+  "mainPrompt": "视频开场，保留原图[主体描述]的外形和材质，仅在表面加入[非遗纹样]，[镜头运动：缓慢推进]，高品质电影感",
+  "subPrompt1": "细节特写，保留原图[聚焦部位]结构，仅展示表面[工艺纹样]，[镜头运动：微移]，微距摄影感",
+  "subPrompt2": "环绕展示，保留原图[主体]轮廓和比例，仅展示非遗装饰后的立体感，[镜头运动：环绕旋转]，流畅运镜"
 }
 
 请严格按照以上要求输出JSON：`
@@ -356,15 +395,18 @@ async function executeGenerationTask(
 "${description || '根据图片内容自动创作'}"
 
 ## 任务要求
-1. **识别图片中的元素**：分析图片中的颜色、形状、风格、文化元素
-2. **提取非遗元素**：识别与非物质文化遗产相关的元素
-3. **生成创意描述**：用20个汉字概括，包含：关键词+寓意+效果
-4. **生成图像生成Prompt**：用于AI生图，必须具体、详细、可执行
+1. **识别原图主体**：先判断图片里的真实主体是什么产品，记录它的品类、外形、比例、颜色、材质、关键结构
+2. **保留原图主体**：后续创作只能给这个主体叠加非遗纹样或局部装饰，不能换成另一件产品
+3. **提取非遗元素**：根据用户需求选择合适的非遗纹样、图案、色彩或工艺
+4. **生成创意描述**：用20个汉字概括，包含：原主体+非遗元素+效果
+5. **生成图像生成Prompt**：用于AI生图，必须具体、详细、可执行
 
 ## 生图Prompt要求（非常重要！）
 - 三个Prompt必须是**同一个产品**的**三个不同角度**
-- 必须保持：相同的产品外观、相同的风格、相同的配色、相同的材质
-- 区别仅在于拍摄角度：
+- 必须保持：原图主体的产品品类、外形轮廓、比例、材质、主体颜色、关键结构
+- 只允许变化：主体表面的非遗纹样、局部装饰、光线和拍摄角度
+- 禁止把原图主体改成另一种产品；如果原图是杯子，不能变成保温杯、水壶、礼盒或包装
+- 区别主要在于拍摄角度：
   - mainPrompt：正面全景图，展示完整产品
   - subPrompt1：细节特写图，聚焦核心工艺细节
   - subPrompt2：侧面/俯视图，展示立体结构
@@ -372,10 +414,11 @@ async function executeGenerationTask(
 ## 输出格式（JSON）
 {
   "creativeDescription": "20字创意描述",
+  "sourceObject": "原图主体品类、外形、材质、颜色、关键结构",
   "ichElements": ["非遗元素1", "非遗元素2"],
-  "mainPrompt": "产品正面全景，[产品类型]，[非遗元素描述]，[色彩]，[材质]，[场景]，[光线]，高清产品摄影",
-  "subPrompt1": "同一产品细节特写，[聚焦部位]，[工艺细节]，[纹理质感]，微距摄影",
-  "subPrompt2": "同一产品侧面视角，[立体结构]，[整体轮廓]，[空间关系]，产品展示图"
+  "mainPrompt": "保留原图[主体描述]的外形、比例、材质和颜色，仅在表面加入[非遗纹样]，正面全景，高清产品摄影",
+  "subPrompt1": "同一原图主体细节特写，保留[聚焦部位]结构，仅展示表面[工艺纹样]，微距摄影",
+  "subPrompt2": "同一原图主体侧面视角，保留[立体结构]和[整体轮廓]，仅展示非遗装饰后的空间关系，产品展示图"
 }
 
 请严格按照以上要求输出JSON：`;
@@ -421,8 +464,10 @@ async function executeGenerationTask(
             mainPrompt: `非遗风格${description || '创意产品'}，传统工艺，高清产品摄影`,
             subPrompt1: `同一产品细节特写，工艺细节，纹理质感`,
             subPrompt2: `同一产品侧面视角，立体结构`,
-          };
+        };
     }
+
+    analysisData = normalizePhotoAnalysisPrompts(analysisData, description, isDynamic);
 
     console.log(`[${taskId}] Analysis:`, analysisData);
     taskStore.update(taskId, { progress: 50 });

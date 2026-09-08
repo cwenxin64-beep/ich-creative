@@ -10,7 +10,7 @@ Page({
   },
 
   onShow() {
-    this.fetchMaterials();
+    this.fetchMaterials({ silent: true });
   },
 
   onPullDownRefresh() {
@@ -21,7 +21,8 @@ Page({
     wx.navigateBack({ fail: () => wx.switchTab({ url: '/pages/home/index' }) });
   },
 
-  async fetchMaterials() {
+  async fetchMaterials(options) {
+    const silent = options && options.silent;
     this.setData({ loading: true });
     try {
       const data = await api.request('/api/v1/materials');
@@ -29,6 +30,10 @@ Page({
       const materials = (data.materials || []).map(normalizeMaterial);
       this.setData({ materials }, () => this.applyFilter());
     } catch (error) {
+      if (silent) {
+        console.warn('[Materials] Initial load failed:', error && (error.message || error));
+        return;
+      }
       api.showError(error, '加载失败');
     } finally {
       this.setData({ loading: false });
