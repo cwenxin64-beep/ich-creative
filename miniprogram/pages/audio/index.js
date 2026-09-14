@@ -100,31 +100,41 @@ Page({
   getPlayableUrl() {
     const audioUrl = this.data.result && this.data.result.audioUrl;
     if (!audioUrl) return '';
-    return api.buildUrl(`/api/v1/audio/proxy?url=${encodeURIComponent(audioUrl)}`);
+    if (/^https?:\/\//i.test(audioUrl)) return audioUrl;
+    return api.buildUrl(audioUrl);
   },
 
   togglePlay() {
     const src = this.getPlayableUrl();
     if (!src) return;
 
-    if (!this.audio) {
-      this.audio = wx.createInnerAudioContext();
-      this.audio.src = src;
-      this.audio.onEnded(() => this.setData({ playing: false }));
-      this.audio.onError(() => {
-        this.setData({ playing: false });
-        wx.showToast({ title: '播放失败', icon: 'none' });
-      });
-    }
-
     if (this.data.playing) {
-      this.audio.pause();
+      if (this.audio) this.audio.pause();
       this.setData({ playing: false });
       return;
     }
 
+    if (!this.audio || this.audio.src !== src) {
+      this.createAudio(src);
+    }
+
     this.audio.play();
-    this.setData({ playing: true });
+  },
+
+  createAudio(src) {
+    this.destroyAudio();
+    this.audio = wx.createInnerAudioContext();
+    this.audio.obeyMuteSwitch = false;
+    this.audio.src = src;
+    this.audio.onPlay(() => this.setData({ playing: true }));
+    this.audio.onPause(() => this.setData({ playing: false }));
+    this.audio.onStop(() => this.setData({ playing: false }));
+    this.audio.onEnded(() => this.setData({ playing: false }));
+    this.audio.onError((error) => {
+      console.warn('[Audio] Playback failed:', error);
+      this.setData({ playing: false });
+      wx.showToast({ title: '播放失败，请稍后重试', icon: 'none' });
+    });
   },
 
   destroyAudio() {

@@ -384,11 +384,17 @@ router.get('/proxy', async (req: Request, res: Response) => {
 
     console.log(`[Music] Proxying audio: ${audioUrl.substring(0, 80)}...`);
 
+    const requestHeaders: Record<string, string> = {
+      'User-Agent': 'Mozilla/5.0',
+      'Accept': '*/*',
+    };
+    const range = req.headers.range;
+    if (range) {
+      requestHeaders.Range = range;
+    }
+
     const response = await fetch(audioUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0',
-        'Accept': '*/*',
-      },
+      headers: requestHeaders,
       redirect: 'follow',
       signal: AbortSignal.timeout(60000),
     });
@@ -400,11 +406,18 @@ router.get('/proxy', async (req: Request, res: Response) => {
 
     const contentType = response.headers.get('content-type') || 'audio/mpeg';
     const contentLength = response.headers.get('content-length');
+    const contentRange = response.headers.get('content-range');
+    const acceptRanges = response.headers.get('accept-ranges') || 'bytes';
+    res.status(response.status === 206 ? 206 : 200);
     res.setHeader('Content-Type', contentType);
     res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Accept-Ranges', acceptRanges);
     res.setHeader('Cache-Control', 'public, max-age=86400');
     if (contentLength) {
       res.setHeader('Content-Length', contentLength);
+    }
+    if (contentRange) {
+      res.setHeader('Content-Range', contentRange);
     }
 
     // 流式传输，避免大文件占满内存
