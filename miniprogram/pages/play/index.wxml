@@ -40,7 +40,7 @@
     <view class="progress-bar">
       <view class="progress-inner" style="width: {{progress}}%;"></view>
     </view>
-    <view class="small-text">正在生成，通常需要 1-2 分钟。</view>
+    <view class="small-text">正在生成，可切换到其他栏目，回来会继续显示进度。</view>
   </view>
 
   <view wx:if="{{results.length}}" class="result-block">

@@ -2,6 +2,8 @@ const api = require('../../utils/api');
 const constants = require('../../utils/constants');
 const { encodeParam } = require('../../utils/format');
 
+const PLAY_ACTIVE_TASK_KEY = 'play_active_task';
+
 Page({
   data: {
     ichTypes: constants.ICH_TYPES,
@@ -13,13 +15,33 @@ Page({
     text: '',
     loading: false,
     progress: 0,
+    activeTaskId: '',
     results: []
   },
 
   progressTimer: null,
+  pollTimer: null,
+  pollingTaskId: '',
+  taskStatusFailures: 0,
+  pageVisible: false,
+
+  onShow() {
+    this.pageVisible = true;
+    this.resumeActiveTask();
+  },
+
+  onHide() {
+    this.pageVisible = false;
+    this.stopProgress();
+    this.clearPollTimer();
+    this.pollingTaskId = '';
+  },
 
   onUnload() {
+    this.pageVisible = false;
     this.stopProgress();
+    this.clearPollTimer();
+    this.pollingTaskId = '';
   },
 
   onText(event) {
@@ -56,6 +78,128 @@ Page({
     }
   },
 
+  clearPollTimer() {
+    if (this.pollTimer) {
+      clearTimeout(this.pollTimer);
+      this.pollTimer = null;
+    }
+  },
+
+  saveActiveTask(task) {
+    wx.setStorageSync(PLAY_ACTIVE_TASK_KEY, task);
+  },
+
+  getActiveTask() {
+    return wx.getStorageSync(PLAY_ACTIVE_TASK_KEY) || null;
+  },
+
+  clearActiveTask(taskId) {
+    const activeTask = this.getActiveTask();
+    if (!activeTask || !activeTask.taskId || !taskId || activeTask.taskId === taskId) {
+      wx.removeStorageSync(PLAY_ACTIVE_TASK_KEY);
+    }
+  },
+
+  resumeActiveTask() {
+    const activeTask = this.getActiveTask();
+    if (!activeTask || !activeTask.taskId) return;
+
+    this.setData({
+      loading: true,
+      activeTaskId: activeTask.taskId,
+      progress: Math.max(this.data.progress, 10),
+      text: activeTask.text || this.data.text,
+      selectedIchType: activeTask.ichType || this.data.selectedIchType,
+      selectedProductType: activeTask.productType || this.data.selectedProductType,
+      selectedMarket: activeTask.targetMarket || this.data.selectedMarket,
+      results: []
+    });
+    this.taskStatusFailures = 0;
+    this.startProgress();
+    this.pollTaskStatus(activeTask.taskId, 0);
+  },
+
+  pollTaskStatus(taskId, delay) {
+    if (!taskId || !this.pageVisible) return;
+    this.pollingTaskId = taskId;
+    this.clearPollTimer();
+    this.pollTimer = setTimeout(() => {
+      this.fetchTaskStatus(taskId);
+    }, delay == null ? 2000 : delay);
+  },
+
+  async fetchTaskStatus(taskId) {
+    if (!this.pageVisible || this.pollingTaskId !== taskId) return;
+
+    try {
+      const data = await api.request(`/api/v1/play/status/${taskId}`);
+      if (!this.pageVisible || this.pollingTaskId !== taskId) return;
+
+      this.taskStatusFailures = 0;
+
+      if (data.status === 'completed') {
+        if (!data.result || !data.result.success) {
+          this.failActiveTask(taskId, new Error((data.result && data.result.message) || '生成失败'));
+          return;
+        }
+        this.completeTask(taskId, data.result);
+        return;
+      }
+
+      if (data.status === 'failed') {
+        this.failActiveTask(taskId, new Error(data.error || '生成失败'));
+        return;
+      }
+
+      const serverProgress = Number(data.progress || 0);
+      this.setData({
+        loading: true,
+        activeTaskId: taskId,
+        progress: Math.min(95, Math.max(this.data.progress, serverProgress))
+      });
+      this.pollTaskStatus(taskId, 2000);
+    } catch (error) {
+      if (!this.pageVisible || this.pollingTaskId !== taskId) return;
+
+      this.taskStatusFailures += 1;
+      if (this.taskStatusFailures < 5) {
+        this.pollTaskStatus(taskId, 3000);
+        return;
+      }
+
+      this.failActiveTask(taskId, error);
+    }
+  },
+
+  completeTask(taskId, result) {
+    const results = (result.results || []).map((item, index) => {
+      const mainImageUrl = item.mainImageUrl || item.imageUrl || (item.videoUrl ? `${item.videoUrl}?type=cover` : '');
+      return Object.assign({}, item, {
+        localId: `${Date.now()}-${index}`,
+        mainImageUrl,
+        subImageUrl1: item.subImageUrl1 || mainImageUrl,
+        subImageUrl2: item.subImageUrl2 || mainImageUrl,
+        favorited: false,
+        favoriteId: ''
+      });
+    });
+
+    this.clearActiveTask(taskId);
+    this.clearPollTimer();
+    this.pollingTaskId = '';
+    this.stopProgress();
+    this.setData({ results, progress: 100, loading: false, activeTaskId: '' });
+  },
+
+  failActiveTask(taskId, error) {
+    this.clearActiveTask(taskId);
+    this.clearPollTimer();
+    this.pollingTaskId = '';
+    this.stopProgress();
+    this.setData({ loading: false, activeTaskId: '' });
+    api.showError(error, '生成失败');
+  },
+
   buildDefaultText() {
     const ichName = (constants.ICH_TYPES.find((item) => item.id === this.data.selectedIchType) || {}).name || '';
     const productName = (constants.PRODUCT_TYPES.find((item) => item.id === this.data.selectedProductType) || {}).name || '';
@@ -76,7 +220,10 @@ Page({
     }
 
     const text = this.data.text.trim() || this.buildDefaultText();
-    this.setData({ loading: true, progress: 0, results: [] });
+    this.clearPollTimer();
+    this.pollingTaskId = '';
+    this.taskStatusFailures = 0;
+    this.setData({ loading: true, progress: 0, activeTaskId: '', results: [] });
     this.startProgress();
 
     try {
@@ -94,34 +241,24 @@ Page({
         throw new Error(created.error || '创建任务失败');
       }
 
-      const result = await api.poll(`/api/v1/play/status/${created.taskId}`, (data) => {
-        if (data.status === 'completed') return { done: true, value: data.result };
-        if (data.status === 'failed') return { failed: true, error: data.error };
-        return { done: false };
+      this.saveActiveTask({
+        taskId: created.taskId,
+        text,
+        ichType: this.data.selectedIchType,
+        productType: this.data.selectedProductType,
+        targetMarket: this.data.selectedMarket,
+        createdAt: Date.now()
       });
-
-      if (!result.success) {
-        throw new Error(result.message || '生成失败');
-      }
-
-      const results = (result.results || []).map((item, index) => {
-        const mainImageUrl = item.mainImageUrl || item.imageUrl || (item.videoUrl ? `${item.videoUrl}?type=cover` : '');
-        return Object.assign({}, item, {
-          localId: `${Date.now()}-${index}`,
-          mainImageUrl,
-          subImageUrl1: item.subImageUrl1 || mainImageUrl,
-          subImageUrl2: item.subImageUrl2 || mainImageUrl,
-          favorited: false,
-          favoriteId: ''
-        });
-      });
-
-      this.setData({ results, progress: 100 });
+      if (!this.pageVisible) return;
+      this.setData({ activeTaskId: created.taskId, progress: Math.max(this.data.progress, 10) });
+      this.pollTaskStatus(created.taskId, 0);
     } catch (error) {
-      api.showError(error, '生成失败');
-    } finally {
+      this.clearActiveTask();
+      this.clearPollTimer();
+      this.pollingTaskId = '';
       this.stopProgress();
-      this.setData({ loading: false });
+      this.setData({ loading: false, activeTaskId: '' });
+      api.showError(error, '生成失败');
     }
   },
 
