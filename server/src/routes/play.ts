@@ -19,7 +19,6 @@ const VIDEO_MODEL = process.env.VOLCENGINE_VIDEO_MODEL || 'ep-20260326185806-4fg
 
 const PLAY_WORKFLOW_IDS: Record<string, string[]> = {
   poster: [
-    getWorkflowId('COZE_WORKFLOW_PLAY_POSTER', '7678261053490200639'),
     getWorkflowId('COZE_WORKFLOW_PLAY_POSTER_ALT', '7678261713996726314'),
   ],
   festival: [
