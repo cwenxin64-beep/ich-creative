@@ -183,16 +183,36 @@ async function withRetry<T>(fn: () => Promise<T>, retries = 3, delay = 3000, con
   throw lastError;
 }
 
-function buildObjectPreservingPrompt(prompt: string, description: string, shotType: string): string {
+function toPromptText(value: any): string {
+  if (!value) return '';
+  if (Array.isArray(value)) {
+    return value.filter(Boolean).map(item => String(item).trim()).filter(Boolean).join('、');
+  }
+  if (typeof value === 'object') {
+    return JSON.stringify(value);
+  }
+  return String(value).trim();
+}
+
+function buildObjectPreservingPrompt(prompt: string, description: string, shotType: string, analysisData: any): string {
   const userRequirement = description.trim() || '根据原图主体叠加非遗文化纹样';
+  const sourceObject = toPromptText(analysisData?.sourceObject);
+  const lockedVisualFeatures = toPromptText(analysisData?.lockedVisualFeatures);
+  const ichElements = toPromptText(analysisData?.ichElements);
+  const forbiddenChanges = toPromptText(analysisData?.forbiddenChanges);
 
   return [
-    `用户需求：${userRequirement}`,
+    `用户文字需求：${userRequirement}`,
     `画面类型：${shotType}`,
-    '必须保留上传图片中的原始主体：主体品类、外形轮廓、比例、开口/把手/边缘等关键结构、材质质感和主体颜色不能改变。',
-    '只能在原始主体表面做非遗纹样、图案、色彩或局部装饰融合，不要重新设计成另一件产品。',
-    '如果原图是普通杯子，就保持普通杯子；禁止变成保温杯、随行杯、水壶、礼盒、包装盒或展示道具。',
-    '背景保持简洁，产品主体清晰居中，真实产品摄影质感。',
+    sourceObject ? `原图主体识别：${sourceObject}` : '原图主体识别：以用户上传图片中最清晰、最主要的物体为准。',
+    lockedVisualFeatures ? `必须锁定的原图视觉特征：${lockedVisualFeatures}` : '必须锁定的原图视觉特征：主体品类、外形轮廓、比例、材质、主体颜色和最显眼的装饰结构。',
+    ichElements ? `可融合的非遗元素：${ichElements}` : '可融合的非遗元素：根据用户文字需求选择，不得盖过原图主体。',
+    '生成优先级：原图主体相似度 > 原图结构、材质、颜色 > 用户文字改造方向 > 非遗装饰效果。',
+    '必须按“原图改造”理解，不能按“重新设计一个新产品”理解。',
+    '如果用户要求把原图元素融入另一类产品，只能把原图最显眼的结构、材质、纹样、垂坠关系或装饰关系转译过去，不能生成目标产品的普通模板款。',
+    '如果原图是普通杯子，就保持普通杯子的轮廓和材质；禁止变成保温杯、随行杯、水壶、礼盒、包装盒或展示道具。',
+    forbiddenChanges ? `禁止变化：${forbiddenChanges}` : '禁止变化：替换主体品类、改变核心轮廓、丢失原图主要装饰结构、生成常见模板产品。',
+    '背景保持简洁，主体清晰居中，真实产品摄影质感。',
     `具体生成提示：${prompt}`,
   ].join('\n');
 }
@@ -203,17 +223,20 @@ function normalizePhotoAnalysisPrompts(analysisData: any, description: string, i
     mainPrompt: buildObjectPreservingPrompt(
       String(analysisData?.mainPrompt || description || '非遗纹样产品设计'),
       description,
-      isDynamic ? '原物动态展示主镜头' : '原物正面全景'
+      isDynamic ? '原物动态展示主镜头' : '原物正面全景',
+      analysisData
     ),
     subPrompt1: buildObjectPreservingPrompt(
       String(analysisData?.subPrompt1 || description || '非遗纹样细节'),
       description,
-      isDynamic ? '原物纹样细节动态镜头' : '原物纹样细节特写'
+      isDynamic ? '原物纹样细节动态镜头' : '原物纹样细节特写',
+      analysisData
     ),
     subPrompt2: buildObjectPreservingPrompt(
       String(analysisData?.subPrompt2 || description || '非遗纹样侧面展示'),
       description,
-      isDynamic ? '原物环绕展示镜头' : '原物侧面或俯视角度'
+      isDynamic ? '原物环绕展示镜头' : '原物侧面或俯视角度',
+      analysisData
     ),
   };
 }
@@ -362,17 +385,19 @@ async function executeGenerationTask(
 "${description || '根据图片内容自动创作'}"
 
 ## 任务要求
-1. **识别原图主体**：先判断图片里的真实主体是什么产品，记录它的品类、外形、比例、颜色、材质、关键结构
-2. **保留原图主体**：后续创作只能给这个主体叠加非遗纹样或局部装饰，不能换成另一件产品
-3. **提取非遗元素**：根据用户需求选择合适的非遗纹样、图案、色彩或工艺
-4. **生成创意描述**：用20个汉字概括，包含：原主体+非遗元素+效果
-5. **生成视频Prompt**：用于AI生成视频，必须具体、详细、可执行，描述镜头运动和视觉效果
+1. **识别原图主体**：先判断图片里的真实主体是什么，记录它的品类、外形、比例、颜色、材质、关键结构和最显眼的装饰关系；如果不是标准产品，也要如实写成灯饰、挂件、摆件、器皿等
+2. **锁定原图视觉锚点**：把原图中最不能丢的视觉特征写出来，后续Prompt必须直接复用这些特征
+3. **保留原图主体**：用户文字只是改造方向，不能覆盖原图主体；不能把原图主体换成另一件常见产品
+4. **提取非遗元素**：根据用户需求选择合适的非遗纹样、图案、色彩或工艺
+5. **生成创意描述**：用20个汉字概括，包含：原主体+非遗元素+效果
+6. **生成视频Prompt**：用于AI生成视频，必须具体、详细、可执行，描述镜头运动和视觉效果
 
 ## 视频Prompt要求（非常重要！）
-- 三个Prompt必须是**同一个场景/产品**的**三个不同运镜方式**
-- 必须保持：原图主体的产品品类、外形轮廓、比例、材质、主体颜色、关键结构
-- 只允许变化：主体表面的非遗纹样、局部装饰、灯光和镜头运动
-- 禁止把原图主体改成另一种产品；如果原图是杯子，不能变成保温杯、水壶、礼盒或包装
+- 三个Prompt必须是**同一原图视觉主体/同一设计方案**的**三个不同运镜方式**
+- 原图相似度优先级最高，必须保持：原图主体的品类、外形轮廓、比例、材质、主体颜色、关键结构和最显眼装饰关系
+- 如果用户要求“融入头饰/服饰/家居/礼品”等新载体，只能把原图视觉锚点转译过去，不能生成该载体的普通模板款
+- 只允许变化：非遗纹样、局部装饰、灯光和镜头运动
+- 禁止把原图主体普通化或改成另一种产品；如果原图是杯子，不能变成保温杯、水壶、礼盒或包装；如果原图是珠灯/串珠灯饰，不能变成普通珍珠皇冠或婚礼头冠
 - 区别仅在于镜头运动：
   - mainPrompt：开场全景，镜头缓慢推进
   - subPrompt1：细节特写，聚焦核心元素，镜头微移
@@ -381,7 +406,9 @@ async function executeGenerationTask(
 ## 输出格式（JSON）
 {
   "creativeDescription": "20字创意描述",
-  "sourceObject": "原图主体品类、外形、材质、颜色、关键结构",
+  "sourceObject": "原图主体品类、外形、材质、颜色、关键结构、最显眼装饰关系",
+  "lockedVisualFeatures": ["必须保留的原图视觉特征1", "必须保留的原图视觉特征2", "必须保留的原图视觉特征3"],
+  "forbiddenChanges": ["禁止变化1", "禁止变化2"],
   "ichElements": ["非遗元素1", "非遗元素2"],
   "mainPrompt": "视频开场，保留原图[主体描述]的外形和材质，仅在表面加入[非遗纹样]，[镜头运动：缓慢推进]，高品质电影感",
   "subPrompt1": "细节特写，保留原图[聚焦部位]结构，仅展示表面[工艺纹样]，[镜头运动：微移]，微距摄影感",
@@ -395,17 +422,19 @@ async function executeGenerationTask(
 "${description || '根据图片内容自动创作'}"
 
 ## 任务要求
-1. **识别原图主体**：先判断图片里的真实主体是什么产品，记录它的品类、外形、比例、颜色、材质、关键结构
-2. **保留原图主体**：后续创作只能给这个主体叠加非遗纹样或局部装饰，不能换成另一件产品
-3. **提取非遗元素**：根据用户需求选择合适的非遗纹样、图案、色彩或工艺
-4. **生成创意描述**：用20个汉字概括，包含：原主体+非遗元素+效果
-5. **生成图像生成Prompt**：用于AI生图，必须具体、详细、可执行
+1. **识别原图主体**：先判断图片里的真实主体是什么，记录它的品类、外形、比例、颜色、材质、关键结构和最显眼的装饰关系；如果不是标准产品，也要如实写成灯饰、挂件、摆件、器皿等
+2. **锁定原图视觉锚点**：把原图中最不能丢的视觉特征写出来，后续Prompt必须直接复用这些特征
+3. **保留原图主体**：用户文字只是改造方向，不能覆盖原图主体；不能把原图主体换成另一件常见产品
+4. **提取非遗元素**：根据用户需求选择合适的非遗纹样、图案、色彩或工艺
+5. **生成创意描述**：用20个汉字概括，包含：原主体+非遗元素+效果
+6. **生成图像生成Prompt**：用于AI生图，必须具体、详细、可执行
 
 ## 生图Prompt要求（非常重要！）
-- 三个Prompt必须是**同一个产品**的**三个不同角度**
-- 必须保持：原图主体的产品品类、外形轮廓、比例、材质、主体颜色、关键结构
-- 只允许变化：主体表面的非遗纹样、局部装饰、光线和拍摄角度
-- 禁止把原图主体改成另一种产品；如果原图是杯子，不能变成保温杯、水壶、礼盒或包装
+- 三个Prompt必须是**同一原图视觉主体/同一设计方案**的**三个不同角度**
+- 原图相似度优先级最高，必须保持：原图主体的品类、外形轮廓、比例、材质、主体颜色、关键结构和最显眼装饰关系
+- 如果用户要求“融入头饰/服饰/家居/礼品”等新载体，只能把原图视觉锚点转译过去，不能生成该载体的普通模板款
+- 只允许变化：非遗纹样、局部装饰、光线和拍摄角度
+- 禁止把原图主体普通化或改成另一种产品；如果原图是杯子，不能变成保温杯、水壶、礼盒或包装；如果原图是珠灯/串珠灯饰，不能变成普通珍珠皇冠或婚礼头冠
 - 区别主要在于拍摄角度：
   - mainPrompt：正面全景图，展示完整产品
   - subPrompt1：细节特写图，聚焦核心工艺细节
@@ -414,7 +443,9 @@ async function executeGenerationTask(
 ## 输出格式（JSON）
 {
   "creativeDescription": "20字创意描述",
-  "sourceObject": "原图主体品类、外形、材质、颜色、关键结构",
+  "sourceObject": "原图主体品类、外形、材质、颜色、关键结构、最显眼装饰关系",
+  "lockedVisualFeatures": ["必须保留的原图视觉特征1", "必须保留的原图视觉特征2", "必须保留的原图视觉特征3"],
+  "forbiddenChanges": ["禁止变化1", "禁止变化2"],
   "ichElements": ["非遗元素1", "非遗元素2"],
   "mainPrompt": "保留原图[主体描述]的外形、比例、材质和颜色，仅在表面加入[非遗纹样]，正面全景，高清产品摄影",
   "subPrompt1": "同一原图主体细节特写，保留[聚焦部位]结构，仅展示表面[工艺纹样]，微距摄影",
@@ -450,21 +481,7 @@ async function executeGenerationTask(
       }
       analysisData = JSON.parse(content);
     } catch {
-      analysisData = isDynamic
-        ? {
-            creativeDescription: description || '非遗视频创意',
-            ichElements: ['传统工艺'],
-            mainPrompt: `非遗风格${description || '创意场景'}，开场全景，镜头缓慢推进，高品质电影感`,
-            subPrompt1: `细节特写，传统工艺，纹理质感，镜头微移`,
-            subPrompt2: `环绕展示，立体感，镜头环绕旋转`,
-          }
-        : {
-            creativeDescription: description || '非遗创意',
-            ichElements: ['传统工艺'],
-            mainPrompt: `非遗风格${description || '创意产品'}，传统工艺，高清产品摄影`,
-            subPrompt1: `同一产品细节特写，工艺细节，纹理质感`,
-            subPrompt2: `同一产品侧面视角，立体结构`,
-        };
+      throw new Error('图片分析结果格式错误，无法可靠保留原图特征');
     }
 
     analysisData = normalizePhotoAnalysisPrompts(analysisData, description, isDynamic);
