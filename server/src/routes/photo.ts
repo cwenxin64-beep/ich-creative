@@ -238,40 +238,36 @@ function buildObjectPreservingPrompt(prompt: string, description: string, shotTy
   const sourceObject = toPromptText(analysisData?.sourceObject);
   const lockedVisualFeatures = toPromptText(analysisData?.lockedVisualFeatures);
   const ichElements = toPromptText(analysisData?.ichElements);
-  const forbiddenChanges = toPromptText(analysisData?.forbiddenChanges);
   const targetProduct = toPromptText(analysisData?.targetProduct) || extractTargetProduct(description);
   const hasTargetProduct = Boolean(targetProduct);
 
   const commonLines = [
     `用户文字需求：${userRequirement}`,
     `画面类型：${shotType}`,
-    targetProduct ? `用户明确指定的最终产品：${targetProduct}` : '',
-    sourceObject ? `原图主体识别：${sourceObject}` : '原图主体识别：以用户上传图片中最清晰、最主要的物体为准。',
-    lockedVisualFeatures ? `必须锁定的原图视觉特征：${lockedVisualFeatures}` : '必须锁定的原图视觉特征：主体品类、外形轮廓、比例、材质、主体颜色和最显眼的装饰结构。',
-    ichElements ? `可融合的非遗元素：${ichElements}` : '可融合的非遗元素：根据用户文字需求选择，不得盖过原图主体。',
+    `生成模式：${hasTargetProduct ? '指定产品创作' : '原图主体改造'}`,
+    hasTargetProduct ? `最终画面主体：${targetProduct}` : '最终画面主体：原图中的主要物体',
+    sourceObject ? `原图参考内容：${sourceObject}` : '',
+    lockedVisualFeatures ? `可借鉴的原图视觉元素：${lockedVisualFeatures}` : '',
+    ichElements ? `非遗元素：${ichElements}` : '',
   ].filter(Boolean);
 
   const targetProductLines = [
-    `生成优先级：最终产品必须是“${targetProduct}” > 原图视觉特征转译 > 非遗风格 > 其他装饰。`,
-    `必须生成${targetProduct}，不能生成原图里的其他物体，也不能生成盆栽、杯子、礼盒、包装盒等无关物体。`,
-    `原图只作为视觉参考：提取原图的材质、颜色、纹样、结构关系或装饰气质，转译到${targetProduct}上。`,
-    `如果原图主体和${targetProduct}不是同一种东西，不要保留原图主体品类，只保留原图视觉特征。`,
-    `不要生成普通模板款${targetProduct}，必须能看出原图视觉特征和非遗元素的结合。`,
+    `画面必须是一个${targetProduct}，主体清楚、完整、居中。`,
+    `原图只提供纹样、颜色、材质、结构或装饰灵感，不要把原图物体原样画出来。`,
+    `禁止生成非${targetProduct}主体，尤其不要生成盆栽、玻璃杯、礼盒、包装盒、展示道具或无关产品。`,
+    `让${targetProduct}带有清晰的非遗风格，但保持实用产品质感。`,
   ];
 
   const sourceObjectLines = [
-    '生成优先级：原图主体相似度 > 原图结构、材质、颜色 > 用户文字改造方向 > 非遗装饰效果。',
-    '必须按“原图改造”理解，不能按“重新设计一个新产品”理解。',
-    '如果原图是普通杯子，就保持普通杯子的轮廓和材质；禁止变成保温杯、随行杯、水壶、礼盒、包装盒或展示道具。',
+    '保持原图主要物体的品类、轮廓、比例、材质和主体颜色。',
+    '只在原图主体上加入非遗纹样、色彩或局部装饰，不要换成另一件产品。',
+    '如果原图是普通杯子，就仍然是普通杯子；不要变成保温杯、礼盒、包装盒或展示道具。',
   ];
 
   return [
     ...commonLines,
     ...(hasTargetProduct ? targetProductLines : sourceObjectLines),
-    hasTargetProduct
-      ? `禁止变化：生成非${targetProduct}产品、丢失用户指定产品、丢失原图视觉特征、生成无关盆栽/杯子/包装/礼盒。`
-      : forbiddenChanges ? `禁止变化：${forbiddenChanges}` : '禁止变化：替换主体品类、改变核心轮廓、丢失原图主要装饰结构、生成常见模板产品。',
-    '背景保持简洁，主体清晰居中，真实产品摄影质感。',
+    '画面干净，真实产品摄影质感，不要复杂场景。',
     `具体生成提示：${prompt}`,
   ].join('\n');
 }
@@ -444,20 +440,17 @@ async function executeGenerationTask(
 "${description || '根据图片内容自动创作'}"
 
 ## 任务要求
-1. **识别原图主体**：先判断图片里的真实主体是什么，记录它的品类、外形、比例、颜色、材质、关键结构和最显眼的装饰关系；如果不是标准产品，也要如实写成灯饰、挂件、摆件、器皿等
-2. **判断目标产品**：如果用户文字明确写了手机壳、头饰、耳环、杯子、海报、卡片、礼品、服装等产品，最终必须生成这个产品；如果没写明确产品，才保留原图主体品类
-3. **锁定原图视觉锚点**：把原图中最不能丢的材质、颜色、纹样、结构关系或装饰气质写出来，后续Prompt必须转译这些特征
-4. **提取非遗元素**：根据用户需求选择合适的非遗纹样、图案、色彩或工艺
-5. **生成创意描述**：用20个汉字概括，包含：原主体+非遗元素+效果
-6. **生成视频Prompt**：用于AI生成视频，必须具体、详细、可执行，描述镜头运动和视觉效果
+1. 判断用户文字里有没有明确最终产品，例如手机壳、头饰、耳环、杯子、海报、卡片、礼品、服装等；有就写入 targetProduct，没有就留空。
+2. 识别原图主体，只记录对创作有用的信息：品类、外形、材质、颜色、纹样、结构或装饰气质。
+3. 提取可以迁移到作品里的原图视觉元素，不要把无关物体强行保留。
+4. 根据用户需求选择合适的非遗元素。
+5. 生成视频Prompt，必须短、清楚、可执行，不要写互相冲突的规则。
 
 ## 视频Prompt要求（非常重要！）
-- 三个Prompt必须是**同一原图视觉主体/同一设计方案**的**三个不同运镜方式**
-- 如果用户文字有明确目标产品，目标产品优先级最高，必须生成该目标产品，原图只作为视觉元素参考
-- 如果用户文字没有明确目标产品，原图相似度优先级最高，必须保持原图主体的品类、外形轮廓、比例、材质、主体颜色、关键结构和最显眼装饰关系
-- 只允许变化：非遗纹样、局部装饰、灯光和镜头运动
-- 禁止把原图主体普通化或改成另一种产品；如果原图是杯子，不能变成保温杯、水壶、礼盒或包装；如果原图是珠灯/串珠灯饰，不能变成普通珍珠皇冠或婚礼头冠
-- 区别仅在于镜头运动：
+- 如果 targetProduct 不为空：Prompt 的主体必须是 targetProduct，原图只作为纹样、材质、颜色、结构灵感。
+- 如果 targetProduct 为空：Prompt 的主体必须是原图主要物体，只做非遗风格改造。
+- 不要生成盆栽、玻璃杯、礼盒、包装盒等与用户目标无关的物体。
+- 三个Prompt只区别镜头运动：
   - mainPrompt：开场全景，镜头缓慢推进
   - subPrompt1：细节特写，聚焦核心元素，镜头微移
   - subPrompt2：环绕运镜，展示立体感
@@ -466,13 +459,12 @@ async function executeGenerationTask(
 {
   "creativeDescription": "20字创意描述",
   "targetProduct": "用户明确指定的最终产品；没有就填空字符串",
-  "sourceObject": "原图主体品类、外形、材质、颜色、关键结构、最显眼装饰关系",
-  "lockedVisualFeatures": ["必须保留的原图视觉特征1", "必须保留的原图视觉特征2", "必须保留的原图视觉特征3"],
-  "forbiddenChanges": ["禁止变化1", "禁止变化2"],
+  "sourceObject": "原图主体和视觉特征的简短描述",
+  "lockedVisualFeatures": ["可借鉴的原图视觉元素1", "可借鉴的原图视觉元素2"],
   "ichElements": ["非遗元素1", "非遗元素2"],
-  "mainPrompt": "视频开场，保留原图[主体描述]的外形和材质，仅在表面加入[非遗纹样]，[镜头运动：缓慢推进]，高品质电影感",
-  "subPrompt1": "细节特写，保留原图[聚焦部位]结构，仅展示表面[工艺纹样]，[镜头运动：微移]，微距摄影感",
-  "subPrompt2": "环绕展示，保留原图[主体]轮廓和比例，仅展示非遗装饰后的立体感，[镜头运动：环绕旋转]，流畅运镜"
+  "mainPrompt": "主体明确的主镜头视频提示词",
+  "subPrompt1": "主体明确的细节视频提示词",
+  "subPrompt2": "主体明确的环绕视频提示词"
 }
 
 请严格按照以上要求输出JSON：`
@@ -482,20 +474,17 @@ async function executeGenerationTask(
 "${description || '根据图片内容自动创作'}"
 
 ## 任务要求
-1. **识别原图主体**：先判断图片里的真实主体是什么，记录它的品类、外形、比例、颜色、材质、关键结构和最显眼的装饰关系；如果不是标准产品，也要如实写成灯饰、挂件、摆件、器皿等
-2. **判断目标产品**：如果用户文字明确写了手机壳、头饰、耳环、杯子、海报、卡片、礼品、服装等产品，最终必须生成这个产品；如果没写明确产品，才保留原图主体品类
-3. **锁定原图视觉锚点**：把原图中最不能丢的材质、颜色、纹样、结构关系或装饰气质写出来，后续Prompt必须转译这些特征
-4. **提取非遗元素**：根据用户需求选择合适的非遗纹样、图案、色彩或工艺
-5. **生成创意描述**：用20个汉字概括，包含：原主体+非遗元素+效果
-6. **生成图像生成Prompt**：用于AI生图，必须具体、详细、可执行
+1. 判断用户文字里有没有明确最终产品，例如手机壳、头饰、耳环、杯子、海报、卡片、礼品、服装等；有就写入 targetProduct，没有就留空。
+2. 识别原图主体，只记录对创作有用的信息：品类、外形、材质、颜色、纹样、结构或装饰气质。
+3. 提取可以迁移到作品里的原图视觉元素，不要把无关物体强行保留。
+4. 根据用户需求选择合适的非遗元素。
+5. 生成图像Prompt，必须短、清楚、可执行，不要写互相冲突的规则。
 
 ## 生图Prompt要求（非常重要！）
-- 三个Prompt必须是**同一原图视觉主体/同一设计方案**的**三个不同角度**
-- 如果用户文字有明确目标产品，目标产品优先级最高，必须生成该目标产品，原图只作为视觉元素参考
-- 如果用户文字没有明确目标产品，原图相似度优先级最高，必须保持原图主体的品类、外形轮廓、比例、材质、主体颜色、关键结构和最显眼装饰关系
-- 只允许变化：非遗纹样、局部装饰、光线和拍摄角度
-- 禁止把原图主体普通化或改成另一种产品；如果原图是杯子，不能变成保温杯、水壶、礼盒或包装；如果原图是珠灯/串珠灯饰，不能变成普通珍珠皇冠或婚礼头冠
-- 区别主要在于拍摄角度：
+- 如果 targetProduct 不为空：Prompt 的主体必须是 targetProduct，原图只作为纹样、材质、颜色、结构灵感。
+- 如果 targetProduct 为空：Prompt 的主体必须是原图主要物体，只做非遗风格改造。
+- 不要生成盆栽、玻璃杯、礼盒、包装盒等与用户目标无关的物体。
+- 三个Prompt只区别拍摄角度：
   - mainPrompt：正面全景图，展示完整产品
   - subPrompt1：细节特写图，聚焦核心工艺细节
   - subPrompt2：侧面/俯视图，展示立体结构
@@ -504,13 +493,12 @@ async function executeGenerationTask(
 {
   "creativeDescription": "20字创意描述",
   "targetProduct": "用户明确指定的最终产品；没有就填空字符串",
-  "sourceObject": "原图主体品类、外形、材质、颜色、关键结构、最显眼装饰关系",
-  "lockedVisualFeatures": ["必须保留的原图视觉特征1", "必须保留的原图视觉特征2", "必须保留的原图视觉特征3"],
-  "forbiddenChanges": ["禁止变化1", "禁止变化2"],
+  "sourceObject": "原图主体和视觉特征的简短描述",
+  "lockedVisualFeatures": ["可借鉴的原图视觉元素1", "可借鉴的原图视觉元素2"],
   "ichElements": ["非遗元素1", "非遗元素2"],
-  "mainPrompt": "保留原图[主体描述]的外形、比例、材质和颜色，仅在表面加入[非遗纹样]，正面全景，高清产品摄影",
-  "subPrompt1": "同一原图主体细节特写，保留[聚焦部位]结构，仅展示表面[工艺纹样]，微距摄影",
-  "subPrompt2": "同一原图主体侧面视角，保留[立体结构]和[整体轮廓]，仅展示非遗装饰后的空间关系，产品展示图"
+  "mainPrompt": "主体明确的正面全景生图提示词",
+  "subPrompt1": "主体明确的细节特写生图提示词",
+  "subPrompt2": "主体明确的侧面或俯视生图提示词"
 }
 
 请严格按照以上要求输出JSON：`;
