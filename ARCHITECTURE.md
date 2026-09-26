@@ -31,6 +31,7 @@
 
 - 小程序页面调用 `miniprogram/utils/api.js`。
 - `api.js` 请求 `server/src/routes/*` 中已有接口。
+- 首页头像上传调用 `server/src/routes/auth.ts` 的头像接口，头像文件存到对象存储，用户表保存头像文件位置。
 - 四个创作页通过 `miniprogram/utils/prompt.js` 调用 `server/src/routes/prompt.ts`，把简短描述优化后再放回输入框。
 - 生成类页面先创建任务，再轮询状态接口。
 - 图片生成结果按三视图返回和展示：主视图、侧面/场景、细节图。

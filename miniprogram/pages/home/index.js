@@ -4,6 +4,8 @@ Page({
   data: {
     user: null,
     isAuthenticated: false,
+    avatarUrl: '',
+    avatarUploading: false,
     avatarText: '未',
     userName: '未登录',
     userDesc: '点击登录/注册',
@@ -54,13 +56,59 @@ Page({
   onShow() {
     const user = api.getUser() || {};
     const isAuthenticated = api.isAuthenticated();
+    const userName = isAuthenticated ? (user.username || user.name || '已登录') : '未登录';
 
     this.setData({
       user,
       isAuthenticated,
-      avatarText: isAuthenticated ? '已' : '未',
-      userName: isAuthenticated ? (user.username || user.name || '已登录') : '未登录',
+      avatarUrl: isAuthenticated ? (user.avatar || user.avatarUrl || '') : '',
+      avatarText: isAuthenticated ? userName.slice(0, 1) : '未',
+      userName,
       userDesc: isAuthenticated ? (user.email || '点击退出登录') : '点击登录/注册'
+    });
+  },
+
+  chooseAvatar() {
+    if (!this.data.isAuthenticated) {
+      wx.navigateTo({ url: '/pages/welcome/index' });
+      return;
+    }
+
+    if (this.data.avatarUploading) return;
+
+    wx.chooseMedia({
+      count: 1,
+      mediaType: ['image'],
+      sourceType: ['album', 'camera'],
+      success: async (res) => {
+        const file = res.tempFiles && res.tempFiles[0];
+        if (!file || !file.tempFilePath) return;
+
+        this.setData({ avatarUploading: true });
+        wx.showLoading({ title: '上传头像' });
+        try {
+          const data = await api.upload('/api/v1/auth/avatar', file.tempFilePath);
+          if (!data.success || !data.user) {
+            throw new Error(data.error || data.message || '上传头像失败');
+          }
+
+          api.saveUser(data.user);
+          this.setData({
+            user: data.user,
+            avatarUrl: data.user.avatar || '',
+            userName: data.user.username || '已登录',
+            userDesc: data.user.email || '点击退出登录',
+            avatarText: (data.user.username || '已').slice(0, 1)
+          });
+          wx.hideLoading();
+          wx.showToast({ title: '头像已更新', icon: 'success' });
+        } catch (error) {
+          wx.hideLoading();
+          api.showError(error, '上传头像失败');
+        } finally {
+          this.setData({ avatarUploading: false });
+        }
+      }
     });
   },
 

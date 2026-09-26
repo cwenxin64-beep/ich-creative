@@ -5,7 +5,11 @@
   </view>
 
   <view class="card user-card" bindtap="handleUserTap">
-    <view class="avatar">{{avatarText}}</view>
+    <view class="avatar-wrap" catchtap="chooseAvatar">
+      <image wx:if="{{avatarUrl}}" class="avatar-image" src="{{avatarUrl}}" mode="aspectFill" />
+      <view wx:else class="avatar">{{avatarText}}</view>
+      <view wx:if="{{isAuthenticated}}" class="avatar-edit">{{avatarUploading ? '传' : '换'}}</view>
+    </view>
     <view class="user-info">
       <view class="user-name">{{userName}}</view>
       <view class="small-text">{{userDesc}}</view>
@@ -15,7 +19,26 @@
 
   <view class="feature-list">
     <view class="card feature" wx:for="{{features}}" wx:key="id" data-url="{{item.url}}" bindtap="goPage">
-      <view class="feature-icon" style="background: {{item.bg}}; color: {{item.color}};">{{item.icon}}</view>
+      <view class="feature-icon" style="background: {{item.bg}}; color: {{item.color}};">
+        <view wx:if="{{item.id == 'photo'}}" class="home-icon camera-icon">
+          <view class="camera-top"></view>
+          <view class="camera-lens"></view>
+        </view>
+        <view wx:elif="{{item.id == 'audio'}}" class="home-icon music-icon">
+          <view class="music-stem"></view>
+          <view class="music-flag"></view>
+          <view class="music-head"></view>
+        </view>
+        <view wx:elif="{{item.id == 'play'}}" class="home-icon play-icon">
+          <view class="play-pad"></view>
+          <view class="play-dot one"></view>
+          <view class="play-dot two"></view>
+        </view>
+        <view wx:else class="home-icon design-icon">
+          <view class="design-line"></view>
+          <view class="design-tip"></view>
+        </view>
+      </view>
       <view class="feature-content">
         <view class="feature-title">{{item.title}}</view>
         <view class="feature-subtitle" style="color: {{item.color}};">{{item.subtitle}}</view>
@@ -27,11 +50,21 @@
 
   <view class="shortcut-row">
     <view class="card shortcut" data-url="/pages/favorites/index" bindtap="goPage">
-      <view class="shortcut-icon heart">心</view>
+      <view class="shortcut-icon heart">
+        <view class="heart-shape">
+          <view class="heart-lobe left"></view>
+          <view class="heart-lobe right"></view>
+        </view>
+      </view>
       <view>我的收藏</view>
     </view>
     <view class="card shortcut" data-url="/pages/materials/index" bindtap="goPage">
-      <view class="shortcut-icon box">素</view>
+      <view class="shortcut-icon box">
+        <view class="box-shape">
+          <view class="box-lid"></view>
+          <view class="box-line"></view>
+        </view>
+      </view>
       <view>我的素材</view>
     </view>
   </view>

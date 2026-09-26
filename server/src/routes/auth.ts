@@ -1,11 +1,20 @@
 import { Router } from 'express';
 import type { Request, Response, NextFunction } from 'express';
+import multer from 'multer';
 import { query } from '../storage/database/pg-client';
 import { hashPassword, verifyPassword } from '../lib/password';
 import { signTokens, verifyToken, verifyRefreshToken } from '../lib/jwt';
 import type { TokenPayload } from '../lib/jwt';
+import { createObjectStorage } from '../services/object-storage';
 
 const router = Router();
+const avatarUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 },
+});
+const storage = createObjectStorage();
+
+const USER_SELECT_FIELDS = 'id, username, email, role, avatar_key, avatar_url, created_at';
 
 // ============ Auth Middleware ============
 // 扩展 Request 类型以携带 user 信息
@@ -53,6 +62,33 @@ function getDeviceIdentity(req: Request): string {
   const ip = req.ip || req.headers['x-forwarded-for'] || 'unknown';
   const userAgent = req.headers['user-agent'] || 'unknown';
   return `${ip}-${userAgent}`.slice(0, 255);
+}
+
+async function formatUser(user: any) {
+  let avatar = user.avatar_url || null;
+  if (user.avatar_key) {
+    avatar = await storage.generatePresignedUrl({
+      key: user.avatar_key,
+      expireTime: 86400 * 30,
+    });
+  }
+
+  return {
+    id: user.id,
+    username: user.username,
+    email: user.email,
+    role: user.role,
+    avatar,
+    createdAt: user.created_at,
+  };
+}
+
+function getAvatarExtension(file: Express.Multer.File) {
+  const extFromName = (file.originalname || '').match(/\.[a-zA-Z0-9]{1,8}$/)?.[0]?.toLowerCase();
+  if (extFromName) return extFromName;
+  if (file.mimetype === 'image/png') return '.png';
+  if (file.mimetype === 'image/webp') return '.webp';
+  return '.jpg';
 }
 
 // ============ 注册 ============
@@ -132,7 +168,7 @@ router.post('/register', async (req, res) => {
              artisan_craft = $7,
              artisan_description = $8
          WHERE id = $9
-         RETURNING id, username, email, role, created_at`,
+         RETURNING ${USER_SELECT_FIELDS}`,
         [
           username,
           email,
@@ -160,7 +196,7 @@ router.post('/register', async (req, res) => {
            artisan_craft,
            artisan_description
          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-         RETURNING id, username, email, role, created_at`,
+         RETURNING ${USER_SELECT_FIELDS}`,
         [
           username,
           email,
@@ -186,14 +222,7 @@ router.post('/register', async (req, res) => {
     res.status(201).json({
       success: true,
       message: '注册成功',
-      user: {
-        id: user.id,
-        username: user.username,
-        email: user.email,
-        role: user.role,
-        avatar: null,
-        createdAt: user.created_at,
-      },
+      user: await formatUser(user),
       ...tokens,
     });
   } catch (error: any) {
@@ -221,7 +250,7 @@ router.post('/login', async (req, res) => {
 
     // 查找用户
     const result = await query(
-      'SELECT id, username, email, password_hash, role, created_at FROM users WHERE email = $1 LIMIT 1',
+      `SELECT ${USER_SELECT_FIELDS}, password_hash FROM users WHERE email = $1 LIMIT 1`,
       [email]
     );
 
@@ -263,14 +292,7 @@ router.post('/login', async (req, res) => {
     res.json({
       success: true,
       message: '登录成功',
-      user: {
-        id: user.id,
-        username: user.username,
-        email: user.email,
-        role: user.role,
-        avatar: null,
-        createdAt: user.created_at,
-      },
+      user: await formatUser(user),
       ...tokens,
     });
   } catch (error) {
@@ -300,7 +322,7 @@ router.post('/refresh', async (req, res) => {
     }
 
     // 验证用户仍存在
-    const result = await query('SELECT id, username, email, role, created_at FROM users WHERE id = $1', [payload.userId]);
+    const result = await query(`SELECT ${USER_SELECT_FIELDS} FROM users WHERE id = $1`, [payload.userId]);
     if (result.rows.length === 0) {
       return res.status(401).json({ success: false, error: '用户不存在' });
     }
@@ -314,14 +336,7 @@ router.post('/refresh', async (req, res) => {
 
     res.json({
       success: true,
-      user: {
-        id: user.id,
-        username: user.username,
-        email: user.email,
-        role: user.role,
-        avatar: null,
-        createdAt: user.created_at,
-      },
+      user: await formatUser(user),
       ...tokens,
     });
   } catch (error) {
@@ -334,7 +349,7 @@ router.post('/refresh', async (req, res) => {
 router.get('/me', authMiddleware, async (req, res) => {
   try {
     const result = await query(
-      'SELECT id, username, email, role, created_at FROM users WHERE id = $1',
+      `SELECT ${USER_SELECT_FIELDS} FROM users WHERE id = $1`,
       [req.user!.userId]
     );
 
@@ -345,19 +360,69 @@ router.get('/me', authMiddleware, async (req, res) => {
     const user = result.rows[0];
     res.json({
       success: true,
-      user: {
-        id: user.id,
-        username: user.username,
-        email: user.email,
-        role: user.role,
-        avatar: null,
-        createdAt: user.created_at,
-      },
+      user: await formatUser(user),
     });
   } catch (error) {
     console.error('[AUTH] Get profile error:', error);
     res.status(500).json({ success: false, error: '获取用户信息失败' });
   }
+});
+
+// ============ 上传头像 ============
+router.post('/avatar', authMiddleware, avatarUpload.single('file'), async (req, res) => {
+  try {
+    const file = req.file;
+    if (!file) {
+      return res.status(400).json({ success: false, error: '请选择头像图片' });
+    }
+
+    if (!file.mimetype.startsWith('image/')) {
+      return res.status(400).json({ success: false, error: '头像必须是图片格式' });
+    }
+
+    const fileKey = `avatars/user_${req.user!.userId}_${Date.now()}${getAvatarExtension(file)}`;
+    await storage.uploadFile({
+      fileContent: file.buffer,
+      fileName: fileKey,
+      contentType: file.mimetype || 'image/jpeg',
+    });
+
+    const publicUrl = await storage.generatePresignedUrl({
+      key: fileKey,
+      expireTime: 86400 * 30,
+    });
+
+    const result = await query(
+      `UPDATE users
+       SET avatar_key = $1,
+           avatar_url = $2
+       WHERE id = $3
+       RETURNING ${USER_SELECT_FIELDS}`,
+      [fileKey, publicUrl, req.user!.userId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, error: '用户不存在' });
+    }
+
+    res.json({
+      success: true,
+      user: await formatUser(result.rows[0]),
+    });
+  } catch (error: any) {
+    console.error('[AUTH] Avatar upload error:', error);
+    res.status(500).json({ success: false, error: error.message || '上传头像失败' });
+  }
+});
+
+router.use((err: any, _req: Request, res: Response, next: NextFunction) => {
+  if (err instanceof multer.MulterError) {
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(413).json({ success: false, error: '头像不能超过 5MB' });
+    }
+    return res.status(400).json({ success: false, error: err.message || '上传头像失败' });
+  }
+  next(err);
 });
 
 // ============ 登出 ============

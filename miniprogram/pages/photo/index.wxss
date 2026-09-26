@@ -27,17 +27,97 @@
 }
 
 .upload-icon {
-  width: 88rpx;
-  height: 88rpx;
+  width: 82rpx;
+  height: 82rpx;
   display: flex;
   align-items: center;
   justify-content: center;
   margin-bottom: 18rpx;
-  border-radius: 28rpx;
-  background: rgba(184, 134, 11, 0.14);
+  border-radius: 24rpx;
+  background: rgba(184, 134, 11, 0.12);
   color: #b8860b;
-  font-size: 32rpx;
-  font-weight: 800;
+}
+
+.upload-symbol {
+  position: relative;
+  color: currentColor;
+}
+
+.album-symbol {
+  width: 46rpx;
+  height: 38rpx;
+  overflow: hidden;
+  border: 4rpx solid currentColor;
+  border-radius: 10rpx;
+}
+
+.album-sun {
+  position: absolute;
+  right: 8rpx;
+  top: 7rpx;
+  width: 8rpx;
+  height: 8rpx;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.album-mountain {
+  position: absolute;
+  border-left: 4rpx solid currentColor;
+  border-top: 4rpx solid currentColor;
+  border-radius: 4rpx 0 0 0;
+  transform: rotate(45deg);
+}
+
+.album-mountain.main {
+  left: 9rpx;
+  bottom: -3rpx;
+  width: 25rpx;
+  height: 25rpx;
+}
+
+.album-mountain.sub {
+  right: 5rpx;
+  bottom: 2rpx;
+  width: 17rpx;
+  height: 17rpx;
+}
+
+.camera-symbol {
+  width: 52rpx;
+  height: 38rpx;
+  border: 4rpx solid currentColor;
+  border-radius: 12rpx;
+}
+
+.camera-bump {
+  position: absolute;
+  left: 13rpx;
+  top: -12rpx;
+  width: 22rpx;
+  height: 12rpx;
+  border-radius: 8rpx 8rpx 0 0;
+  background: currentColor;
+}
+
+.camera-dot {
+  position: absolute;
+  right: 7rpx;
+  top: 7rpx;
+  width: 7rpx;
+  height: 7rpx;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.camera-lens {
+  position: absolute;
+  left: 14rpx;
+  top: 8rpx;
+  width: 18rpx;
+  height: 18rpx;
+  border: 4rpx solid currentColor;
+  border-radius: 50%;
 }
 
 .preview {

@@ -178,6 +178,10 @@ function saveAuth(data) {
   wx.setStorageSync(USER_KEY, data.user);
 }
 
+function saveUser(user) {
+  wx.setStorageSync(USER_KEY, user);
+}
+
 function clearAuth() {
   wx.removeStorageSync(TOKEN_KEY);
   wx.removeStorageSync(REFRESH_KEY);
@@ -263,6 +267,7 @@ module.exports = {
   request,
   upload,
   saveAuth,
+  saveUser,
   clearAuth,
   getUser,
   getToken,

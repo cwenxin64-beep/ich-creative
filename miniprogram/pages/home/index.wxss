@@ -16,16 +16,49 @@
   margin-bottom: 32rpx;
 }
 
-.avatar {
+.avatar-wrap {
+  position: relative;
+  flex: 0 0 auto;
   width: 96rpx;
   height: 96rpx;
+  margin-right: 24rpx;
+}
+
+.avatar,
+.avatar-image {
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 28rpx;
+}
+
+.avatar {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-right: 24rpx;
-  border-radius: 28rpx;
   background: rgba(184, 134, 11, 0.12);
   color: #b8860b;
+  font-weight: 700;
+}
+
+.avatar-image {
+  display: block;
+  background: rgba(184, 134, 11, 0.12);
+}
+
+.avatar-edit {
+  position: absolute;
+  right: -8rpx;
+  bottom: -8rpx;
+  width: 38rpx;
+  height: 38rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 3rpx solid #fffcf5;
+  border-radius: 19rpx;
+  background: #b8860b;
+  color: #fffcf5;
+  font-size: 20rpx;
   font-weight: 700;
 }
 
@@ -67,8 +100,150 @@
   flex: 0 0 112rpx;
   margin-right: 24rpx;
   border-radius: 30rpx;
-  font-size: 34rpx;
-  font-weight: 800;
+}
+
+.home-icon {
+  position: relative;
+  width: 58rpx;
+  height: 58rpx;
+}
+
+.camera-icon {
+  width: 62rpx;
+  height: 46rpx;
+  border: 5rpx solid currentColor;
+  border-radius: 14rpx;
+}
+
+.camera-top {
+  position: absolute;
+  left: 12rpx;
+  top: -14rpx;
+  width: 24rpx;
+  height: 14rpx;
+  border-radius: 8rpx 8rpx 0 0;
+  background: currentColor;
+}
+
+.camera-lens {
+  position: absolute;
+  left: 17rpx;
+  top: 8rpx;
+  width: 22rpx;
+  height: 22rpx;
+  border: 5rpx solid currentColor;
+  border-radius: 50%;
+}
+
+.music-stem {
+  position: absolute;
+  left: 34rpx;
+  top: 2rpx;
+  width: 8rpx;
+  height: 42rpx;
+  border-radius: 6rpx;
+  background: currentColor;
+}
+
+.music-flag {
+  position: absolute;
+  left: 36rpx;
+  top: 2rpx;
+  width: 24rpx;
+  height: 16rpx;
+  border-radius: 0 12rpx 12rpx 0;
+  background: currentColor;
+  transform: skewY(16deg);
+}
+
+.music-head {
+  position: absolute;
+  left: 8rpx;
+  top: 35rpx;
+  width: 28rpx;
+  height: 20rpx;
+  border-radius: 50%;
+  background: currentColor;
+  transform: rotate(-18deg);
+}
+
+.play-icon {
+  width: 64rpx;
+  height: 46rpx;
+  border: 5rpx solid currentColor;
+  border-radius: 22rpx;
+}
+
+.play-pad {
+  position: absolute;
+  left: 10rpx;
+  top: 16rpx;
+  width: 22rpx;
+  height: 5rpx;
+  border-radius: 4rpx;
+  background: currentColor;
+}
+
+.play-pad::after {
+  content: '';
+  position: absolute;
+  left: 8rpx;
+  top: -8rpx;
+  width: 5rpx;
+  height: 22rpx;
+  border-radius: 4rpx;
+  background: currentColor;
+}
+
+.play-dot {
+  position: absolute;
+  width: 8rpx;
+  height: 8rpx;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.play-dot.one {
+  right: 14rpx;
+  top: 12rpx;
+}
+
+.play-dot.two {
+  right: 26rpx;
+  top: 24rpx;
+}
+
+.design-line {
+  position: absolute;
+  left: 25rpx;
+  top: 3rpx;
+  width: 10rpx;
+  height: 48rpx;
+  border-radius: 7rpx;
+  background: currentColor;
+  transform: rotate(38deg);
+}
+
+.design-line::before {
+  content: '';
+  position: absolute;
+  left: -5rpx;
+  top: -8rpx;
+  width: 20rpx;
+  height: 14rpx;
+  border-radius: 7rpx 7rpx 3rpx 3rpx;
+  background: currentColor;
+}
+
+.design-tip {
+  position: absolute;
+  right: 7rpx;
+  bottom: 3rpx;
+  width: 18rpx;
+  height: 18rpx;
+  border-right: 5rpx solid currentColor;
+  border-bottom: 5rpx solid currentColor;
+  transform: rotate(38deg);
 }
 
 .feature-content {
@@ -127,7 +302,6 @@
   justify-content: center;
   border-radius: 29rpx;
   color: #ffffff;
-  font-size: 24rpx;
 }
 
 .heart {
@@ -136,4 +310,59 @@
 
 .box {
   background: #8b5cf6;
+}
+
+.heart-shape {
+  position: relative;
+  width: 28rpx;
+  height: 28rpx;
+  background: #ffffff;
+  transform: rotate(45deg);
+  border-radius: 4rpx;
+}
+
+.heart-lobe {
+  position: absolute;
+  width: 28rpx;
+  height: 28rpx;
+  border-radius: 50%;
+  background: #ffffff;
+}
+
+.heart-lobe.left {
+  left: -14rpx;
+  top: 0;
+}
+
+.heart-lobe.right {
+  left: 0;
+  top: -14rpx;
+}
+
+.box-shape {
+  position: relative;
+  width: 34rpx;
+  height: 30rpx;
+  border: 5rpx solid #ffffff;
+  border-radius: 6rpx;
+}
+
+.box-lid {
+  position: absolute;
+  left: -7rpx;
+  top: -13rpx;
+  width: 40rpx;
+  height: 8rpx;
+  border-radius: 5rpx;
+  background: #ffffff;
+}
+
+.box-line {
+  position: absolute;
+  left: 10rpx;
+  top: -5rpx;
+  width: 5rpx;
+  height: 33rpx;
+  border-radius: 4rpx;
+  background: #ffffff;
 }

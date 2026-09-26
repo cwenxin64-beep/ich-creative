@@ -10,12 +10,24 @@
     <view wx:if="{{!selectedImage}}">
       <view class="upload-actions">
         <button class="upload-choice" data-source="album" bindtap="chooseImage">
-          <view class="upload-icon">图</view>
+          <view class="upload-icon">
+            <view class="upload-symbol album-symbol">
+              <view class="album-sun"></view>
+              <view class="album-mountain main"></view>
+              <view class="album-mountain sub"></view>
+            </view>
+          </view>
           <view class="upload-title">选择图片</view>
           <view class="small-text">从相册选择</view>
         </button>
         <button class="upload-choice" data-source="camera" bindtap="chooseImage">
-          <view class="upload-icon">拍</view>
+          <view class="upload-icon">
+            <view class="upload-symbol camera-symbol">
+              <view class="camera-bump"></view>
+              <view class="camera-dot"></view>
+              <view class="camera-lens"></view>
+            </view>
+          </view>
           <view class="upload-title">拍照</view>
           <view class="small-text">直接打开相机</view>
         </button>
