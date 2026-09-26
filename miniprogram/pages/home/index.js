@@ -35,7 +35,7 @@ Page({
         icon: '玩',
         color: '#7BA05B',
         bg: 'rgba(123, 160, 91, 0.16)',
-        description: '文字输入生成海报、卡片、数字人',
+        description: '文字输入生成海报、节日卡、生日卡',
         url: '/pages/play/index'
       },
       {

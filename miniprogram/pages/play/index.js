@@ -1,5 +1,6 @@
 const api = require('../../utils/api');
 const constants = require('../../utils/constants');
+const promptTools = require('../../utils/prompt');
 const { encodeParam } = require('../../utils/format');
 
 const PLAY_ACTIVE_TASK_KEY = 'play_active_task';
@@ -13,6 +14,7 @@ Page({
     selectedProductType: '',
     selectedMarket: '',
     text: '',
+    optimizing: false,
     loading: false,
     progress: 0,
     activeTaskId: '',
@@ -46,6 +48,37 @@ Page({
 
   onText(event) {
     this.setData({ text: event.detail.value });
+  },
+
+  async optimizeDescription() {
+    const text = this.data.text.trim();
+    if (this.data.loading || this.data.optimizing) return;
+    if (!text && !this.data.selectedIchType && !this.data.selectedProductType && !this.data.selectedMarket) {
+      wx.showToast({ title: '先写一点描述或选择条件', icon: 'none' });
+      return;
+    }
+
+    this.setData({ optimizing: true });
+    wx.showLoading({ title: '正在优化' });
+    try {
+      const data = await promptTools.optimizePrompt('play', text, {
+        页面: '玩非遗',
+        非遗类型: promptTools.getName(constants.ICH_TYPES, this.data.selectedIchType),
+        产品类型: promptTools.getName(constants.PRODUCT_TYPES, this.data.selectedProductType),
+        目标市场: promptTools.getName(constants.TARGET_MARKETS, this.data.selectedMarket)
+      });
+      if (!data.success || !data.optimizedText) {
+        throw new Error(data.error || data.message || '优化失败');
+      }
+      this.setData({ text: data.optimizedText });
+      wx.hideLoading();
+      wx.showToast({ title: '已优化', icon: 'success' });
+    } catch (error) {
+      wx.hideLoading();
+      api.showError(error, '优化失败');
+    } finally {
+      this.setData({ optimizing: false });
+    }
   },
 
   selectIch(event) {
@@ -177,8 +210,8 @@ Page({
       return Object.assign({}, item, {
         localId: `${Date.now()}-${index}`,
         mainImageUrl,
-        subImageUrl1: item.subImageUrl1 || mainImageUrl,
-        subImageUrl2: item.subImageUrl2 || mainImageUrl,
+        subImageUrl1: item.subImageUrl1 || '',
+        subImageUrl2: item.subImageUrl2 || '',
         favorited: false,
         favoriteId: ''
       });

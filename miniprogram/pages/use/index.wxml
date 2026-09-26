@@ -86,6 +86,9 @@
     <view class="card section option-section">
       <view class="field-label">创意关键词</view>
       <textarea class="textarea" value="{{keywords}}" placeholder="例如：中国风、简约、现代、传统" bindinput="onKeywords" />
+      <view class="prompt-tools">
+        <button class="prompt-optimize-btn {{loading || optimizing ? 'disabled' : ''}}" loading="{{optimizing}}" disabled="{{loading || optimizing}}" bindtap="optimizeDescription">AI 优化描述</button>
+      </view>
     </view>
 
     <button class="primary-btn {{loading ? 'disabled' : ''}}" loading="{{loading}}" disabled="{{loading}}" bindtap="generate">
@@ -163,11 +166,20 @@
       <view class="title small-title">定制结果</view>
       <view wx:for="{{results}}" wx:key="localId" class="card result-card">
         <view class="result-type">{{item.categoryText || '非遗作品'}}</view>
-        <image wx:if="{{item.mainImageUrl}}" class="result-image" src="{{item.mainImageUrl}}" mode="aspectFit" data-url="{{item.mainImageUrl}}" bindtap="previewImage" />
+        <view wx:if="{{item.mainImageUrl}}" class="view-frame">
+          <image class="result-image" src="{{item.mainImageUrl}}" mode="aspectFit" data-url="{{item.mainImageUrl}}" bindtap="previewImage" />
+          <view class="view-label">主视图</view>
+        </view>
         <view wx:else class="empty-mini">生成结果暂无预览图</view>
         <view class="sub-images">
-          <image wx:if="{{item.subImageUrl1}}" class="sub-image" src="{{item.subImageUrl1}}" mode="aspectFill" data-url="{{item.subImageUrl1}}" bindtap="previewImage" />
-          <image wx:if="{{item.subImageUrl2}}" class="sub-image" src="{{item.subImageUrl2}}" mode="aspectFill" data-url="{{item.subImageUrl2}}" bindtap="previewImage" />
+          <view wx:if="{{item.subImageUrl1}}" class="sub-view-frame">
+            <image class="sub-image" src="{{item.subImageUrl1}}" mode="aspectFill" data-url="{{item.subImageUrl1}}" bindtap="previewImage" />
+            <view class="view-label">侧面/场景</view>
+          </view>
+          <view wx:if="{{item.subImageUrl2}}" class="sub-view-frame">
+            <image class="sub-image" src="{{item.subImageUrl2}}" mode="aspectFill" data-url="{{item.subImageUrl2}}" bindtap="previewImage" />
+            <view class="view-label">细节图</view>
+          </view>
         </view>
         <view class="actions">
           <button class="ghost-btn" data-index="{{index}}" bindtap="toggleFavorite">{{item.favorited ? '已收藏' : '收藏'}}</button>

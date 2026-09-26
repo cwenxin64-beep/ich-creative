@@ -33,16 +33,6 @@ const PLAY_WORKFLOW_IDS: Record<string, string[]> = {
   newyear: [
     getWorkflowId('COZE_WORKFLOW_PLAY_NEWYEAR', '7678261114291159075'),
   ],
-  dynamic: [
-    getWorkflowId('COZE_WORKFLOW_PLAY_DYNAMIC', '7678261053490200639'),
-  ],
-  avatar: [
-    getWorkflowId('COZE_WORKFLOW_PLAY_AVATAR', '7678261285805703194'),
-  ],
-  interactive: [
-    getWorkflowId('COZE_WORKFLOW_PLAY_INTERACTIVE', '7678260824640798755'),
-    getWorkflowId('COZE_WORKFLOW_PLAY_INTERACTIVE_ALT', '7678261767479214143'),
-  ],
 };
 
 const PLAY_PRODUCT_NAMES: Record<string, string> = {
@@ -50,9 +40,6 @@ const PLAY_PRODUCT_NAMES: Record<string, string> = {
   festival: '节日卡',
   birthday: '生日卡',
   newyear: '新年卡',
-  dynamic: '动态海报',
-  avatar: '数字人',
-  interactive: '可交互文创产品',
 };
 
 const PLAY_INTERACTION_NAMES: Record<string, string> = {
@@ -413,6 +400,41 @@ async function withRetry<T>(fn: () => Promise<T>, retries = 3, delay = 3000, con
   throw lastError;
 }
 
+const PLAY_PROMPT_PRODUCT_TYPES: Record<string, string> = {
+  poster: 'poster',
+  festivalCard: 'festival',
+  birthdayCard: 'birthday',
+  newYearCard: 'newyear',
+};
+
+function buildPlayViewPrompt(params: {
+  text: string;
+  ichType: string;
+  productType: string;
+  targetMarket: string;
+  basePrompt?: string;
+  view: 'main' | 'side' | 'detail';
+}) {
+  const ichName = resolveName(PLAY_ICH_TYPE_NAMES, params.ichType) || '中国非遗';
+  const productName = resolveName(PLAY_PRODUCT_NAMES, params.productType) || '非遗视觉作品';
+  const marketName = resolveName(TARGET_MARKET_NAMES, params.targetMarket) || '中国';
+  const viewText: Record<'main' | 'side' | 'detail', string> = {
+    main: '完整正面主视图，展示整体版式和完整画面',
+    side: '侧面/应用场景视图，展示作品被真实使用或摆放的效果，不能与主视图构图相同',
+    detail: '局部细节特写视图，聚焦非遗纹样、纸张质感、边缘工艺、字体和装饰细节，不能与主视图构图相同',
+  };
+
+  return [
+    `创作一张${productName}的${viewText[params.view]}。`,
+    `用户需求：${params.text || '非遗创意视觉作品'}。`,
+    `非遗类型：${ichName}。`,
+    `目标市场：${marketName}。`,
+    params.basePrompt ? `延续同一套设计方向：${params.basePrompt}` : '',
+    '要求：主体清楚，风格统一，高级设计感，画面干净，非遗元素明确。',
+    '禁止：不要生成与主视图完全相同的构图，不要出现乱码文字，不要偏离用户指定主题。',
+  ].filter(Boolean).join('\n');
+}
+
 /**
  * 执行生成任务
  */
@@ -439,7 +461,7 @@ async function executeGenerationTask(
 "${text}"
 
 ## 目标产品类型
-${productType || '生成所有类型：海报、节日卡、生日卡、新年卡、动态海报、数字人、互动产品'}
+${productType || '生成所有类型：海报、节日卡、生日卡、新年卡'}
 
 ## 任务要求
 为每个产品类型生成：
@@ -466,21 +488,6 @@ ${productType || '生成所有类型：海报、节日卡、生日卡、新年�
   "newYearCard": {
     "creativeDescription": "20字创意描述",
     "mainPrompt": "新年贺卡正面，[新年主题]，[非遗元素]，传统与现代结合",
-    "ichElements": ["非遗元素"]
-  },
-  "dynamicPoster": {
-    "creativeDescription": "20字创意描述",
-    "mainPrompt": "动态海报主视觉，[主题]，[非遗元素动效]，现代设计",
-    "ichElements": ["非遗元素"]
-  },
-  "digitalAvatar": {
-    "creativeDescription": "20字创意描述",
-    "mainPrompt": "数字人形象正面，[非遗服饰/配饰]，精致人物设计",
-    "ichElements": ["非遗元素"]
-  },
-  "interactiveProduct": {
-    "creativeDescription": "20字创意描述",
-    "mainPrompt": "互动产品整体展示，[产品类型]，[非遗元素]，创新设计",
     "ichElements": ["非遗元素"]
   }
 }
@@ -512,14 +519,11 @@ ${productType || '生成所有类型：海报、节日卡、生日卡、新年�
     console.log(`[${taskId}] Generating images...`);
 
     const typeMap: Record<string, string[]> = {
-      'all': ['poster', 'festivalCard', 'birthdayCard', 'newYearCard', 'dynamicPoster', 'digitalAvatar', 'interactiveProduct'],
+      'all': ['poster', 'festivalCard', 'birthdayCard', 'newYearCard'],
       'poster': ['poster'],
       'festival': ['festivalCard'],
       'birthday': ['birthdayCard'],
       'newyear': ['newYearCard'],
-      'dynamic': ['dynamicPoster'],
-      'avatar': ['digitalAvatar'],
-      'interactive': ['interactiveProduct'],
     };
 
     const shouldGenerate = (promptKey: string) => {
@@ -527,10 +531,10 @@ ${productType || '生成所有类型：海报、节日卡、生日卡、新年�
     };
 
     const results: any[] = [];
-    const typesToGenerate = ['poster', 'festivalCard', 'birthdayCard', 'newYearCard', 'dynamicPoster', 'digitalAvatar', 'interactiveProduct'];
+    const typesToGenerate = ['poster', 'festivalCard', 'birthdayCard', 'newYearCard'];
     
     // 视频类型（使用视频生成模型）
-    const videoTypes = ['dynamicPoster', 'digitalAvatar'];
+    const videoTypes: string[] = [];
     
     // 串行生成，避免并发过多
     for (let i = 0; i < typesToGenerate.length; i++) {
@@ -561,10 +565,38 @@ ${productType || '生成所有类型：海报、节日卡、生日卡、新年�
           mediaType = 'video';
         } else {
           console.log(`[${taskId}] ${promptKey} using IMAGE model`);
-          mediaUrl = await withRetry(
-            () => callVolcengineImage(promptData.mainPrompt),
-            3, 3000, `[${taskId}] ${promptKey} Image`
-          );
+          const viewProductType = PLAY_PROMPT_PRODUCT_TYPES[promptKey] || productType;
+          const [mainImageUrl, sideImageUrl, detailImageUrl] = await Promise.all([
+            withRetry(
+              () => callVolcengineImage(promptData.mainPrompt),
+              3, 3000, `[${taskId}] ${promptKey} Main Image`
+            ),
+            withRetry(
+              () => callVolcengineImage(buildPlayViewPrompt({
+                text,
+                ichType,
+                productType: viewProductType,
+                targetMarket,
+                basePrompt: promptData.mainPrompt,
+                view: 'side',
+              })),
+              3, 3000, `[${taskId}] ${promptKey} Side Image`
+            ),
+            withRetry(
+              () => callVolcengineImage(buildPlayViewPrompt({
+                text,
+                ichType,
+                productType: viewProductType,
+                targetMarket,
+                basePrompt: promptData.mainPrompt,
+                view: 'detail',
+              })),
+              3, 3000, `[${taskId}] ${promptKey} Detail Image`
+            ),
+          ]);
+          mediaUrl = mainImageUrl;
+          promptData.sideImageUrl = sideImageUrl;
+          promptData.detailImageUrl = detailImageUrl;
           mediaType = 'image';
         }
         
@@ -583,8 +615,8 @@ ${productType || '生成所有类型：海报、节日卡、生日卡、新年�
           result.mainImageUrl = mediaUrl; // 兼容前端显示
         } else {
           result.mainImageUrl = mediaUrl;
-          result.subImageUrl1 = mediaUrl;
-          result.subImageUrl2 = mediaUrl;
+          result.subImageUrl1 = promptData.sideImageUrl;
+          result.subImageUrl2 = promptData.detailImageUrl;
         }
         
         results.push(result);
@@ -628,7 +660,10 @@ async function executeCozeGenerationTask(
     taskStore.update(taskId, { status: 'processing', progress: 10 });
     console.log(`[${taskId}] Coze workflow task started`);
 
-    const allProductTypes = ['poster', 'festival', 'birthday', 'newyear', 'dynamic', 'avatar', 'interactive'];
+    const allProductTypes = ['poster', 'festival', 'birthday', 'newyear'];
+    if (productType && productType !== 'all' && !allProductTypes.includes(productType)) {
+      throw new Error(`暂不支持的玩非遗产品类型：${productType}`);
+    }
     const targetProductTypes = productType && productType !== 'all' ? [productType] : allProductTypes;
     const workflowEntries = targetProductTypes.flatMap((currentType) => {
       const workflowIds = PLAY_WORKFLOW_IDS[currentType] || [];
@@ -653,13 +688,37 @@ async function executeCozeGenerationTask(
 
       const workflowResult = await runCozeWorkflow(workflowId, workflowParameters);
       const imageUrl = workflowResult.output;
+      const [sideImageUrl, detailImageUrl] = await Promise.all([
+        withRetry(
+          () => callVolcengineImage(buildPlayViewPrompt({
+            text,
+            ichType,
+            productType: currentType,
+            targetMarket,
+            basePrompt: workflowParameters.design_requirement,
+            view: 'side',
+          })),
+          3, 3000, `[${taskId}] ${currentType} Side View`
+        ),
+        withRetry(
+          () => callVolcengineImage(buildPlayViewPrompt({
+            text,
+            ichType,
+            productType: currentType,
+            targetMarket,
+            basePrompt: workflowParameters.design_requirement,
+            view: 'detail',
+          })),
+          3, 3000, `[${taskId}] ${currentType} Detail View`
+        ),
+      ]);
 
       results.push({
         type: currentType,
         mediaType: 'image',
         mainImageUrl: imageUrl,
-        subImageUrl1: imageUrl,
-        subImageUrl2: imageUrl,
+        subImageUrl1: sideImageUrl,
+        subImageUrl2: detailImageUrl,
         creativeDescription: text,
         metadata: {
           workflowId,

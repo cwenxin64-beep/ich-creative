@@ -183,6 +183,34 @@ function buildUseImagePrompt(params: {
   ].filter(Boolean).join('\n');
 }
 
+function buildUseViewPrompt(params: {
+  keywords: string;
+  ichType: string;
+  interactionType: string;
+  category: string;
+  material?: string;
+  view: 'side' | 'detail';
+}) {
+  const ichName = getName(ICH_TYPE_NAMES, params.ichType) || '中国非遗';
+  const styleName = getName(USE_STYLE_NAMES, params.interactionType) || '现代';
+  const productType = USE_CATEGORY_NAMES[params.category] || params.category;
+  const coreProduct = params.keywords.trim();
+  const viewRequirement = params.view === 'side'
+    ? '侧面/应用场景视图：展示产品的侧面结构、厚度、使用方式或真实摆放效果，不能与主视图构图相同。'
+    : '局部细节特写视图：聚焦非遗纹样、材质肌理、表面工艺、边缘结构和装饰细节，不能与主视图构图相同。';
+
+  return [
+    `设计一款真实可制作的非遗现代文创产品，产品主体必须是“${coreProduct}”。`,
+    `应用品类：${productType}。`,
+    `融合非遗类型：${ichName}。`,
+    `设计风格：${styleName}。`,
+    viewRequirement,
+    '要求：与主视图属于同一产品方案，主体清楚，高级产品摄影质感，干净浅色背景。',
+    '禁止偏离：不要把包装盒、礼盒、海报、说明卡、展示牌作为主体；不要生成与主视图完全相同的画面。',
+    params.material ? `参考素材：${params.material}。` : '',
+  ].filter(Boolean).join('\n');
+}
+
 /**
  * 直接调用火山引擎 LLM API
  */
@@ -358,17 +386,39 @@ async function executeCustomizeTask(taskId: string, params: {
         category,
         material,
       });
-      const imageUrl = await callVolcengineImage(imagePrompt);
+      const sideImagePrompt = buildUseViewPrompt({
+        keywords,
+        ichType,
+        interactionType,
+        category,
+        material,
+        view: 'side',
+      });
+      const detailImagePrompt = buildUseViewPrompt({
+        keywords,
+        ichType,
+        interactionType,
+        category,
+        material,
+        view: 'detail',
+      });
+      const [imageUrl, sideImageUrl, detailImageUrl] = await Promise.all([
+        callVolcengineImage(imagePrompt),
+        callVolcengineImage(sideImagePrompt),
+        callVolcengineImage(detailImagePrompt),
+      ]);
 
       results.push({
         category,
         mainImageUrl: imageUrl,
-        subImageUrl1: imageUrl,
-        subImageUrl2: imageUrl,
+        subImageUrl1: sideImageUrl,
+        subImageUrl2: detailImageUrl,
         creativeDescription: keywords,
         metadata: {
           generationParameters,
           imagePrompt,
+          sideImagePrompt,
+          detailImagePrompt,
         },
       });
       

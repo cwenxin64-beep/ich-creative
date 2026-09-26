@@ -1,10 +1,12 @@
 const api = require('../../utils/api');
+const promptTools = require('../../utils/prompt');
 const { encodeParam } = require('../../utils/format');
 
 Page({
   data: {
     selectedImage: '',
     description: '',
+    optimizing: false,
     loading: false,
     progress: 0,
     result: null,
@@ -25,6 +27,35 @@ Page({
       : '';
     if (description === this.data.description) return;
     this.setData({ description });
+  },
+
+  async optimizeDescription() {
+    const description = this.data.description.trim();
+    if (this.data.loading || this.data.optimizing) return;
+    if (!description) {
+      wx.showToast({ title: '先写一点创意描述', icon: 'none' });
+      return;
+    }
+
+    this.setData({ optimizing: true });
+    wx.showLoading({ title: '正在优化' });
+    try {
+      const data = await promptTools.optimizePrompt('photo', description, {
+        页面: '拍非遗',
+        参考图: this.data.selectedImage ? '已上传' : '未上传'
+      });
+      if (!data.success || !data.optimizedText) {
+        throw new Error(data.error || data.message || '优化失败');
+      }
+      this.setData({ description: data.optimizedText });
+      wx.hideLoading();
+      wx.showToast({ title: '已优化', icon: 'success' });
+    } catch (error) {
+      wx.hideLoading();
+      api.showError(error, '优化失败');
+    } finally {
+      this.setData({ optimizing: false });
+    }
   },
 
   clearCreationState(extraData) {

@@ -11,7 +11,10 @@
 
   <view wx:else class="card">
     <video wx:if="{{videoUrl}}" class="detail-video" src="{{videoUrl}}" poster="{{imageUrl}}" controls></video>
-    <image wx:elif="{{imageUrl}}" class="detail-image" src="{{imageUrl}}" mode="aspectFit" data-url="{{imageUrl}}" bindtap="previewImage" />
+    <view wx:elif="{{imageUrl}}" class="view-frame">
+      <image class="detail-image" src="{{imageUrl}}" mode="aspectFit" data-url="{{imageUrl}}" bindtap="previewImage" />
+      <view class="view-label">主视图</view>
+    </view>
     <view wx:elif="{{audioUrl}}" class="audio-panel">
       <view class="audio-icon">♪</view>
       <view class="field-label">非遗音乐作品</view>
@@ -22,7 +25,10 @@
     <view wx:if="{{description}}" class="detail-desc">{{description}}</view>
 
     <view wx:if="{{subImages.length}}" class="sub-images">
-      <image wx:for="{{subImages}}" wx:key="*this" class="sub-image" src="{{item}}" mode="aspectFill" data-url="{{item}}" bindtap="previewImage" />
+      <view wx:for="{{subImages}}" wx:key="*this" class="sub-view-frame">
+        <image class="sub-image" src="{{item}}" mode="aspectFill" data-url="{{item}}" bindtap="previewImage" />
+        <view class="view-label">{{index == 0 ? '侧面/场景' : '细节图'}}</view>
+      </view>
     </view>
 
     <view class="actions">

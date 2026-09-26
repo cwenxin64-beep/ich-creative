@@ -572,9 +572,11 @@ async function executeGenerationTask(
         analysis: analysisData,
         videoUrl,
         videoMainImageUrl,
-        videoSubImageUrl1,
-        videoSubImageUrl2,
+        videoSubImageUrl1: videoSubImageUrl2,
+        videoSubImageUrl2: videoSubImageUrl1,
         staticMainImageUrl: videoMainImageUrl,
+        staticSubImageUrl1: videoSubImageUrl2,
+        staticSubImageUrl2: videoSubImageUrl1,
       };
     } else {
       // 生成静态图片
@@ -602,9 +604,11 @@ async function executeGenerationTask(
         success: true,
         analysis: analysisData,
         mainImageUrl,
-        subImageUrl1,
-        subImageUrl2,
+        subImageUrl1: subImageUrl2,
+        subImageUrl2: subImageUrl1,
         staticMainImageUrl: mainImageUrl,
+        staticSubImageUrl1: subImageUrl2,
+        staticSubImageUrl2: subImageUrl1,
       };
     }
 

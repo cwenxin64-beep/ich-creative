@@ -16,6 +16,7 @@
 - `miniprogram/utils/api.js`：后端地址、请求、上传、登录状态、轮询工具。
 - `miniprogram/utils/constants.js`：非遗类型、曲风、场景等选项。
 - `miniprogram/utils/format.js`：收藏、素材、日期、链接参数整理。
+- `miniprogram/utils/prompt.js`：调用后端提示词优化接口，给创作页复用。
 - `miniprogram/pages/home/`：小程序首页。
 - `miniprogram/pages/photo/`：拍非遗，调用图片生成接口。
 - `miniprogram/pages/audio/`：唱非遗，调用音乐生成接口。
@@ -30,9 +31,12 @@
 
 - 小程序页面调用 `miniprogram/utils/api.js`。
 - `api.js` 请求 `server/src/routes/*` 中已有接口。
+- 四个创作页通过 `miniprogram/utils/prompt.js` 调用 `server/src/routes/prompt.ts`，把简短描述优化后再放回输入框。
 - 生成类页面先创建任务，再轮询状态接口。
+- 图片生成结果按三视图返回和展示：主视图、侧面/场景、细节图。
 - `server/src/services/coze-workflows.ts` 统一调用 Coze 工作流，Token 只从后端环境变量读取。
-- `server/src/routes/photo.ts`、`server/src/routes/play.ts`、`server/src/routes/use.ts` 创建任务后调用 Coze 工作流，并按原接口格式返回结果。
+- `server/src/routes/play.ts` 创建任务后调用 Coze 工作流，并按原接口格式返回结果。
+- `server/src/routes/photo.ts`、`server/src/routes/use.ts` 当前直接调用大模型和生图接口。
 - 收藏页把收藏同步到素材，素材页读取同步结果。
 - 普通用户通过 `POST /api/v1/use/customization-order` 提交定制需求单。
 - 手艺人通过 `GET /api/v1/use/customization-orders` 查看待接单，通过 `POST /api/v1/use/customization-orders/:id/accept` 接单。

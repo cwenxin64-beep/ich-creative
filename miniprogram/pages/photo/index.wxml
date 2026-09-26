@@ -34,6 +34,9 @@
   <view class="card section option-section">
     <view class="field-label">创意描述</view>
     <textarea class="textarea" value="{{description}}" placeholder="例如：将剪纸元素融入现代手机壳设计" bindinput="onDescription" />
+    <view class="prompt-tools">
+      <button class="prompt-optimize-btn {{loading || optimizing ? 'disabled' : ''}}" loading="{{optimizing}}" disabled="{{loading || optimizing}}" bindtap="optimizeDescription">AI 优化描述</button>
+    </view>
   </view>
 
   <button class="primary-btn {{loading || !selectedImage ? 'disabled' : ''}}" loading="{{loading}}" disabled="{{loading || !selectedImage}}" bindtap="generate">
@@ -50,10 +53,19 @@
   <view wx:if="{{result}}" class="section result-block">
     <view class="title small-title">生成结果</view>
     <view class="card">
-      <image wx:if="{{result.staticMainImageUrl}}" class="result-image" src="{{result.staticMainImageUrl}}" mode="aspectFit" data-url="{{result.staticMainImageUrl}}" bindtap="previewImage" />
+      <view wx:if="{{result.staticMainImageUrl}}" class="view-frame">
+        <image class="result-image" src="{{result.staticMainImageUrl}}" mode="aspectFit" data-url="{{result.staticMainImageUrl}}" bindtap="previewImage" />
+        <view class="view-label">主视图</view>
+      </view>
       <view class="sub-images">
-        <image wx:if="{{result.staticSubImageUrl1}}" class="sub-image" src="{{result.staticSubImageUrl1}}" mode="aspectFill" data-url="{{result.staticSubImageUrl1}}" bindtap="previewImage" />
-        <image wx:if="{{result.staticSubImageUrl2}}" class="sub-image" src="{{result.staticSubImageUrl2}}" mode="aspectFill" data-url="{{result.staticSubImageUrl2}}" bindtap="previewImage" />
+        <view wx:if="{{result.staticSubImageUrl1}}" class="sub-view-frame">
+          <image class="sub-image" src="{{result.staticSubImageUrl1}}" mode="aspectFill" data-url="{{result.staticSubImageUrl1}}" bindtap="previewImage" />
+          <view class="view-label">侧面/场景</view>
+        </view>
+        <view wx:if="{{result.staticSubImageUrl2}}" class="sub-view-frame">
+          <image class="sub-image" src="{{result.staticSubImageUrl2}}" mode="aspectFill" data-url="{{result.staticSubImageUrl2}}" bindtap="previewImage" />
+          <view class="view-label">细节图</view>
+        </view>
       </view>
       <view wx:if="{{result.analysis}}" class="analysis">
         <view class="field-label">作品介绍</view>

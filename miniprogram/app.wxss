@@ -101,6 +101,27 @@ button::after {
   line-height: 1.55;
 }
 
+.prompt-tools {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16rpx;
+}
+
+.prompt-optimize-btn {
+  min-width: 188rpx;
+  min-height: 68rpx;
+  padding: 0 22rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1rpx solid rgba(184, 134, 11, 0.2);
+  border-radius: 999rpx;
+  background: rgba(184, 134, 11, 0.1);
+  color: #b8860b;
+  font-size: 25rpx;
+  font-weight: 700;
+}
+
 .primary-btn,
 .ghost-btn,
 .danger-btn {
@@ -180,6 +201,31 @@ button::after {
   height: 520rpx;
   border-radius: 20rpx;
   background: rgba(232, 225, 216, 0.45);
+}
+
+.view-frame {
+  position: relative;
+  overflow: hidden;
+  border-radius: 20rpx;
+}
+
+.sub-view-frame {
+  position: relative;
+  overflow: hidden;
+  border-radius: 18rpx;
+}
+
+.view-label {
+  position: absolute;
+  left: 16rpx;
+  top: 16rpx;
+  padding: 8rpx 14rpx;
+  border-radius: 999rpx;
+  background: rgba(69, 26, 3, 0.58);
+  color: #fffcf5;
+  font-size: 22rpx;
+  font-weight: 700;
+  line-height: 1;
 }
 
 .sub-images {

@@ -1,5 +1,6 @@
 const api = require('../../utils/api');
 const constants = require('../../utils/constants');
+const promptTools = require('../../utils/prompt');
 const { normalizeFavorite, encodeParam } = require('../../utils/format');
 
 const CATEGORY_NAMES = {
@@ -81,6 +82,7 @@ Page({
     selectedInteractionType: '',
     selectedScene: '',
     keywords: '',
+    optimizing: false,
     loading: false,
     progress: 0,
     results: [],
@@ -132,6 +134,37 @@ Page({
 
   onKeywords(event) {
     this.setData({ keywords: event.detail.value });
+  },
+
+  async optimizeDescription() {
+    const keywords = this.data.keywords.trim();
+    if (this.data.loading || this.data.optimizing) return;
+    if (!keywords && !this.data.selectedIchType && !this.data.selectedInteractionType && !this.data.selectedScene) {
+      wx.showToast({ title: '先写一点关键词或选择条件', icon: 'none' });
+      return;
+    }
+
+    this.setData({ optimizing: true });
+    wx.showLoading({ title: '正在优化' });
+    try {
+      const data = await promptTools.optimizePrompt('use', keywords, {
+        页面: '创非遗',
+        非遗类型: promptTools.getName(constants.ICH_TYPES, this.data.selectedIchType),
+        风格: promptTools.getName(constants.USE_INTERACTIONS, this.data.selectedInteractionType),
+        应用场景: promptTools.getName(constants.APPLICATION_SCENES, this.data.selectedScene)
+      });
+      if (!data.success || !data.optimizedText) {
+        throw new Error(data.error || data.message || '优化失败');
+      }
+      this.setData({ keywords: data.optimizedText });
+      wx.hideLoading();
+      wx.showToast({ title: '已优化', icon: 'success' });
+    } catch (error) {
+      wx.hideLoading();
+      api.showError(error, '优化失败');
+    } finally {
+      this.setData({ optimizing: false });
+    }
   },
 
   onOrderInput(event) {

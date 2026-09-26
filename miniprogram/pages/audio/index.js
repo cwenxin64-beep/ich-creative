@@ -1,5 +1,6 @@
 const api = require('../../utils/api');
 const constants = require('../../utils/constants');
+const promptTools = require('../../utils/prompt');
 const { encodeParam } = require('../../utils/format');
 
 Page({
@@ -11,6 +12,7 @@ Page({
     selectedGenre: '',
     selectedMood: '',
     selectedDuration: 30,
+    optimizing: false,
     loading: false,
     progress: 0,
     result: null,
@@ -29,6 +31,37 @@ Page({
 
   onPrompt(event) {
     this.setData({ prompt: event.detail.value });
+  },
+
+  async optimizeDescription() {
+    const prompt = this.data.prompt.trim();
+    if (this.data.loading || this.data.optimizing) return;
+    if (!prompt && !this.data.selectedGenre && !this.data.selectedMood) {
+      wx.showToast({ title: '先写一点描述或选择曲风', icon: 'none' });
+      return;
+    }
+
+    this.setData({ optimizing: true });
+    wx.showLoading({ title: '正在优化' });
+    try {
+      const data = await promptTools.optimizePrompt('audio', prompt, {
+        页面: '唱非遗',
+        曲风: this.data.selectedGenre,
+        情绪: this.data.selectedMood,
+        时长: `${this.data.selectedDuration}秒`
+      });
+      if (!data.success || !data.optimizedText) {
+        throw new Error(data.error || data.message || '优化失败');
+      }
+      this.setData({ prompt: data.optimizedText });
+      wx.hideLoading();
+      wx.showToast({ title: '已优化', icon: 'success' });
+    } catch (error) {
+      wx.hideLoading();
+      api.showError(error, '优化失败');
+    } finally {
+      this.setData({ optimizing: false });
+    }
   },
 
   selectGenre(event) {

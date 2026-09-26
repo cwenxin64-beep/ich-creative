@@ -22,10 +22,7 @@ const PRODUCT_TYPES = [
   { id: 'poster', name: '海报' },
   { id: 'festival', name: '节日卡' },
   { id: 'birthday', name: '生日卡' },
-  { id: 'newyear', name: '新年卡' },
-  { id: 'dynamic', name: '动态海报' },
-  { id: 'avatar', name: '数字人' },
-  { id: 'interactive', name: '可交互文创产品' }
+  { id: 'newyear', name: '新年卡' }
 ];
 
 const TARGET_MARKETS = [

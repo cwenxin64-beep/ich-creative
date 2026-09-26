@@ -9,6 +9,9 @@
   <view class="card section option-section">
     <view class="field-label">音乐描述</view>
     <textarea class="textarea" value="{{prompt}}" placeholder="例如：一首关于端午龙舟的国风纯音乐" bindinput="onPrompt" />
+    <view class="prompt-tools">
+      <button class="prompt-optimize-btn {{loading || optimizing ? 'disabled' : ''}}" loading="{{optimizing}}" disabled="{{loading || optimizing}}" bindtap="optimizeDescription">AI 优化描述</button>
+    </view>
   </view>
 
   <view class="card section option-section">
