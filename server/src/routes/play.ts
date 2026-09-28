@@ -17,22 +17,11 @@ const TEXT_MODEL = process.env.VOLCENGINE_TEXT_MODEL || 'ep-20260326185613-8d6lx
 const IMAGE_MODEL = process.env.VOLCENGINE_IMAGE_MODEL || 'ep-20260326185459-8rt74';
 const VIDEO_MODEL = process.env.VOLCENGINE_VIDEO_MODEL || 'ep-20260326185806-4fgdw';
 
-const PLAY_WORKFLOW_IDS: Record<string, string[]> = {
-  poster: [
-    getWorkflowId('COZE_WORKFLOW_PLAY_POSTER_ALT', '7678261713996726314'),
-  ],
-  festival: [
-    getWorkflowId('COZE_WORKFLOW_PLAY_FESTIVAL', '7678261114291159075'),
-    getWorkflowId('COZE_WORKFLOW_PLAY_FESTIVAL_ALT', '7678261667716677683'),
-  ],
-  birthday: [
-    getWorkflowId('COZE_WORKFLOW_PLAY_BIRTHDAY', '7678261226972102692'),
-    getWorkflowId('COZE_WORKFLOW_PLAY_BIRTHDAY_ALT', '7678261512381988905'),
-    getWorkflowId('COZE_WORKFLOW_PLAY_BIRTHDAY_EXTRA', '7678261565473292340'),
-  ],
-  newyear: [
-    getWorkflowId('COZE_WORKFLOW_PLAY_NEWYEAR', '7678261114291159075'),
-  ],
+const PLAY_WORKFLOW_IDS: Record<string, string> = {
+  poster: getWorkflowId('COZE_WORKFLOW_PLAY_POSTER_ALT', '7678261713996726314'),
+  festival: getWorkflowId('COZE_WORKFLOW_PLAY_FESTIVAL_ALT', '7678261667716677683'),
+  birthday: getWorkflowId('COZE_WORKFLOW_PLAY_BIRTHDAY_EXTRA', '7678261565473292340'),
+  newyear: getWorkflowId('COZE_WORKFLOW_PLAY_NEWYEAR', '7678261114291159075'),
 };
 
 const PLAY_PRODUCT_NAMES: Record<string, string> = {
@@ -665,14 +654,14 @@ async function executeCozeGenerationTask(
       throw new Error(`暂不支持的玩非遗产品类型：${productType}`);
     }
     const targetProductTypes = productType && productType !== 'all' ? [productType] : allProductTypes;
-    const workflowEntries = targetProductTypes.flatMap((currentType) => {
-      const workflowIds = PLAY_WORKFLOW_IDS[currentType] || [];
-      return workflowIds.map((workflowId, variantIndex) => ({ currentType, workflowId, variantIndex }));
-    });
+    const workflowEntries = targetProductTypes.map((currentType) => ({
+      currentType,
+      workflowId: PLAY_WORKFLOW_IDS[currentType],
+    }));
     const results: any[] = [];
 
     for (let i = 0; i < workflowEntries.length; i++) {
-      const { currentType, workflowId, variantIndex } = workflowEntries[i];
+      const { currentType, workflowId } = workflowEntries[i];
       if (!workflowId) {
         throw new Error(`未配置 ${currentType} 对应的 Coze 工作流`);
       }
@@ -722,7 +711,6 @@ async function executeCozeGenerationTask(
         creativeDescription: text,
         metadata: {
           workflowId,
-          variantIndex,
           workflowParameters,
         },
       });
