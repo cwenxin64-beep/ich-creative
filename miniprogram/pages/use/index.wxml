@@ -95,6 +95,41 @@
       {{loading ? '定制中 ' + progress + '%' : '定制生成'}}
     </button>
 
+    <view wx:if="{{loading}}" class="card progress-card">
+      <view class="progress-bar">
+        <view class="progress-inner" style="width: {{progress}}%;"></view>
+      </view>
+      <view class="small-text">正在定制，通常需要 1-2 分钟。</view>
+    </view>
+
+    <view wx:if="{{results.length}}" class="result-block">
+      <view class="title small-title">定制结果</view>
+      <view wx:for="{{results}}" wx:key="localId" class="card result-card">
+        <view class="result-type">{{item.categoryText || '非遗作品'}}</view>
+        <view wx:if="{{item.mainImageUrl}}" class="view-frame">
+          <image class="result-image" src="{{item.mainImageUrl}}" mode="aspectFit" data-url="{{item.mainImageUrl}}" bindtap="previewImage" />
+          <view class="view-label">主视图</view>
+        </view>
+        <view wx:else class="empty-mini">生成结果暂无预览图</view>
+        <view class="sub-images">
+          <view wx:if="{{item.subImageUrl1}}" class="sub-view-frame">
+            <image class="sub-image" src="{{item.subImageUrl1}}" mode="aspectFill" data-url="{{item.subImageUrl1}}" bindtap="previewImage" />
+            <view class="view-label">侧面/场景</view>
+          </view>
+          <view wx:if="{{item.subImageUrl2}}" class="sub-view-frame">
+            <image class="sub-image" src="{{item.subImageUrl2}}" mode="aspectFill" data-url="{{item.subImageUrl2}}" bindtap="previewImage" />
+            <view class="view-label">细节图</view>
+          </view>
+        </view>
+        <view class="actions">
+          <button class="ghost-btn" data-index="{{index}}" bindtap="toggleFavorite">{{item.favorited ? '已收藏' : '收藏'}}</button>
+          <button class="ghost-btn" data-index="{{index}}" bindtap="useResultAsReference">定制</button>
+          <button class="ghost-btn" data-index="{{index}}" bindtap="goDetail">详情</button>
+          <button class="ghost-btn" data-index="{{index}}" open-type="share">分享</button>
+        </view>
+      </view>
+    </view>
+
     <button class="ghost-btn customize-btn" bindtap="toggleOrderForm">{{showOrderForm ? '收起需求单' : '非遗创意产品定制'}}</button>
 
     <view wx:if="{{showOrderForm}}" class="card section order-form">
@@ -132,41 +167,6 @@
       <button class="primary-btn {{orderSubmitting ? 'disabled' : ''}}" loading="{{orderSubmitting}}" disabled="{{orderSubmitting}}" bindtap="submitOrder">
         {{orderSubmitting ? '提交中' : '提交需求单'}}
       </button>
-    </view>
-
-    <view wx:if="{{loading}}" class="card progress-card">
-      <view class="progress-bar">
-        <view class="progress-inner" style="width: {{progress}}%;"></view>
-      </view>
-      <view class="small-text">正在定制，通常需要 1-2 分钟。</view>
-    </view>
-
-    <view wx:if="{{results.length}}" class="result-block">
-      <view class="title small-title">定制结果</view>
-      <view wx:for="{{results}}" wx:key="localId" class="card result-card">
-        <view class="result-type">{{item.categoryText || '非遗作品'}}</view>
-        <view wx:if="{{item.mainImageUrl}}" class="view-frame">
-          <image class="result-image" src="{{item.mainImageUrl}}" mode="aspectFit" data-url="{{item.mainImageUrl}}" bindtap="previewImage" />
-          <view class="view-label">主视图</view>
-        </view>
-        <view wx:else class="empty-mini">生成结果暂无预览图</view>
-        <view class="sub-images">
-          <view wx:if="{{item.subImageUrl1}}" class="sub-view-frame">
-            <image class="sub-image" src="{{item.subImageUrl1}}" mode="aspectFill" data-url="{{item.subImageUrl1}}" bindtap="previewImage" />
-            <view class="view-label">侧面/场景</view>
-          </view>
-          <view wx:if="{{item.subImageUrl2}}" class="sub-view-frame">
-            <image class="sub-image" src="{{item.subImageUrl2}}" mode="aspectFill" data-url="{{item.subImageUrl2}}" bindtap="previewImage" />
-            <view class="view-label">细节图</view>
-          </view>
-        </view>
-        <view class="actions">
-          <button class="ghost-btn" data-index="{{index}}" bindtap="toggleFavorite">{{item.favorited ? '已收藏' : '收藏'}}</button>
-          <button class="ghost-btn" data-index="{{index}}" bindtap="useResultAsReference">定制</button>
-          <button class="ghost-btn" data-index="{{index}}" bindtap="goDetail">详情</button>
-          <button class="ghost-btn" data-index="{{index}}" open-type="share">分享</button>
-        </view>
-      </view>
     </view>
 
     <view wx:if="{{myOrders.length}}" class="section">
