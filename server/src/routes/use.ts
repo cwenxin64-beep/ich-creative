@@ -3,6 +3,7 @@ import { taskStore } from '../task-queue';
 import { query } from '../storage/database/pg-client';
 import { authMiddleware } from './auth';
 import { createObjectStorage } from '../services/object-storage';
+import { buildReferenceViewPrompt, type ReferenceView } from '../services/image-view-prompts';
 
 const router = express.Router();
 
@@ -248,10 +249,10 @@ async function callVolcengineLLM(messages: any[], model: string = TEXT_MODEL): P
 /**
  * 直接调用火山引擎图片生成 API
  */
-async function callVolcengineImage(prompt: string, referenceImageUrl?: string): Promise<string> {
+async function callVolcengineImage(prompt: string, referenceImageUrl?: string, referenceView?: ReferenceView): Promise<string> {
   const url = `${VOLCENGINE_BASE_URL}/images/generations`;
-  const finalPrompt = referenceImageUrl
-    ? `参考图中的产品是唯一主体。必须保持品类、造型、结构、比例、材质、颜色、纹样和装饰一致，只允许改变拍摄角度、构图和景别。不要重新设计，不要替换成相似产品。\n${prompt}`
+  const finalPrompt = referenceImageUrl && referenceView
+    ? buildReferenceViewPrompt(prompt, referenceView)
     : prompt;
   
   const body = {
@@ -408,8 +409,8 @@ async function executeCustomizeTask(taskId: string, params: {
       });
       const imageUrl = await callVolcengineImage(imagePrompt);
       const [sideImageUrl, detailImageUrl] = await Promise.all([
-        callVolcengineImage(sideImagePrompt, imageUrl),
-        callVolcengineImage(detailImagePrompt, imageUrl),
+        callVolcengineImage(sideImagePrompt, imageUrl, 'side'),
+        callVolcengineImage(detailImagePrompt, imageUrl, 'detail'),
       ]);
 
       results.push({

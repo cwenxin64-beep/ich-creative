@@ -2,6 +2,7 @@ import express, { type Request, type Response } from 'express';
 import multer from 'multer';
 import { taskStore } from '../task-queue';
 import { createObjectStorage } from '../services/object-storage';
+import { buildReferenceViewPrompt, type ReferenceView } from '../services/image-view-prompts';
 
 const router = express.Router();
 
@@ -59,10 +60,10 @@ async function callVolcengineLLM(messages: any[], model: string = VISION_MODEL):
 /**
  * 直接调用火山引擎图片生成 API
  */
-async function callVolcengineImage(prompt: string, referenceImageUrl?: string): Promise<string> {
+async function callVolcengineImage(prompt: string, referenceImageUrl?: string, referenceView?: ReferenceView): Promise<string> {
   const url = `${VOLCENGINE_BASE_URL}/images/generations`;
-  const finalPrompt = referenceImageUrl
-    ? `参考图中的产品是唯一主体。必须保持品类、造型、结构、比例、材质、颜色、纹样和装饰一致，只允许改变拍摄角度、构图和景别。不要重新设计，不要替换成相似产品。\n${prompt}`
+  const finalPrompt = referenceImageUrl && referenceView
+    ? buildReferenceViewPrompt(prompt, referenceView)
     : prompt;
   
   const body = {
@@ -561,11 +562,11 @@ async function executeGenerationTask(
       ]);
       const [videoSubImageUrl1, videoSubImageUrl2] = await Promise.all([
         withRetry(
-          () => callVolcengineImage(analysisData.subPrompt1, videoMainImageUrl),
+          () => callVolcengineImage(analysisData.subPrompt1, videoMainImageUrl, 'detail'),
           3, 3000, `[${taskId}] Video Sub Image 1`
         ),
         withRetry(
-          () => callVolcengineImage(analysisData.subPrompt2, videoMainImageUrl),
+          () => callVolcengineImage(analysisData.subPrompt2, videoMainImageUrl, 'side'),
           3, 3000, `[${taskId}] Video Sub Image 2`
         ),
       ]);
@@ -594,11 +595,11 @@ async function executeGenerationTask(
       );
       const [subImageUrl1, subImageUrl2] = await Promise.all([
         withRetry(
-          () => callVolcengineImage(analysisData.subPrompt1, mainImageUrl),
+          () => callVolcengineImage(analysisData.subPrompt1, mainImageUrl, 'detail'),
           3, 3000, `[${taskId}] Sub Image 1`
         ),
         withRetry(
-          () => callVolcengineImage(analysisData.subPrompt2, mainImageUrl),
+          () => callVolcengineImage(analysisData.subPrompt2, mainImageUrl, 'side'),
           3, 3000, `[${taskId}] Sub Image 2`
         ),
       ]);
