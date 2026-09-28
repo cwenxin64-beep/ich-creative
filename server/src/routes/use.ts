@@ -248,12 +248,16 @@ async function callVolcengineLLM(messages: any[], model: string = TEXT_MODEL): P
 /**
  * 直接调用火山引擎图片生成 API
  */
-async function callVolcengineImage(prompt: string): Promise<string> {
+async function callVolcengineImage(prompt: string, referenceImageUrl?: string): Promise<string> {
   const url = `${VOLCENGINE_BASE_URL}/images/generations`;
+  const finalPrompt = referenceImageUrl
+    ? `参考图中的产品是唯一主体。必须保持品类、造型、结构、比例、材质、颜色、纹样和装饰一致，只允许改变拍摄角度、构图和景别。不要重新设计，不要替换成相似产品。\n${prompt}`
+    : prompt;
   
   const body = {
     model: IMAGE_MODEL,
-    prompt,
+    prompt: finalPrompt,
+    ...(referenceImageUrl ? { image: referenceImageUrl } : {}),
   };
 
   console.log('[Image] Calling:', url, 'Model:', IMAGE_MODEL);
@@ -402,10 +406,10 @@ async function executeCustomizeTask(taskId: string, params: {
         material,
         view: 'detail',
       });
-      const [imageUrl, sideImageUrl, detailImageUrl] = await Promise.all([
-        callVolcengineImage(imagePrompt),
-        callVolcengineImage(sideImagePrompt),
-        callVolcengineImage(detailImagePrompt),
+      const imageUrl = await callVolcengineImage(imagePrompt);
+      const [sideImageUrl, detailImageUrl] = await Promise.all([
+        callVolcengineImage(sideImagePrompt, imageUrl),
+        callVolcengineImage(detailImagePrompt, imageUrl),
       ]);
 
       results.push({

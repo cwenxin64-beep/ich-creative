@@ -131,12 +131,16 @@ async function callVolcengineLLM(messages: any[], model: string = TEXT_MODEL): P
 /**
  * 直接调用火山引擎图片生成 API
  */
-async function callVolcengineImage(prompt: string): Promise<string> {
+async function callVolcengineImage(prompt: string, referenceImageUrl?: string): Promise<string> {
   const url = `${VOLCENGINE_BASE_URL}/images/generations`;
+  const finalPrompt = referenceImageUrl
+    ? `参考图中的产品是唯一主体。必须保持品类、造型、结构、比例、材质、颜色、纹样和装饰一致，只允许改变拍摄角度、构图和景别。不要重新设计，不要替换成相似产品。\n${prompt}`
+    : prompt;
   
   const body = {
     model: IMAGE_MODEL,
-    prompt,
+    prompt: finalPrompt,
+    ...(referenceImageUrl ? { image: referenceImageUrl } : {}),
   };
 
   console.log('[Image] Calling:', url, 'Model:', IMAGE_MODEL);
@@ -555,11 +559,11 @@ ${productType || '生成所有类型：海报、节日卡、生日卡、新年�
         } else {
           console.log(`[${taskId}] ${promptKey} using IMAGE model`);
           const viewProductType = PLAY_PROMPT_PRODUCT_TYPES[promptKey] || productType;
-          const [mainImageUrl, sideImageUrl, detailImageUrl] = await Promise.all([
-            withRetry(
-              () => callVolcengineImage(promptData.mainPrompt),
-              3, 3000, `[${taskId}] ${promptKey} Main Image`
-            ),
+          const mainImageUrl = await withRetry(
+            () => callVolcengineImage(promptData.mainPrompt),
+            3, 3000, `[${taskId}] ${promptKey} Main Image`
+          );
+          const [sideImageUrl, detailImageUrl] = await Promise.all([
             withRetry(
               () => callVolcengineImage(buildPlayViewPrompt({
                 text,
@@ -568,7 +572,7 @@ ${productType || '生成所有类型：海报、节日卡、生日卡、新年�
                 targetMarket,
                 basePrompt: promptData.mainPrompt,
                 view: 'side',
-              })),
+              }), mainImageUrl),
               3, 3000, `[${taskId}] ${promptKey} Side Image`
             ),
             withRetry(
@@ -579,7 +583,7 @@ ${productType || '生成所有类型：海报、节日卡、生日卡、新年�
                 targetMarket,
                 basePrompt: promptData.mainPrompt,
                 view: 'detail',
-              })),
+              }), mainImageUrl),
               3, 3000, `[${taskId}] ${promptKey} Detail Image`
             ),
           ]);
@@ -686,7 +690,7 @@ async function executeCozeGenerationTask(
             targetMarket,
             basePrompt: workflowParameters.design_requirement,
             view: 'side',
-          })),
+          }), imageUrl),
           3, 3000, `[${taskId}] ${currentType} Side View`
         ),
         withRetry(
@@ -697,7 +701,7 @@ async function executeCozeGenerationTask(
             targetMarket,
             basePrompt: workflowParameters.design_requirement,
             view: 'detail',
-          })),
+          }), imageUrl),
           3, 3000, `[${taskId}] ${currentType} Detail View`
         ),
       ]);

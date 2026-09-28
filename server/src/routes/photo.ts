@@ -59,12 +59,16 @@ async function callVolcengineLLM(messages: any[], model: string = VISION_MODEL):
 /**
  * 直接调用火山引擎图片生成 API
  */
-async function callVolcengineImage(prompt: string): Promise<string> {
+async function callVolcengineImage(prompt: string, referenceImageUrl?: string): Promise<string> {
   const url = `${VOLCENGINE_BASE_URL}/images/generations`;
+  const finalPrompt = referenceImageUrl
+    ? `参考图中的产品是唯一主体。必须保持品类、造型、结构、比例、材质、颜色、纹样和装饰一致，只允许改变拍摄角度、构图和景别。不要重新设计，不要替换成相似产品。\n${prompt}`
+    : prompt;
   
   const body = {
     model: IMAGE_MODEL,
-    prompt,
+    prompt: finalPrompt,
+    ...(referenceImageUrl ? { image: referenceImageUrl } : {}),
   };
 
   console.log('[Image] Calling:', url, 'Model:', IMAGE_MODEL);
@@ -545,7 +549,7 @@ async function executeGenerationTask(
       // 生成视频
       console.log(`[${taskId}] Generating video...`);
       
-      const [videoUrl, videoMainImageUrl, videoSubImageUrl1, videoSubImageUrl2] = await Promise.all([
+      const [videoUrl, videoMainImageUrl] = await Promise.all([
         withRetry(
           () => callVolcengineVideo(analysisData.mainPrompt),
           3, 10000, `[${taskId}] Video`
@@ -554,12 +558,14 @@ async function executeGenerationTask(
           () => callVolcengineImage(analysisData.mainPrompt),
           3, 3000, `[${taskId}] Video Main Image`
         ),
+      ]);
+      const [videoSubImageUrl1, videoSubImageUrl2] = await Promise.all([
         withRetry(
-          () => callVolcengineImage(analysisData.subPrompt1),
+          () => callVolcengineImage(analysisData.subPrompt1, videoMainImageUrl),
           3, 3000, `[${taskId}] Video Sub Image 1`
         ),
         withRetry(
-          () => callVolcengineImage(analysisData.subPrompt2),
+          () => callVolcengineImage(analysisData.subPrompt2, videoMainImageUrl),
           3, 3000, `[${taskId}] Video Sub Image 2`
         ),
       ]);
@@ -582,17 +588,17 @@ async function executeGenerationTask(
       // 生成静态图片
       console.log(`[${taskId}] Generating images...`);
       
-      const [mainImageUrl, subImageUrl1, subImageUrl2] = await Promise.all([
+      const mainImageUrl = await withRetry(
+        () => callVolcengineImage(analysisData.mainPrompt),
+        3, 3000, `[${taskId}] Main Image`
+      );
+      const [subImageUrl1, subImageUrl2] = await Promise.all([
         withRetry(
-          () => callVolcengineImage(analysisData.mainPrompt),
-          3, 3000, `[${taskId}] Main Image`
-        ),
-        withRetry(
-          () => callVolcengineImage(analysisData.subPrompt1),
+          () => callVolcengineImage(analysisData.subPrompt1, mainImageUrl),
           3, 3000, `[${taskId}] Sub Image 1`
         ),
         withRetry(
-          () => callVolcengineImage(analysisData.subPrompt2),
+          () => callVolcengineImage(analysisData.subPrompt2, mainImageUrl),
           3, 3000, `[${taskId}] Sub Image 2`
         ),
       ]);
