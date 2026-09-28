@@ -134,27 +134,6 @@
       </button>
     </view>
 
-    <view wx:if="{{myOrders.length}}" class="section">
-      <view class="title small-title">我的需求单</view>
-      <view wx:for="{{myOrders}}" wx:key="id" class="card order-card">
-        <view class="order-title-row">
-          <view class="order-title">{{item.title}}</view>
-          <view class="status-badge {{item.status == 'accepted' ? 'accepted' : ''}}">{{item.statusText}}</view>
-        </view>
-        <view class="order-desc">{{item.requirements}}</view>
-        <view wx:if="{{item.orderImageUrl}}" class="order-reference" data-url="{{item.orderImageUrl}}" bindtap="previewOrderReference">
-          <image class="reference-thumb" src="{{item.orderImageUrl}}" mode="aspectFill" />
-          <view class="reference-info">
-            <view class="reference-title">{{item.orderImageTitle}}</view>
-            <view class="small-text">{{item.orderImageSource}}</view>
-          </view>
-        </view>
-        <view class="order-meta">{{item.budgetText}} · {{item.createdLabel}}</view>
-        <view wx:if="{{item.artisan}}" class="small-text">接单手艺人：{{item.artisan.username}}</view>
-        <view class="small-text">支付状态：{{item.paymentStatusText}}</view>
-      </view>
-    </view>
-
     <view wx:if="{{loading}}" class="card progress-card">
       <view class="progress-bar">
         <view class="progress-inner" style="width: {{progress}}%;"></view>
@@ -187,6 +166,27 @@
           <button class="ghost-btn" data-index="{{index}}" bindtap="goDetail">详情</button>
           <button class="ghost-btn" data-index="{{index}}" open-type="share">分享</button>
         </view>
+      </view>
+    </view>
+
+    <view wx:if="{{myOrders.length}}" class="section">
+      <view class="title small-title">我的需求单</view>
+      <view wx:for="{{myOrders}}" wx:key="id" class="card order-card">
+        <view class="order-title-row">
+          <view class="order-title">{{item.title}}</view>
+          <view class="status-badge {{item.status == 'accepted' ? 'accepted' : ''}}">{{item.statusText}}</view>
+        </view>
+        <view class="order-desc">{{item.requirements}}</view>
+        <view wx:if="{{item.orderImageUrl}}" class="order-reference" data-url="{{item.orderImageUrl}}" bindtap="previewOrderReference">
+          <image class="reference-thumb" src="{{item.orderImageUrl}}" mode="aspectFill" />
+          <view class="reference-info">
+            <view class="reference-title">{{item.orderImageTitle}}</view>
+            <view class="small-text">{{item.orderImageSource}}</view>
+          </view>
+        </view>
+        <view class="order-meta">{{item.budgetText}} · {{item.createdLabel}}</view>
+        <view wx:if="{{item.artisan}}" class="small-text">接单手艺人：{{item.artisan.username}}</view>
+        <view class="small-text">支付状态：{{item.paymentStatusText}}</view>
       </view>
     </view>
   </block>
