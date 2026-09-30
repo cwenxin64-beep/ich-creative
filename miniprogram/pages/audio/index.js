@@ -94,15 +94,18 @@ Page({
   },
 
   async generate() {
+    const selectedGenre = this.data.selectedGenre;
+    const selectedMood = this.data.selectedMood;
+    const selectedDuration = this.data.selectedDuration;
     let text = this.data.prompt.trim();
     if (!text) {
-      const parts = [this.data.selectedGenre, this.data.selectedMood].filter(Boolean);
+      const parts = [selectedGenre, selectedMood].filter(Boolean);
       text = parts.length ? `一段${parts.join('、')}风格的非遗音乐` : '一段中国传统非遗风格的音乐';
     }
 
-    const genrePart = this.data.selectedGenre ? `，曲风：${this.data.selectedGenre}` : '';
-    const moodPart = this.data.selectedMood ? `，情绪：${this.data.selectedMood}` : '';
-    const fullPrompt = `${text}${genrePart}${moodPart}，时长${this.data.selectedDuration}秒`;
+    const genrePart = selectedGenre ? `，曲风：${selectedGenre}` : '';
+    const moodPart = selectedMood ? `，情绪：${selectedMood}` : '';
+    const fullPrompt = `${text}${genrePart}${moodPart}，时长${selectedDuration}秒`;
 
     this.destroyAudio();
     this.setData({ loading: true, progress: 0, result: null, isFavorited: false, favoriteId: '', playing: false });
@@ -113,7 +116,7 @@ Page({
         method: 'POST',
         data: {
           prompt: fullPrompt,
-          duration: this.data.selectedDuration
+          duration: selectedDuration
         }
       });
 
@@ -121,7 +124,12 @@ Page({
         throw new Error(data.message || data.error || '生成失败');
       }
 
-      this.setData({ result: data, progress: 100 });
+      const result = Object.assign({}, data, {
+        scene: text,
+        genre: selectedGenre || data.genre || '',
+        mood: selectedMood || data.mood || ''
+      });
+      this.setData({ result, progress: 100 });
     } catch (error) {
       api.showError(error, '生成失败');
     } finally {
@@ -190,16 +198,20 @@ Page({
       }
 
       const result = this.data.result;
+      const favoriteTitle = result.scene
+        ? `唱非遗·${result.scene.slice(0, 12)}`
+        : '唱非遗作品';
       const data = await api.request('/api/v1/favorites', {
         method: 'POST',
         data: {
           type: 'music',
           imageUrl: result.audioUrl,
-          title: '唱非遗作品',
+          title: favoriteTitle,
           metadata: {
             audioUrl: result.audioUrl,
-            genre: result.genre || this.data.selectedGenre,
-            mood: result.mood || this.data.selectedMood,
+            scene: result.scene,
+            genre: result.genre,
+            mood: result.mood,
             duration: result.duration,
             storageKey: result.storageKey,
             musicId: result.id
@@ -216,8 +228,9 @@ Page({
 
   goDetail() {
     const result = this.data.result || {};
+    const description = [result.scene, result.genre, result.mood].filter(Boolean).join(' · ') || result.captions || '非遗音乐作品';
     wx.navigateTo({
-      url: `/pages/detail/index?audioUrl=${encodeParam(this.getPlayableUrl())}&description=${encodeParam(result.captions || '非遗音乐作品')}`
+      url: `/pages/detail/index?audioUrl=${encodeParam(this.getPlayableUrl())}&description=${encodeParam(description)}`
     });
   },
 

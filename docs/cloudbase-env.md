@@ -35,6 +35,14 @@ COZE_WORKFLOW_TOKEN=pat_xxxxxxxxxxxxxxxxx
 # 默认使用 https://api.coze.cn/v1/workflow/run，一般不用改
 # COZE_WORKFLOW_API_URL=https://api.coze.cn/v1/workflow/run
 
+# 找回密码邮件服务（只放在后端）
+# RESEND_API_KEY：在 Resend 控制台创建 API Key
+# EMAIL_FROM：已在 Resend 验证的发件地址，例如 智能非遗 <account@example.com>
+# PASSWORD_RESET_SECRET：自定义随机长字符串，用于保护验证码哈希
+RESEND_API_KEY=re_xxxxxxxxxxxxxxxxx
+EMAIL_FROM=智能非遗 <account@example.com>
+PASSWORD_RESET_SECRET=replace-with-a-long-random-secret
+
 # 图片/音频对象存储
 # 新变量优先；如果已配置旧变量 S3_BUCKET、S3_REGION、S3_ACCESS_KEY_ID、S3_SECRET_ACCESS_KEY，代码会自动兼容。
 # 使用 S3_* 密钥时不需要配置 COZE_WORKLOAD_IDENTITY_API_KEY。
@@ -55,3 +63,4 @@ COZE_WORKFLOW_PLAY_NEWYEAR=7678261114291159075
 # 2. 工作流 ID 已按当前版本填入，如在扣子里复制了新工作流，可只改对应变量。
 # 3. 请将 xxxxxxxxxxx 替换为你的实际值。
 # 4. 拍非遗、创非遗当前不调用扣子工作流；拍非遗和创非遗走后端直接生图。
+# 5. 未配置 RESEND_API_KEY 和 EMAIL_FROM 时，忘记密码页面不能发送验证码。

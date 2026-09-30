@@ -82,7 +82,7 @@
       <view wx:if="{{result.analysis}}" class="analysis">
         <view class="field-label">作品介绍</view>
         <view class="small-text">元素：{{analysisText}}</view>
-        <view class="small-text">情感：{{result.analysis.emotionalTone || '未返回'}}</view>
+        <view wx:if="{{result.analysis.emotionalTone}}" class="small-text">情感：{{result.analysis.emotionalTone}}</view>
       </view>
       <view class="actions">
         <button class="ghost-btn" bindtap="toggleFavorite">{{isFavorited ? '已收藏' : '收藏'}}</button>

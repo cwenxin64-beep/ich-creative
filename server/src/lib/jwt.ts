@@ -6,7 +6,7 @@ const REFRESH_EXPIRES_IN = '30d'; // refresh token 有效期 30 天
 
 export interface TokenPayload {
   userId: number;
-  email: string;
+  email: string | null;
   role: string;
 }
 

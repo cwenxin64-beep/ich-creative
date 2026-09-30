@@ -1,0 +1,29 @@
+<view class="page">
+  <view class="header">
+    <button class="back" bindtap="goBack">‹</button>
+    <view>
+      <view class="title">账号设置</view>
+      <view class="subtitle">管理登录方式</view>
+    </view>
+  </view>
+
+  <view class="card account-card">
+    <view class="account-row">
+      <view class="field-label">用户名</view>
+      <view class="account-value">{{user.username}}</view>
+    </view>
+    <view class="account-row email-row">
+      <view class="field-label">绑定邮箱</view>
+      <view class="account-value">{{user.email || '未绑定'}}</view>
+    </view>
+  </view>
+
+  <view wx:if="{{user.email}}" class="card unbind-card">
+    <view class="field-label">解绑邮箱</view>
+    <view class="small-text warning">解绑后只能使用用户名登录，且无法通过邮箱找回密码。</view>
+    <input class="input password-input" password value="{{currentPassword}}" placeholder="请输入当前密码确认" bindinput="onPassword" />
+    <button class="danger-btn {{unbinding ? 'disabled' : ''}}" loading="{{unbinding}}" disabled="{{unbinding}}" bindtap="confirmUnbind">解绑邮箱</button>
+  </view>
+
+  <button class="ghost-btn logout-btn" bindtap="logout">退出登录</button>
+</view>

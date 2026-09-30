@@ -1,0 +1,11 @@
+.form {
+  margin-bottom: 24rpx;
+}
+
+.reset-fields {
+  margin-top: 32rpx;
+}
+
+.link-btn {
+  margin-top: 24rpx;
+}

@@ -23,12 +23,16 @@ Page({
     wx.redirectTo({ url: '/pages/register/index' });
   },
 
+  goForgotPassword() {
+    wx.navigateTo({ url: '/pages/forgot-password/index' });
+  },
+
   async submit() {
     const email = this.data.email.trim();
     const password = this.data.password;
 
     if (!email || !password) {
-      wx.showToast({ title: '请填写邮箱和密码', icon: 'none' });
+      wx.showToast({ title: '请填写账号和密码', icon: 'none' });
       return;
     }
 
@@ -36,7 +40,7 @@ Page({
     try {
       const data = await api.request('/api/v1/auth/login', {
         method: 'POST',
-        data: { email, password }
+        data: { identifier: email, password }
       });
 
       if (!data.success) {

@@ -9,8 +9,8 @@
 
   <view class="card form">
     <view class="section">
-      <view class="field-label">邮箱</view>
-      <input class="input" type="text" value="{{email}}" placeholder="请输入邮箱" bindinput="onEmail" />
+      <view class="field-label">邮箱或用户名</view>
+      <input class="input" type="text" value="{{email}}" placeholder="请输入邮箱或用户名" bindinput="onEmail" />
     </view>
 
     <view class="section">
@@ -23,5 +23,6 @@
     </button>
   </view>
 
+  <button class="ghost-btn link-btn" bindtap="goForgotPassword">忘记密码</button>
   <button class="ghost-btn link-btn" bindtap="goRegister">还没有账号，去注册</button>
 </view>

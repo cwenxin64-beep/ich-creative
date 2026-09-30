@@ -27,6 +27,41 @@ function buildTencentCosEndpoint(bucketName: string, region: string): string {
   return `https://${bucketName}.cos.${region}.myqcloud.com`;
 }
 
+function getObjectStorageEndpoint(): string {
+  const bucketName = getEnv('COZE_BUCKET_NAME') || getEnv('S3_BUCKET') || getEnv('S3_BUCKET_NAME');
+  const region = getEnv('COZE_BUCKET_REGION') || getEnv('S3_REGION') || 'cn-beijing';
+  return (
+    getEnv('COZE_BUCKET_ENDPOINT_URL') ||
+    getEnv('S3_ENDPOINT_URL') ||
+    getEnv('S3_ENDPOINT') ||
+    (bucketName ? buildTencentCosEndpoint(bucketName, region) : '')
+  ).replace(/\/+$/, '');
+}
+
+export function extractObjectStorageKey(urlValue: string): string {
+  if (!urlValue) return '';
+
+  try {
+    const endpointValue = getObjectStorageEndpoint();
+    if (!endpointValue) return '';
+
+    const sourceUrl = new URL(urlValue);
+    const endpointUrl = new URL(endpointValue);
+    if (sourceUrl.origin !== endpointUrl.origin) return '';
+
+    const endpointPath = endpointUrl.pathname.replace(/\/+$/, '');
+    if (endpointPath && !sourceUrl.pathname.startsWith(`${endpointPath}/`)) return '';
+
+    const keyPath = sourceUrl.pathname.slice(endpointPath.length).replace(/^\/+/, '');
+    return keyPath
+      .split('/')
+      .map((part) => decodeURIComponent(part))
+      .join('/');
+  } catch {
+    return '';
+  }
+}
+
 function formatAmzDate(date: Date): string {
   return date.toISOString().replace(/[:-]|\.\d{3}/g, '');
 }
@@ -252,11 +287,7 @@ export function createObjectStorage() {
     getEnv('COZE_BUCKET_SECRET_ACCESS_KEY') ||
     getEnv('S3_SECRET_ACCESS_KEY') ||
     getEnv('AWS_SECRET_ACCESS_KEY');
-  const endpointUrl =
-    getEnv('COZE_BUCKET_ENDPOINT_URL') ||
-    getEnv('S3_ENDPOINT_URL') ||
-    getEnv('S3_ENDPOINT') ||
-    (bucketName ? buildTencentCosEndpoint(bucketName, region) : '');
+  const endpointUrl = getObjectStorageEndpoint();
 
   if (accessKey && secretKey) {
     return new TencentCosStorage({

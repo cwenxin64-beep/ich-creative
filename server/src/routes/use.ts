@@ -2,7 +2,7 @@ import express, { type Request, type Response } from 'express';
 import { taskStore } from '../task-queue';
 import { query } from '../storage/database/pg-client';
 import { authMiddleware } from './auth';
-import { createObjectStorage } from '../services/object-storage';
+import { createObjectStorage, extractObjectStorageKey } from '../services/object-storage';
 import { buildReferenceViewPrompt, type ReferenceView } from '../services/image-view-prompts';
 
 const router = express.Router();
@@ -41,13 +41,60 @@ function parseMetadata(value: any) {
   return value;
 }
 
-function normalizeOrder(row: any) {
+function getImageExtension(contentType: string): string {
+  const normalized = contentType.toLowerCase().split(';')[0].trim();
+  const extensions: Record<string, string> = {
+    'image/jpeg': '.jpg',
+    'image/png': '.png',
+    'image/webp': '.webp',
+    'image/gif': '.gif',
+  };
+  return extensions[normalized] || '.jpg';
+}
+
+async function persistOrderReference(metadataValue: any, userId: number) {
+  const metadata = parseMetadata(metadataValue);
+  const referenceWork = metadata.referenceWork || null;
+  const sourceUrl = getReferenceImageUrl(referenceWork);
+  if (!referenceWork || !sourceUrl) return metadata;
+
+  const response = await fetch(sourceUrl, { signal: AbortSignal.timeout(60000) });
+  if (!response.ok) {
+    throw new Error(`参考图片下载失败：${response.status}`);
+  }
+
+  const contentType = response.headers.get('content-type') || 'image/jpeg';
+  if (!contentType.toLowerCase().startsWith('image/')) {
+    throw new Error('参考图片格式无效');
+  }
+
+  const storageKey = await storage.uploadFile({
+    fileContent: Buffer.from(await response.arrayBuffer()),
+    fileName: `customization_orders/user_${userId}_${Date.now()}_${Math.random().toString(36).slice(2)}${getImageExtension(contentType)}`,
+    contentType,
+  });
+
+  return {
+    ...metadata,
+    referenceWork: {
+      ...referenceWork,
+      storageKey,
+    },
+  };
+}
+
+async function normalizeOrder(row: any) {
   const metadata = parseMetadata(row.metadata);
   const referenceWork = metadata.referenceWork || null;
-  const referenceImageUrl = getReferenceImageUrl(referenceWork);
+  const savedImageUrl = getReferenceImageUrl(referenceWork);
+  const storageKey = referenceWork?.storageKey || extractObjectStorageKey(savedImageUrl);
+  const referenceImageUrl = storageKey
+    ? await storage.generatePresignedUrl({ key: storageKey, expireTime: 24 * 3600 })
+    : savedImageUrl;
   const normalizedReferenceWork = referenceWork && referenceImageUrl
     ? {
       ...referenceWork,
+      ...(storageKey ? { storageKey } : {}),
       mainImageUrl: referenceImageUrl,
     }
     : referenceWork;
@@ -70,7 +117,7 @@ function normalizeOrder(row: any) {
     paymentAmount: Number(row.payment_amount || 0),
     paymentProvider: row.payment_provider || '',
     paymentOrderId: row.payment_order_id || '',
-    metadata,
+    metadata: normalizedReferenceWork ? { ...metadata, referenceWork: normalizedReferenceWork } : metadata,
     referenceWork: normalizedReferenceWork,
     createdAt: row.created_at,
     acceptedAt: row.accepted_at,
@@ -485,6 +532,7 @@ router.post('/customization-order', authMiddleware, async (req: Request, res: Re
     }
 
     const amount = Math.max(0, Math.round(Number(budgetAmount) || 0));
+    const storedMetadata = await persistOrderReference(metadata, req.user!.userId);
 
     const result = await query(
       `
@@ -525,14 +573,14 @@ router.post('/customization-order', authMiddleware, async (req: Request, res: Re
         keywords,
         cleanRequirements,
         amount,
-        metadata,
+        storedMetadata,
       ]
     );
 
     res.status(201).json({
       success: true,
       message: '需求单已提交',
-      order: normalizeOrder(result.rows[0]),
+      order: await normalizeOrder(result.rows[0]),
     });
   } catch (error) {
     console.error('[USE] Create customization order error:', error);
@@ -570,7 +618,7 @@ router.get('/customization-orders', authMiddleware, async (req: Request, res: Re
     res.json({
       success: true,
       role: craftsman ? 'craftsman' : 'user',
-      orders: result.rows.map(normalizeOrder),
+      orders: await Promise.all(result.rows.map(normalizeOrder)),
     });
   } catch (error) {
     console.error('[USE] List customization orders error:', error);
@@ -619,7 +667,7 @@ router.post('/customization-orders/:id/accept', authMiddleware, async (req: Requ
     res.json({
       success: true,
       message: '接单成功',
-      order: normalizeOrder(result.rows[0]),
+      order: await normalizeOrder(result.rows[0]),
     });
   } catch (error) {
     console.error('[USE] Accept customization order error:', error);

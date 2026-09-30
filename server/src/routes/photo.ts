@@ -278,8 +278,14 @@ function buildObjectPreservingPrompt(prompt: string, description: string, shotTy
 }
 
 function normalizePhotoAnalysisPrompts(analysisData: any, description: string, isDynamic: boolean) {
+  const emotionalTone = String(analysisData?.emotionalTone || '').trim();
+  if (!emotionalTone) {
+    throw new Error('图片分析结果缺少情感描述');
+  }
+
   return {
     ...analysisData,
+    emotionalTone,
     mainPrompt: buildObjectPreservingPrompt(
       String(analysisData?.mainPrompt || description || '非遗纹样产品设计'),
       description,
@@ -467,6 +473,7 @@ async function executeGenerationTask(
   "sourceObject": "原图主体和视觉特征的简短描述",
   "lockedVisualFeatures": ["可借鉴的原图视觉元素1", "可借鉴的原图视觉元素2"],
   "ichElements": ["非遗元素1", "非遗元素2"],
+  "emotionalTone": "准确概括作品气质的2至6字情感词",
   "mainPrompt": "主体明确的主镜头视频提示词",
   "subPrompt1": "主体明确的细节视频提示词",
   "subPrompt2": "主体明确的环绕视频提示词"
@@ -501,6 +508,7 @@ async function executeGenerationTask(
   "sourceObject": "原图主体和视觉特征的简短描述",
   "lockedVisualFeatures": ["可借鉴的原图视觉元素1", "可借鉴的原图视觉元素2"],
   "ichElements": ["非遗元素1", "非遗元素2"],
+  "emotionalTone": "准确概括作品气质的2至6字情感词",
   "mainPrompt": "主体明确的正面全景生图提示词",
   "subPrompt1": "主体明确的细节特写生图提示词",
   "subPrompt2": "主体明确的侧面或俯视生图提示词"

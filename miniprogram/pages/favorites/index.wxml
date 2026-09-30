@@ -25,6 +25,7 @@
         <view class="favorite-info">
           <view class="favorite-title">{{item.title}}</view>
           <view class="small-text">{{item.type == 'music' ? '音乐作品' : '图片作品'}}</view>
+          <view wx:if="{{item.type == 'music' && item.description}}" class="small-text">{{item.description}}</view>
           <view class="small-text">{{item.dateText}}</view>
         </view>
       </view>

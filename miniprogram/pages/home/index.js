@@ -64,7 +64,7 @@ Page({
       avatarUrl: isAuthenticated ? (user.avatar || user.avatarUrl || '') : '',
       avatarText: isAuthenticated ? userName.slice(0, 1) : '未',
       userName,
-      userDesc: isAuthenticated ? (user.email || '点击退出登录') : '点击登录/注册'
+      userDesc: isAuthenticated ? (user.email || '使用用户名登录') : '点击登录/注册'
     });
   },
 
@@ -97,7 +97,7 @@ Page({
             user: data.user,
             avatarUrl: data.user.avatar || '',
             userName: data.user.username || '已登录',
-            userDesc: data.user.email || '点击退出登录',
+            userDesc: data.user.email || '使用用户名登录',
             avatarText: (data.user.username || '已').slice(0, 1)
           });
           wx.hideLoading();
@@ -118,17 +118,7 @@ Page({
       return;
     }
 
-    wx.showModal({
-      title: '退出登录',
-      content: '确定要退出当前账号吗？',
-      confirmText: '退出',
-      success(res) {
-        if (res.confirm) {
-          api.clearAuth();
-          wx.navigateTo({ url: '/pages/welcome/index' });
-        }
-      }
-    });
+    wx.navigateTo({ url: '/pages/account/index' });
   },
 
   goPage(event) {

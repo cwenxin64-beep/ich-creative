@@ -5,7 +5,7 @@ function normalizeFavorite(item) {
     id: String(item.id),
     type: item.type || 'photo',
     title: item.title || '非遗创意作品',
-    description: metadata.creativeDescription || (isMusic ? [metadata.genre, metadata.mood].filter(Boolean).join(' · ') : ''),
+    description: metadata.creativeDescription || (isMusic ? [metadata.scene, metadata.genre, metadata.mood].filter(Boolean).join(' · ') : ''),
     mainImageUrl: isMusic ? '' : (item.imageUrl || item.image_url || ''),
     audioUrl: metadata.audioUrl || '',
     videoUrl: item.videoUrl || item.video_url || metadata.videoUrl || '',

@@ -1,11 +1,13 @@
 import { Router } from 'express';
 import type { Request, Response, NextFunction } from 'express';
 import multer from 'multer';
+import { createHash, randomInt, timingSafeEqual } from 'crypto';
 import { query } from '../storage/database/pg-client';
 import { hashPassword, verifyPassword } from '../lib/password';
 import { signTokens, verifyToken, verifyRefreshToken } from '../lib/jwt';
 import type { TokenPayload } from '../lib/jwt';
 import { createObjectStorage } from '../services/object-storage';
+import { sendPasswordResetCode } from '../services/email';
 
 const router = Router();
 const avatarUpload = multer({
@@ -15,6 +17,30 @@ const avatarUpload = multer({
 const storage = createObjectStorage();
 
 const USER_SELECT_FIELDS = 'id, username, email, role, avatar_key, avatar_url, created_at';
+const RESET_CODE_TTL_MINUTES = 10;
+const RESET_CODE_MAX_ATTEMPTS = 5;
+
+function normalizeEmail(value: unknown) {
+  return String(value || '').trim().toLowerCase();
+}
+
+function isValidEmail(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
+function hashResetCode(userId: number, code: string) {
+  const secret = (process.env.PASSWORD_RESET_SECRET || process.env.JWT_SECRET || '').trim();
+  if (!secret) {
+    throw new Error('密码重置服务未配置，请设置 PASSWORD_RESET_SECRET');
+  }
+  return createHash('sha256').update(`${userId}:${code}:${secret}`).digest('hex');
+}
+
+function resetCodeMatches(expectedHash: string, actualHash: string) {
+  const expected = Buffer.from(expectedHash, 'hex');
+  const actual = Buffer.from(actualHash, 'hex');
+  return expected.length === actual.length && timingSafeEqual(expected, actual);
+}
 
 // ============ Auth Middleware ============
 // 扩展 Request 类型以携带 user 信息
@@ -96,7 +122,7 @@ router.post('/register', async (req, res) => {
   try {
     const {
       username,
-      email,
+      email: rawEmail,
       password,
       role,
       artisanName,
@@ -104,6 +130,7 @@ router.post('/register', async (req, res) => {
       artisanCraft,
       artisanDescription,
     } = req.body;
+    const email = normalizeEmail(rawEmail);
     const requestedRole = role === 'craftsman' ? 'craftsman' : 'user';
     const savedArtisanName = requestedRole === 'craftsman' ? String(artisanName || username).trim() : '';
     const savedArtisanContact = requestedRole === 'craftsman' ? String(artisanContact || '').trim() : '';
@@ -116,8 +143,7 @@ router.post('/register', async (req, res) => {
     }
 
     // 验证邮箱格式
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
+    if (!isValidEmail(email)) {
       return res.status(400).json({ success: false, error: '邮箱格式不正确' });
     }
 
@@ -242,20 +268,24 @@ router.post('/register', async (req, res) => {
 // ============ 登录 ============
 router.post('/login', async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const identifier = String(req.body.identifier || req.body.email || '').trim();
+    const { password } = req.body;
 
-    if (!email || !password) {
-      return res.status(400).json({ success: false, error: '请输入邮箱和密码' });
+    if (!identifier || !password) {
+      return res.status(400).json({ success: false, error: '请输入邮箱或用户名和密码' });
     }
 
     // 查找用户
     const result = await query(
-      `SELECT ${USER_SELECT_FIELDS}, password_hash FROM users WHERE email = $1 LIMIT 1`,
-      [email]
+      `SELECT ${USER_SELECT_FIELDS}, password_hash
+       FROM users
+       WHERE LOWER(email) = LOWER($1) OR LOWER(username) = LOWER($1)
+       LIMIT 1`,
+      [identifier]
     );
 
     if (result.rows.length === 0) {
-      return res.status(401).json({ success: false, error: '邮箱或密码不正确' });
+      return res.status(401).json({ success: false, error: '邮箱、用户名或密码不正确' });
     }
 
     const user = result.rows[0];
@@ -263,7 +293,7 @@ router.post('/login', async (req, res) => {
     // 验证密码
     const isValid = await verifyPassword(password, user.password_hash);
     if (!isValid) {
-      return res.status(401).json({ success: false, error: '邮箱或密码不正确' });
+      return res.status(401).json({ success: false, error: '邮箱、用户名或密码不正确' });
     }
 
     // 签发 token
@@ -287,7 +317,7 @@ router.post('/login', async (req, res) => {
       console.log(`[AUTH] Migrated data from anonymous user ${oldUserId} to ${user.id}`);
     }
 
-    console.log(`[AUTH] User logged in: ${email}`);
+    console.log(`[AUTH] User logged in: ${identifier}`);
 
     res.json({
       success: true,
@@ -305,6 +335,145 @@ router.post('/login', async (req, res) => {
       });
     }
     res.status(500).json({ success: false, error: '登录失败，请稍后重试' });
+  }
+});
+
+// ============ 忘记密码：发送邮箱验证码 ============
+router.post('/password-reset/request', async (req, res) => {
+  try {
+    const email = normalizeEmail(req.body.email);
+    if (!isValidEmail(email)) {
+      return res.status(400).json({ success: false, error: '请输入正确的邮箱' });
+    }
+
+    const userResult = await query('SELECT id, email FROM users WHERE LOWER(email) = LOWER($1) LIMIT 1', [email]);
+    if (userResult.rows.length === 0) {
+      return res.json({ success: true, message: '如果该邮箱已注册，验证码会发送到邮箱' });
+    }
+
+    const user = userResult.rows[0];
+    const recentResult = await query(
+      `SELECT id FROM password_reset_codes
+       WHERE user_id = $1 AND created_at > NOW() - INTERVAL '60 seconds'
+       LIMIT 1`,
+      [user.id]
+    );
+    if (recentResult.rows.length > 0) {
+      return res.status(429).json({ success: false, error: '验证码发送过于频繁，请一分钟后再试' });
+    }
+
+    const code = String(randomInt(100000, 1000000));
+    const codeHash = hashResetCode(user.id, code);
+    const insertResult = await query(
+      `INSERT INTO password_reset_codes (user_id, code_hash, expires_at)
+       VALUES ($1, $2, NOW() + INTERVAL '${RESET_CODE_TTL_MINUTES} minutes')
+       RETURNING id`,
+      [user.id, codeHash]
+    );
+
+    try {
+      await sendPasswordResetCode(user.email, code);
+    } catch (error) {
+      await query('DELETE FROM password_reset_codes WHERE id = $1', [insertResult.rows[0].id]);
+      throw error;
+    }
+
+    res.json({ success: true, message: '验证码已发送，请检查邮箱' });
+  } catch (error: any) {
+    console.error('[AUTH] Password reset email error:', error);
+    res.status(500).json({ success: false, error: error.message || '验证码发送失败' });
+  }
+});
+
+// ============ 忘记密码：验证验证码并重置 ============
+router.post('/password-reset/confirm', async (req, res) => {
+  try {
+    const email = normalizeEmail(req.body.email);
+    const code = String(req.body.code || '').trim();
+    const newPassword = String(req.body.newPassword || '');
+    if (!isValidEmail(email) || !/^\d{6}$/.test(code)) {
+      return res.status(400).json({ success: false, error: '邮箱或验证码格式不正确' });
+    }
+    if (newPassword.length < 6) {
+      return res.status(400).json({ success: false, error: '新密码长度至少6位' });
+    }
+
+    const result = await query(
+      `SELECT c.id, c.user_id, c.code_hash, c.attempts
+       FROM password_reset_codes c
+       JOIN users u ON u.id = c.user_id
+       WHERE LOWER(u.email) = LOWER($1)
+         AND c.used_at IS NULL
+         AND c.expires_at > NOW()
+       ORDER BY c.created_at DESC
+       LIMIT 1`,
+      [email]
+    );
+    if (result.rows.length === 0) {
+      return res.status(400).json({ success: false, error: '验证码无效或已过期' });
+    }
+
+    const resetCode = result.rows[0];
+    if (resetCode.attempts >= RESET_CODE_MAX_ATTEMPTS) {
+      return res.status(400).json({ success: false, error: '验证码尝试次数过多，请重新获取' });
+    }
+
+    const matches = resetCodeMatches(resetCode.code_hash, hashResetCode(resetCode.user_id, code));
+    if (!matches) {
+      await query('UPDATE password_reset_codes SET attempts = attempts + 1 WHERE id = $1', [resetCode.id]);
+      return res.status(400).json({ success: false, error: '验证码不正确' });
+    }
+
+    const passwordHash = await hashPassword(newPassword);
+    await query('UPDATE users SET password_hash = $1 WHERE id = $2', [passwordHash, resetCode.user_id]);
+    await query('UPDATE password_reset_codes SET used_at = NOW() WHERE user_id = $1 AND used_at IS NULL', [resetCode.user_id]);
+
+    res.json({ success: true, message: '密码已重置，请重新登录' });
+  } catch (error) {
+    console.error('[AUTH] Password reset confirm error:', error);
+    res.status(500).json({ success: false, error: '重置密码失败，请稍后重试' });
+  }
+});
+
+// ============ 解绑邮箱 ============
+router.post('/email/unbind', authMiddleware, async (req, res) => {
+  try {
+    const currentPassword = String(req.body.currentPassword || '');
+    if (!currentPassword) {
+      return res.status(400).json({ success: false, error: '请输入当前密码' });
+    }
+
+    const result = await query(
+      `SELECT ${USER_SELECT_FIELDS}, password_hash FROM users WHERE id = $1 LIMIT 1`,
+      [req.user!.userId]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, error: '用户不存在' });
+    }
+
+    const user = result.rows[0];
+    if (!user.email) {
+      return res.status(400).json({ success: false, error: '当前账号未绑定邮箱' });
+    }
+    if (!user.username) {
+      return res.status(400).json({ success: false, error: '账号没有用户名，暂时不能解绑邮箱' });
+    }
+    if (!(await verifyPassword(currentPassword, user.password_hash))) {
+      return res.status(400).json({ success: false, error: '当前密码不正确' });
+    }
+
+    const updateResult = await query(
+      `UPDATE users SET email = NULL WHERE id = $1 RETURNING ${USER_SELECT_FIELDS}`,
+      [req.user!.userId]
+    );
+    res.json({
+      success: true,
+      message: '邮箱已解绑，后续请使用用户名登录',
+      user: await formatUser(updateResult.rows[0]),
+    });
+  } catch (error) {
+    console.error('[AUTH] Unbind email error:', error);
+    res.status(500).json({ success: false, error: '解绑邮箱失败，请稍后重试' });
   }
 });
 

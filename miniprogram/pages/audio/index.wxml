@@ -54,6 +54,8 @@
         <view class="music-title">非遗音乐作品</view>
         <view class="small-text">时长：{{result.duration}} 秒</view>
         <view class="small-text">曲风：{{result.genre || selectedGenre || '未返回'}}</view>
+        <view wx:if="{{result.mood}}" class="small-text">情绪：{{result.mood}}</view>
+        <view wx:if="{{result.scene}}" class="small-text">主题/场景：{{result.scene}}</view>
       </view>
       <button class="primary-btn play-btn" bindtap="togglePlay">{{playing ? '暂停' : '播放'}}</button>
       <view wx:if="{{result.captions && result.captions !== '{}'}}" class="caption">{{result.captions}}</view>

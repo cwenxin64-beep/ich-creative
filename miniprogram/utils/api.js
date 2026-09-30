@@ -25,7 +25,8 @@ function getResponseMessage(res, defaultMessage) {
 function canRefreshAuth(path) {
   return !path.startsWith('/api/v1/auth/login')
     && !path.startsWith('/api/v1/auth/register')
-    && !path.startsWith('/api/v1/auth/refresh');
+    && !path.startsWith('/api/v1/auth/refresh')
+    && !path.startsWith('/api/v1/auth/password-reset/');
 }
 
 function refreshAuth() {
