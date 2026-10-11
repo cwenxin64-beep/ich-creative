@@ -63,6 +63,10 @@ function resolveName(map: Record<string, string>, id = '') {
   return map[id] || id;
 }
 
+function normalizeOtherProduct(value: unknown) {
+  return typeof value === 'string' ? value.trim().slice(0, 500) : '';
+}
+
 function buildPlayWorkflowParameters(params: {
   text: string;
   ichType: string;
@@ -747,11 +751,17 @@ async function executeCozeGenerationTask(
  */
 router.post('/generate', async (req: Request, res: Response) => {
   try {
-    const { text, ichType = '', interactionTypes = [], interactionType = '', productType = '', targetMarket = '', material } = req.body;
+    const { text, ichType = '', otherProduct = '', interactionTypes = [], interactionType = '', productType = '', targetMarket = '', material } = req.body;
 
     if (!text) {
       return res.status(400).json({ error: 'No text description provided' });
     }
+
+    const cleanOtherProduct = normalizeOtherProduct(otherProduct);
+    if (ichType === 'other' && !cleanOtherProduct) {
+      return res.status(400).json({ error: '选择“其他”时必须选择具体产品' });
+    }
+    const effectiveIchType = ichType === 'other' ? cleanOtherProduct : ichType;
 
     console.log(`Play generation request: ichType=${ichType}, productType=${productType}, text="${text}"`);
 
@@ -764,7 +774,7 @@ router.post('/generate', async (req: Request, res: Response) => {
       ? interactionTypes
       : String(interactionType || '').split(',').filter(Boolean);
 
-    executeCozeGenerationTask(task.id, text, ichType, productType, cleanInteractionTypes, targetMarket, material || '').catch(err => {
+    executeCozeGenerationTask(task.id, text, effectiveIchType, productType, cleanInteractionTypes, targetMarket, material || '').catch(err => {
       console.error(`Task ${task.id} error:`, err);
     });
 

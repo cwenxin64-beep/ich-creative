@@ -179,6 +179,10 @@ function getName(map: Record<string, string>, id = '') {
   return map[id] || id;
 }
 
+function normalizeOtherProduct(value: unknown) {
+  return typeof value === 'string' ? value.trim().slice(0, 500) : '';
+}
+
 function buildUseWorkflowParameters(params: {
   keywords: string;
   ichType: string;
@@ -743,18 +747,24 @@ router.post('/customization-orders/:id/payment-intent', authMiddleware, async (r
  */
 router.post('/customize', async (req: Request, res: Response) => {
   try {
-    const { keywords, ichType = '', interactionType = '', applicationScene = '', material } = req.body;
+    const { keywords, ichType = '', otherProduct = '', interactionType = '', applicationScene = '', material } = req.body;
 
     if (!keywords) {
       return res.status(400).json({ error: 'No keywords provided' });
     }
+
+    const cleanOtherProduct = normalizeOtherProduct(otherProduct);
+    if (ichType === 'other' && !cleanOtherProduct) {
+      return res.status(400).json({ error: '选择“其他”时必须选择具体产品' });
+    }
+    const effectiveIchType = ichType === 'other' ? cleanOtherProduct : ichType;
 
     // 创建任务
     const task = taskStore.create();
     console.log(`[Task ${task.id}] Created for customization request`);
 
     // 异步执行任务（不阻塞 HTTP 响应）
-    executeCustomizeTask(task.id, { keywords, ichType, interactionType, applicationScene, material });
+    executeCustomizeTask(task.id, { keywords, ichType: effectiveIchType, interactionType, applicationScene, material });
 
     // 立即返回 taskId，让前端轮询状态
     res.json({
