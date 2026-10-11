@@ -2,7 +2,6 @@ const api = require('../../utils/api');
 const constants = require('../../utils/constants');
 const promptTools = require('../../utils/prompt');
 const { normalizeFavorite, encodeParam } = require('../../utils/format');
-const { OTHER_PRODUCTS } = require('../../data/other-products');
 
 const CATEGORY_NAMES = {
   fashion: '时尚配饰',
@@ -25,15 +24,6 @@ const REFERENCE_SOURCE_NAMES = {
 
 function isCraftsmanRole(role) {
   return role === 'craftsman' || role === 'artisan';
-}
-
-function getRandomOtherProduct() {
-  return OTHER_PRODUCTS[Math.floor(Math.random() * OTHER_PRODUCTS.length)] || null;
-}
-
-function getOtherProductPrompt(product) {
-  if (!product) return '';
-  return `产品：${product.name}；品牌：${product.brand}；非遗技艺：${product.craft}`;
 }
 
 function normalizeReferenceWork(source, item, index) {
@@ -86,7 +76,6 @@ function formatOrder(order) {
 Page({
   data: {
     ichTypes: constants.ICH_TYPES,
-    selectedOtherProduct: null,
     useInteractions: constants.USE_INTERACTIONS,
     scenes: constants.APPLICATION_SCENES,
     selectedIchType: '',
@@ -161,7 +150,6 @@ Page({
       const data = await promptTools.optimizePrompt('use', keywords, {
         页面: '创非遗',
         非遗类型: promptTools.getName(constants.ICH_TYPES, this.data.selectedIchType),
-        参考产品: getOtherProductPrompt(this.data.selectedOtherProduct),
         风格: promptTools.getName(constants.USE_INTERACTIONS, this.data.selectedInteractionType),
         应用场景: promptTools.getName(constants.APPLICATION_SCENES, this.data.selectedScene)
       });
@@ -187,10 +175,7 @@ Page({
   selectIch(event) {
     const id = event.currentTarget.dataset.id;
     const selectedIchType = this.data.selectedIchType === id ? '' : id;
-    this.setData({
-      selectedIchType,
-      selectedOtherProduct: selectedIchType === 'other' ? getRandomOtherProduct() : null
-    });
+    this.setData({ selectedIchType });
   },
 
   selectInteraction(event) {
@@ -219,9 +204,7 @@ Page({
   },
 
   buildDefaultKeywords() {
-    const ichName = this.data.selectedIchType === 'other' && this.data.selectedOtherProduct
-      ? this.data.selectedOtherProduct.name
-      : (constants.ICH_TYPES.find((item) => item.id === this.data.selectedIchType) || {}).name || '';
+    const ichName = (constants.ICH_TYPES.find((item) => item.id === this.data.selectedIchType) || {}).name || '';
     const styleName = (constants.USE_INTERACTIONS.find((item) => item.id === this.data.selectedInteractionType) || {}).name || '';
     const sceneName = (constants.APPLICATION_SCENES.find((item) => item.id === this.data.selectedScene) || {}).name || '';
     const parts = [];
@@ -360,13 +343,6 @@ Page({
   async submitOrder() {
     if (!api.ensureLogin()) return;
 
-    const selectedOtherProduct = this.data.selectedIchType === 'other'
-      ? this.data.selectedOtherProduct || getRandomOtherProduct()
-      : null;
-    if (selectedOtherProduct !== this.data.selectedOtherProduct) {
-      this.setData({ selectedOtherProduct });
-    }
-
     const form = this.data.orderForm;
     const requirements = form.requirements.trim() || this.data.keywords.trim();
     const contactName = form.contactName.trim();
@@ -401,10 +377,7 @@ Page({
           requirements,
           budgetAmount: form.budgetAmount,
           metadata: {
-            referenceWork: defaultReferenceWork,
-            otherProduct: this.data.selectedIchType === 'other'
-              ? getOtherProductPrompt(selectedOtherProduct)
-              : ''
+            referenceWork: defaultReferenceWork
           }
         }
       });
@@ -451,13 +424,6 @@ Page({
       wx.showToast({ title: '请选择非遗类型或输入关键词', icon: 'none' });
       return;
     }
-    const selectedOtherProduct = this.data.selectedIchType === 'other'
-      ? this.data.selectedOtherProduct || getRandomOtherProduct()
-      : null;
-    if (selectedOtherProduct !== this.data.selectedOtherProduct) {
-      this.setData({ selectedOtherProduct });
-    }
-
     const keywords = this.data.keywords.trim() || this.buildDefaultKeywords();
     this.setData({ loading: true, progress: 0, results: [] });
     this.startProgress();
@@ -468,7 +434,6 @@ Page({
         data: {
           keywords,
           ichType: this.data.selectedIchType,
-          otherProduct: getOtherProductPrompt(selectedOtherProduct),
           interactionType: this.data.selectedInteractionType,
           applicationScene: this.data.selectedScene
         }

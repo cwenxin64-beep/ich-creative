@@ -2,23 +2,12 @@ const api = require('../../utils/api');
 const constants = require('../../utils/constants');
 const promptTools = require('../../utils/prompt');
 const { encodeParam } = require('../../utils/format');
-const { OTHER_PRODUCTS } = require('../../data/other-products');
 
 const PLAY_ACTIVE_TASK_KEY = 'play_active_task';
-
-function getRandomOtherProduct() {
-  return OTHER_PRODUCTS[Math.floor(Math.random() * OTHER_PRODUCTS.length)] || null;
-}
-
-function getOtherProductPrompt(product) {
-  if (!product) return '';
-  return `产品：${product.name}；品牌：${product.brand}；非遗技艺：${product.craft}`;
-}
 
 Page({
   data: {
     ichTypes: constants.ICH_TYPES,
-    selectedOtherProduct: null,
     productTypes: constants.PRODUCT_TYPES,
     markets: constants.TARGET_MARKETS,
     selectedIchType: '',
@@ -75,7 +64,6 @@ Page({
       const data = await promptTools.optimizePrompt('play', text, {
         页面: '玩非遗',
         非遗类型: promptTools.getName(constants.ICH_TYPES, this.data.selectedIchType),
-        参考产品: getOtherProductPrompt(this.data.selectedOtherProduct),
         产品类型: promptTools.getName(constants.PRODUCT_TYPES, this.data.selectedProductType),
         目标市场: promptTools.getName(constants.TARGET_MARKETS, this.data.selectedMarket)
       });
@@ -96,10 +84,7 @@ Page({
   selectIch(event) {
     const id = event.currentTarget.dataset.id;
     const selectedIchType = this.data.selectedIchType === id ? '' : id;
-    this.setData({
-      selectedIchType,
-      selectedOtherProduct: selectedIchType === 'other' ? getRandomOtherProduct() : null
-    });
+    this.setData({ selectedIchType });
   },
 
   selectProduct(event) {
@@ -153,14 +138,12 @@ Page({
     const activeTask = this.getActiveTask();
     if (!activeTask || !activeTask.taskId) return;
 
-    const restoredOtherProductIndex = OTHER_PRODUCTS.findIndex((item) => item.id === activeTask.otherProductId);
     this.setData({
       loading: true,
       activeTaskId: activeTask.taskId,
       progress: Math.max(this.data.progress, 10),
       text: activeTask.text || this.data.text,
       selectedIchType: activeTask.ichType || this.data.selectedIchType,
-      selectedOtherProduct: restoredOtherProductIndex >= 0 ? OTHER_PRODUCTS[restoredOtherProductIndex] : null,
       selectedProductType: activeTask.productType || this.data.selectedProductType,
       selectedMarket: activeTask.targetMarket || this.data.selectedMarket,
       results: []
@@ -252,9 +235,7 @@ Page({
   },
 
   buildDefaultText() {
-    const ichName = this.data.selectedIchType === 'other' && this.data.selectedOtherProduct
-      ? this.data.selectedOtherProduct.name
-      : (constants.ICH_TYPES.find((item) => item.id === this.data.selectedIchType) || {}).name || '';
+    const ichName = (constants.ICH_TYPES.find((item) => item.id === this.data.selectedIchType) || {}).name || '';
     const productName = (constants.PRODUCT_TYPES.find((item) => item.id === this.data.selectedProductType) || {}).name || '';
     const marketName = (constants.TARGET_MARKETS.find((item) => item.id === this.data.selectedMarket) || {}).name || '';
 
@@ -271,13 +252,6 @@ Page({
       wx.showToast({ title: '请选择非遗类型或输入描述', icon: 'none' });
       return;
     }
-    const selectedOtherProduct = this.data.selectedIchType === 'other'
-      ? this.data.selectedOtherProduct || getRandomOtherProduct()
-      : null;
-    if (selectedOtherProduct !== this.data.selectedOtherProduct) {
-      this.setData({ selectedOtherProduct });
-    }
-
     const text = this.data.text.trim() || this.buildDefaultText();
     this.clearPollTimer();
     this.pollingTaskId = '';
@@ -291,7 +265,6 @@ Page({
         data: {
           text,
           ichType: this.data.selectedIchType,
-          otherProduct: getOtherProductPrompt(selectedOtherProduct),
           productType: this.data.selectedProductType,
           targetMarket: this.data.selectedMarket
         }
@@ -305,7 +278,6 @@ Page({
         taskId: created.taskId,
         text,
         ichType: this.data.selectedIchType,
-        otherProductId: selectedOtherProduct ? selectedOtherProduct.id : '',
         productType: this.data.selectedProductType,
         targetMarket: this.data.selectedMarket,
         createdAt: Date.now()

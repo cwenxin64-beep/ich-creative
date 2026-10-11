@@ -4,6 +4,7 @@ import { query } from '../storage/database/pg-client';
 import { authMiddleware } from './auth';
 import { createObjectStorage, extractObjectStorageKey } from '../services/object-storage';
 import { buildReferenceViewPrompt, type ReferenceView } from '../services/image-view-prompts';
+import { getRandomOtherProductPrompt } from '../data/other-products';
 
 const router = express.Router();
 
@@ -754,10 +755,9 @@ router.post('/customize', async (req: Request, res: Response) => {
     }
 
     const cleanOtherProduct = normalizeOtherProduct(otherProduct);
-    if (ichType === 'other' && !cleanOtherProduct) {
-      return res.status(400).json({ error: '选择“其他”时必须选择具体产品' });
-    }
-    const effectiveIchType = ichType === 'other' ? cleanOtherProduct : ichType;
+    const effectiveIchType = ichType === 'other'
+      ? cleanOtherProduct || getRandomOtherProductPrompt()
+      : ichType;
 
     // 创建任务
     const task = taskStore.create();
