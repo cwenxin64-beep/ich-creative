@@ -67,6 +67,7 @@
       <view class="chips">
         <view wx:for="{{ichTypes}}" wx:key="id" class="chip {{selectedIchType == item.id ? 'active' : ''}}" data-id="{{item.id}}" bindtap="selectIch">{{item.name}}</view>
       </view>
+      <input wx:if="{{selectedIchType == 'other'}}" class="input other-ich-input" value="{{otherIchText}}" bindinput="onOtherIchInput" maxlength="500" placeholder="请输入非遗名称或内容，例如：竹编、苗绣" />
     </view>
 
     <view class="card section option-section">

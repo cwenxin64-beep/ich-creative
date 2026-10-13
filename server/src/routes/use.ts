@@ -4,7 +4,6 @@ import { query } from '../storage/database/pg-client';
 import { authMiddleware } from './auth';
 import { createObjectStorage, extractObjectStorageKey } from '../services/object-storage';
 import { buildReferenceViewPrompt, type ReferenceView } from '../services/image-view-prompts';
-import { getRandomOtherProductPrompt } from '../data/other-products';
 
 const router = express.Router();
 
@@ -755,8 +754,11 @@ router.post('/customize', async (req: Request, res: Response) => {
     }
 
     const cleanOtherProduct = normalizeOtherProduct(otherProduct);
+    if (ichType === 'other' && !cleanOtherProduct) {
+      return res.status(400).json({ error: '请填写其他非遗内容' });
+    }
     const effectiveIchType = ichType === 'other'
-      ? cleanOtherProduct || getRandomOtherProductPrompt()
+      ? cleanOtherProduct
       : ichType;
 
     // 创建任务

@@ -3,7 +3,6 @@ import { taskStore } from '../task-queue';
 import { getWorkflowId, runCozeWorkflow } from '../services/coze-workflows';
 import { createObjectStorage } from '../services/object-storage';
 import { buildReferenceViewPrompt, type ReferenceView } from '../services/image-view-prompts';
-import { getRandomOtherProductPrompt } from '../data/other-products';
 
 const router = express.Router();
 
@@ -759,8 +758,11 @@ router.post('/generate', async (req: Request, res: Response) => {
     }
 
     const cleanOtherProduct = normalizeOtherProduct(otherProduct);
+    if (ichType === 'other' && !cleanOtherProduct) {
+      return res.status(400).json({ error: '请填写其他非遗内容' });
+    }
     const effectiveIchType = ichType === 'other'
-      ? cleanOtherProduct || getRandomOtherProductPrompt()
+      ? cleanOtherProduct
       : ichType;
 
     console.log(`Play generation request: ichType=${ichType}, productType=${productType}, text="${text}"`);

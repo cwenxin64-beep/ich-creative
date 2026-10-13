@@ -79,6 +79,7 @@ Page({
     useInteractions: constants.USE_INTERACTIONS,
     scenes: constants.APPLICATION_SCENES,
     selectedIchType: '',
+    otherIchText: '',
     selectedInteractionType: '',
     selectedScene: '',
     keywords: '',
@@ -139,6 +140,7 @@ Page({
   async optimizeDescription() {
     const keywords = this.data.keywords.trim();
     if (this.data.loading || this.data.optimizing) return;
+    if (!this.validateOtherIch()) return;
     if (!keywords && !this.data.selectedIchType && !this.data.selectedInteractionType && !this.data.selectedScene) {
       wx.showToast({ title: '先写一点关键词或选择条件', icon: 'none' });
       return;
@@ -149,7 +151,7 @@ Page({
     try {
       const data = await promptTools.optimizePrompt('use', keywords, {
         页面: '创非遗',
-        非遗类型: promptTools.getName(constants.ICH_TYPES, this.data.selectedIchType),
+        非遗类型: this.getIchName(),
         风格: promptTools.getName(constants.USE_INTERACTIONS, this.data.selectedInteractionType),
         应用场景: promptTools.getName(constants.APPLICATION_SCENES, this.data.selectedScene)
       });
@@ -178,6 +180,22 @@ Page({
     this.setData({ selectedIchType });
   },
 
+  onOtherIchInput(event) {
+    this.setData({ otherIchText: event.detail.value });
+  },
+
+  getIchName() {
+    return this.data.selectedIchType === 'other'
+      ? this.data.otherIchText.trim()
+      : promptTools.getName(constants.ICH_TYPES, this.data.selectedIchType);
+  },
+
+  validateOtherIch() {
+    if (this.data.selectedIchType !== 'other' || this.data.otherIchText.trim()) return true;
+    wx.showToast({ title: '请填写其他非遗内容', icon: 'none' });
+    return false;
+  },
+
   selectInteraction(event) {
     const id = event.currentTarget.dataset.id;
     this.setData({ selectedInteractionType: this.data.selectedInteractionType === id ? '' : id });
@@ -204,7 +222,7 @@ Page({
   },
 
   buildDefaultKeywords() {
-    const ichName = (constants.ICH_TYPES.find((item) => item.id === this.data.selectedIchType) || {}).name || '';
+    const ichName = this.getIchName();
     const styleName = (constants.USE_INTERACTIONS.find((item) => item.id === this.data.selectedInteractionType) || {}).name || '';
     const sceneName = (constants.APPLICATION_SCENES.find((item) => item.id === this.data.selectedScene) || {}).name || '';
     const parts = [];
@@ -342,6 +360,7 @@ Page({
 
   async submitOrder() {
     if (!api.ensureLogin()) return;
+    if (!this.validateOtherIch()) return;
 
     const form = this.data.orderForm;
     const requirements = form.requirements.trim() || this.data.keywords.trim();
@@ -377,6 +396,7 @@ Page({
           requirements,
           budgetAmount: form.budgetAmount,
           metadata: {
+            otherProduct: this.data.selectedIchType === 'other' ? this.data.otherIchText.trim() : '',
             referenceWork: defaultReferenceWork
           }
         }
@@ -420,6 +440,7 @@ Page({
   },
 
   async generate() {
+    if (this.data.loading || !this.validateOtherIch()) return;
     if (!this.data.selectedIchType && !this.data.keywords.trim()) {
       wx.showToast({ title: '请选择非遗类型或输入关键词', icon: 'none' });
       return;
@@ -434,6 +455,7 @@ Page({
         data: {
           keywords,
           ichType: this.data.selectedIchType,
+          otherProduct: this.data.selectedIchType === 'other' ? this.data.otherIchText.trim() : '',
           interactionType: this.data.selectedInteractionType,
           applicationScene: this.data.selectedScene
         }

@@ -11,6 +11,7 @@ Page({
     productTypes: constants.PRODUCT_TYPES,
     markets: constants.TARGET_MARKETS,
     selectedIchType: '',
+    otherIchText: '',
     selectedProductType: '',
     selectedMarket: '',
     text: '',
@@ -53,6 +54,7 @@ Page({
   async optimizeDescription() {
     const text = this.data.text.trim();
     if (this.data.loading || this.data.optimizing) return;
+    if (!this.validateOtherIch()) return;
     if (!text && !this.data.selectedIchType && !this.data.selectedProductType && !this.data.selectedMarket) {
       wx.showToast({ title: '先写一点描述或选择条件', icon: 'none' });
       return;
@@ -63,7 +65,7 @@ Page({
     try {
       const data = await promptTools.optimizePrompt('play', text, {
         页面: '玩非遗',
-        非遗类型: promptTools.getName(constants.ICH_TYPES, this.data.selectedIchType),
+        非遗类型: this.getIchName(),
         产品类型: promptTools.getName(constants.PRODUCT_TYPES, this.data.selectedProductType),
         目标市场: promptTools.getName(constants.TARGET_MARKETS, this.data.selectedMarket)
       });
@@ -85,6 +87,22 @@ Page({
     const id = event.currentTarget.dataset.id;
     const selectedIchType = this.data.selectedIchType === id ? '' : id;
     this.setData({ selectedIchType });
+  },
+
+  onOtherIchInput(event) {
+    this.setData({ otherIchText: event.detail.value });
+  },
+
+  getIchName() {
+    return this.data.selectedIchType === 'other'
+      ? this.data.otherIchText.trim()
+      : promptTools.getName(constants.ICH_TYPES, this.data.selectedIchType);
+  },
+
+  validateOtherIch() {
+    if (this.data.selectedIchType !== 'other' || this.data.otherIchText.trim()) return true;
+    wx.showToast({ title: '请填写其他非遗内容', icon: 'none' });
+    return false;
   },
 
   selectProduct(event) {
@@ -144,6 +162,7 @@ Page({
       progress: Math.max(this.data.progress, 10),
       text: activeTask.text || this.data.text,
       selectedIchType: activeTask.ichType || this.data.selectedIchType,
+      otherIchText: activeTask.otherIchText || '',
       selectedProductType: activeTask.productType || this.data.selectedProductType,
       selectedMarket: activeTask.targetMarket || this.data.selectedMarket,
       results: []
@@ -235,7 +254,7 @@ Page({
   },
 
   buildDefaultText() {
-    const ichName = (constants.ICH_TYPES.find((item) => item.id === this.data.selectedIchType) || {}).name || '';
+    const ichName = this.getIchName();
     const productName = (constants.PRODUCT_TYPES.find((item) => item.id === this.data.selectedProductType) || {}).name || '';
     const marketName = (constants.TARGET_MARKETS.find((item) => item.id === this.data.selectedMarket) || {}).name || '';
 
@@ -248,11 +267,14 @@ Page({
   },
 
   async generate() {
+    if (this.data.loading || !this.validateOtherIch()) return;
     if (!this.data.selectedIchType && !this.data.text.trim()) {
       wx.showToast({ title: '请选择非遗类型或输入描述', icon: 'none' });
       return;
     }
     const text = this.data.text.trim() || this.buildDefaultText();
+    const ichType = this.data.selectedIchType;
+    const otherProduct = ichType === 'other' ? this.data.otherIchText.trim() : '';
     this.clearPollTimer();
     this.pollingTaskId = '';
     this.taskStatusFailures = 0;
@@ -264,7 +286,8 @@ Page({
         method: 'POST',
         data: {
           text,
-          ichType: this.data.selectedIchType,
+          ichType,
+          otherProduct,
           productType: this.data.selectedProductType,
           targetMarket: this.data.selectedMarket
         }
@@ -277,7 +300,8 @@ Page({
       this.saveActiveTask({
         taskId: created.taskId,
         text,
-        ichType: this.data.selectedIchType,
+        ichType,
+        otherIchText: otherProduct,
         productType: this.data.selectedProductType,
         targetMarket: this.data.selectedMarket,
         createdAt: Date.now()

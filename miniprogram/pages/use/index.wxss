@@ -230,3 +230,4 @@
   color: #a8a098;
   text-align: center;
 }
+.other-ich-input { margin-top: 24rpx; }
