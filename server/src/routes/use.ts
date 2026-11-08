@@ -4,6 +4,7 @@ import { query } from '../storage/database/pg-client';
 import { authMiddleware } from './auth';
 import { createObjectStorage, extractObjectStorageKey } from '../services/object-storage';
 import { buildReferenceViewPrompt, type ReferenceView } from '../services/image-view-prompts';
+import { getWorkflowId, runCozeWorkflow } from '../services/coze-workflows';
 
 const router = express.Router();
 
@@ -147,6 +148,13 @@ const VOLCENGINE_BASE_URL = process.env.VOLCENGINE_BASE_URL || 'https://ark.cn-b
 const TEXT_MODEL = process.env.VOLCENGINE_TEXT_MODEL || 'ep-20260326185613-8d6lx';
 const IMAGE_MODEL = process.env.VOLCENGINE_IMAGE_MODEL || 'ep-20260326185459-8rt74';
 
+const USE_WORKFLOW_IDS: Record<string, string> = {
+  fashion: getWorkflowId('COZE_WORKFLOW_USE_FASHION', '7705804894201036835'),
+  home: getWorkflowId('COZE_WORKFLOW_USE_HOME', '7705804522170105883'),
+  art: getWorkflowId('COZE_WORKFLOW_USE_ART', '7705804727346970658'),
+  gifts: getWorkflowId('COZE_WORKFLOW_USE_GIFTS', '7705804808095842314'),
+};
+
 const USE_CATEGORY_NAMES: Record<string, string> = {
   fashion: '时尚配饰',
   home: '家居装饰',
@@ -205,6 +213,7 @@ function buildUseWorkflowParameters(params: {
   ].filter(Boolean).join('；');
 
   return {
+    key_word: coreProduct,
     design_requirement: designRequirement,
     experience_type: styleName,
     product_type: productType,
@@ -428,6 +437,11 @@ async function executeCustomizeTask(taskId: string, params: {
     let completedCategories = 0;
 
     for (const category of targetCategories) {
+      const workflowId = USE_WORKFLOW_IDS[category];
+      if (!workflowId) {
+        throw new Error(`未配置 ${USE_CATEGORY_NAMES[category] || category} 对应的 Coze 工作流`);
+      }
+
       const generationParameters = buildUseWorkflowParameters({
         keywords,
         ichType,
@@ -458,7 +472,10 @@ async function executeCustomizeTask(taskId: string, params: {
         material,
         view: 'detail',
       });
-      const imageUrl = await callVolcengineImage(imagePrompt);
+      console.log(`[Task ${taskId}] Calling Coze workflow: category=${category}, workflowId=${workflowId}`);
+      const workflowResult = await runCozeWorkflow(workflowId, generationParameters);
+      console.log(`[Task ${taskId}] Coze workflow completed: category=${category}, workflowId=${workflowId}`);
+      const imageUrl = workflowResult.output;
       const [sideImageUrl, detailImageUrl] = await Promise.all([
         callVolcengineImage(sideImagePrompt, imageUrl, 'side'),
         callVolcengineImage(detailImagePrompt, imageUrl, 'detail'),
@@ -471,6 +488,7 @@ async function executeCustomizeTask(taskId: string, params: {
         subImageUrl2: detailImageUrl,
         creativeDescription: keywords,
         metadata: {
+          workflowId,
           generationParameters,
           imagePrompt,
           sideImagePrompt,
@@ -492,7 +510,7 @@ async function executeCustomizeTask(taskId: string, params: {
         success: true,
         results,
         keywords,
-        provider: 'volcengine-direct'
+        provider: 'coze-workflow'
       }
     });
   } catch (error) {

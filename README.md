@@ -62,7 +62,7 @@ https://cc-4gicfmjy884d01bf-1388119917.ap-shanghai.app.tcloudbase.com
 大模型工作流：
 
 - `玩非遗` 的生成入口由后端调用 Coze 工作流。
-- `拍非遗`、`创非遗` 当前由后端直接调用大模型和生图接口。
+- `拍非遗` 当前由后端直接调用大模型和生图接口；`创非遗` 按时尚配饰、家居装饰、艺术品、礼品四个分类调用对应的 Coze 工作流生成主图，再基于主图生成侧面图和细节图。
 - 小程序不保存 Coze Token，只继续请求自己的后端。
 - 使用 Coze 工作流的入口需要在 CloudBase 环境变量中配置 `COZE_WORKFLOW_TOKEN`。
 - 工作流 ID 配置见 `docs/cloudbase-env.md`。

@@ -23,7 +23,7 @@
 - `miniprogram/pages/photo/`：拍非遗，调用图片生成接口。
 - `miniprogram/pages/audio/`：唱非遗，调用音乐生成接口。
 - `miniprogram/pages/play/`：玩非遗，调用互动作品生成接口。
-- `miniprogram/pages/use/`：创非遗；普通用户提交需求单并查看订单，手艺人查看接单大厅并接单，同时保留 AI 定制生成。
+- `miniprogram/pages/use/`：创非遗；四个产品分类分别接入对应 Coze 工作流，普通用户可提交需求单并查看订单，手艺人可查看接单大厅并接单。
 - `miniprogram/pages/artisan-register/`：注册手艺人账号，写入 `craftsman` 角色。
 - `miniprogram/pages/favorites/`：收藏列表、删除、同步素材。
 - `miniprogram/pages/materials/`：素材列表、筛选、同步、删除。
