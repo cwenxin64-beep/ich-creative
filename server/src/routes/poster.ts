@@ -113,7 +113,7 @@ router.post('/', async (req: Request, res: Response) => {
     const titleSvg = Buffer.from(
       `<svg width="${posterWidth}" height="${titleFontSize + 12}" xmlns="http://www.w3.org/2000/svg">
         <text x="${posterWidth / 2}" y="${titleFontSize}" text-anchor="middle"
-          font-family="Noto Sans CJK SC, sans-serif" font-size="${titleFontSize}" font-weight="700" fill="#ffffff">${escapeXml(title)}</text>
+          font-family="WenQuanYi Zen Hei, sans-serif" font-size="${titleFontSize}" font-weight="700" fill="#ffffff">${escapeXml(title)}</text>
       </svg>`
     );
     composites.push({ input: titleSvg, top: titleY, left: 0 });
@@ -122,7 +122,7 @@ router.post('/', async (req: Request, res: Response) => {
     const descSvg = Buffer.from(
       `<svg width="${posterWidth}" height="${descFontSize + 10}" xmlns="http://www.w3.org/2000/svg">
         <text x="${posterWidth / 2}" y="${descFontSize}" text-anchor="middle"
-          font-family="Noto Sans CJK SC, sans-serif" font-size="${descFontSize}" fill="#D4A574">${escapeXml(description)}</text>
+          font-family="WenQuanYi Zen Hei, sans-serif" font-size="${descFontSize}" fill="#D4A574">${escapeXml(description)}</text>
       </svg>`
     );
     composites.push({ input: descSvg, top: descY, left: 0 });
@@ -159,7 +159,7 @@ router.post('/', async (req: Request, res: Response) => {
         `<svg width="${placeholderW}" height="${placeholderH}" xmlns="http://www.w3.org/2000/svg">
           <rect x="0" y="0" width="${placeholderW}" height="${placeholderH}" rx="16" ry="16" fill="#2a2a4e"/>
           <text x="${placeholderW / 2}" y="${placeholderH / 2 + 6}" text-anchor="middle"
-            font-family="Noto Sans CJK SC, sans-serif" font-size="20" fill="#D4A574">非遗创意作品</text>
+            font-family="WenQuanYi Zen Hei, sans-serif" font-size="20" fill="#D4A574">非遗创意作品</text>
         </svg>`
       );
       composites.push({ input: placeholderSvg, top: imageY, left: padding });
@@ -185,7 +185,7 @@ router.post('/', async (req: Request, res: Response) => {
     const qrLabelSvg = Buffer.from(
       `<svg width="${posterWidth}" height="${qrLabelFontSize + 8}" xmlns="http://www.w3.org/2000/svg">
         <text x="${posterWidth / 2}" y="${qrLabelFontSize}" text-anchor="middle"
-          font-family="Noto Sans CJK SC, sans-serif" font-size="${qrLabelFontSize}" fill="#A8A8B8">扫码查看作品</text>
+          font-family="WenQuanYi Zen Hei, sans-serif" font-size="${qrLabelFontSize}" fill="#A8A8B8">扫码查看作品</text>
       </svg>`
     );
     composites.push({ input: qrLabelSvg, top: qrLabelY, left: 0 });
@@ -194,7 +194,7 @@ router.post('/', async (req: Request, res: Response) => {
     const tipSvg = Buffer.from(
       `<svg width="${posterWidth}" height="${tipFontSize + 8}" xmlns="http://www.w3.org/2000/svg">
         <text x="${posterWidth / 2}" y="${tipFontSize}" text-anchor="middle"
-          font-family="Noto Sans CJK SC, sans-serif" font-size="${tipFontSize}" fill="#888899">长按保存图片 · 打开微信发送给好友</text>
+          font-family="WenQuanYi Zen Hei, sans-serif" font-size="${tipFontSize}" fill="#888899">长按保存图片 · 打开微信发送给好友</text>
       </svg>`
     );
     composites.push({ input: tipSvg, top: tipY, left: 0 });
@@ -203,7 +203,7 @@ router.post('/', async (req: Request, res: Response) => {
     const brandSvg = Buffer.from(
       `<svg width="${posterWidth}" height="${brandFontSize + 6}" xmlns="http://www.w3.org/2000/svg">
         <text x="${posterWidth / 2}" y="${brandFontSize}" text-anchor="middle"
-          font-family="Noto Sans CJK SC, sans-serif" font-size="${brandFontSize}" fill="#555566">智能非遗 · 让非遗"活"在当代</text>
+          font-family="WenQuanYi Zen Hei, sans-serif" font-size="${brandFontSize}" fill="#555566">智能非遗 · 让非遗"活"在当代</text>
       </svg>`
     );
     composites.push({ input: brandSvg, top: brandY, left: 0 });

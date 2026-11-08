@@ -6,8 +6,8 @@ ENV NODE_OPTIONS="--dns-result-order=ipv4first"
 
 WORKDIR /app
 
-# 只安装海报生成需要的中文字体，避免完整 Noto 字体包拖慢云端构建
-RUN apk add --no-cache font-noto-cjk
+# 安装轻量中文字体，避免大型 CJK 字体包导致云端构建超时
+RUN apk add --no-cache font-wqy-zenhei
 
 # 安装 pnpm
 RUN npm install -g pnpm@9
