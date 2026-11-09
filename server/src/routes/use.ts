@@ -215,7 +215,7 @@ function buildUseWorkflowParameters(params: {
   return {
     key_word: coreProduct,
     design_requirement: designRequirement,
-    experience_type: styleName,
+    experience_style: styleName,
     product_type: productType,
     target_market: '中国年轻消费市场',
   };
