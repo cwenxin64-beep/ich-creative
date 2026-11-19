@@ -40,7 +40,7 @@ const TARGET_MARKET_NAMES: Record<string, string> = {
 };
 
 const PLAY_ICH_TYPE_NAMES: Record<string, string> = {
-  jingdezhen: '景德镇陶瓷',
+  jingdezhen: '景德镇手工制瓷技艺',
   guqin: '古琴艺术',
   xiangyunsha: '香云纱',
   ru: '汝瓷',
