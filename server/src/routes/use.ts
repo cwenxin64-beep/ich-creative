@@ -371,7 +371,7 @@ async function executeCustomizeTask(taskId: string, params: {
     const totalCategories = targetCategories.length;
     let completedCategories = 0;
     const ichName = getName(ICH_TYPE_NAMES, ichType) || ichType;
-    const heritageContext = await getFeishuHeritageContext(ichName, '产品');
+    const heritageContext = await getFeishuHeritageContext(ichName);
     taskStore.update(taskId, { progress: 10 });
 
     for (const category of targetCategories) {

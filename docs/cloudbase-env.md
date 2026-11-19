@@ -67,6 +67,9 @@ FEISHU_APP_SECRET=xxxxxxxxxxxxxxxx
 # 多维表格链接中 /base/ 后面的标识
 FEISHU_BITABLE_APP_TOKEN=xxxxxxxxxxxxxxxx
 
+# “产品”数据表网址中 table= 后面的标识
+FEISHU_BITABLE_PRODUCT_TABLE_ID=tbl0Gv2jcy1C170G
+
 # ========================================
 # 注意事项
 # ========================================

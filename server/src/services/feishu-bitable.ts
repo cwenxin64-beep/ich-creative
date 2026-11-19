@@ -2,16 +2,12 @@ const FEISHU_API_BASE_URL = process.env.FEISHU_API_BASE_URL || 'https://open.fei
 const FEISHU_APP_ID = process.env.FEISHU_APP_ID || '';
 const FEISHU_APP_SECRET = process.env.FEISHU_APP_SECRET || '';
 const FEISHU_BITABLE_APP_TOKEN = process.env.FEISHU_BITABLE_APP_TOKEN || '';
+const FEISHU_BITABLE_PRODUCT_TABLE_ID = process.env.FEISHU_BITABLE_PRODUCT_TABLE_ID || '';
 
 type FeishuResponse<T> = {
   code?: number;
   msg?: string;
   data?: T;
-};
-
-type FeishuTable = {
-  table_id: string;
-  name: string;
 };
 
 type FeishuRecord = {
@@ -30,7 +26,6 @@ export type FeishuHeritageContext = {
 
 let accessToken = '';
 let accessTokenExpiresAt = 0;
-let tableCache: { expiresAt: number; items: FeishuTable[] } | null = null;
 const recordCache = new Map<string, { expiresAt: number; items: FeishuRecord[] }>();
 
 function requireConfiguration() {
@@ -38,6 +33,7 @@ function requireConfiguration() {
     ['FEISHU_APP_ID', FEISHU_APP_ID],
     ['FEISHU_APP_SECRET', FEISHU_APP_SECRET],
     ['FEISHU_BITABLE_APP_TOKEN', FEISHU_BITABLE_APP_TOKEN],
+    ['FEISHU_BITABLE_PRODUCT_TABLE_ID', FEISHU_BITABLE_PRODUCT_TABLE_ID],
   ].filter(([, value]) => !value).map(([name]) => name);
 
   if (missing.length > 0) {
@@ -111,37 +107,6 @@ async function feishuGet<T>(path: string, action: string): Promise<T> {
   return parseJsonResponse<T>(response, action);
 }
 
-async function listTables(): Promise<FeishuTable[]> {
-  if (tableCache && Date.now() < tableCache.expiresAt) {
-    return tableCache.items;
-  }
-
-  const items: FeishuTable[] = [];
-  let pageToken = '';
-  do {
-    const query = new URLSearchParams({ page_size: '100' });
-    if (pageToken) query.set('page_token', pageToken);
-    const data = await feishuGet<{
-      items?: FeishuTable[];
-      has_more?: boolean;
-      page_token?: string;
-    }>(`/bitable/v1/apps/${encodeURIComponent(FEISHU_BITABLE_APP_TOKEN)}/tables?${query}`, '读取飞书数据表列表');
-    items.push(...(data.items || []));
-    pageToken = data.has_more ? (data.page_token || '') : '';
-  } while (pageToken);
-
-  tableCache = { items, expiresAt: Date.now() + 10 * 60 * 1000 };
-  return items;
-}
-
-async function findTableByName(tableName: string): Promise<FeishuTable> {
-  const table = (await listTables()).find(item => item.name.trim() === tableName.trim());
-  if (!table) {
-    throw new Error(`飞书多维表格中不存在“${tableName}”数据表`);
-  }
-  return table;
-}
-
 async function listRecords(tableId: string): Promise<FeishuRecord[]> {
   const cached = recordCache.get(tableId);
   if (cached && Date.now() < cached.expiresAt) {
@@ -189,16 +154,16 @@ function normalizeName(value: unknown): string {
 }
 
 export async function getFeishuHeritageContext(
-  heritageName: string,
-  tableName = '产品'
+  heritageName: string
 ): Promise<FeishuHeritageContext> {
   const cleanHeritageName = heritageName.trim();
   if (!cleanHeritageName) {
     throw new Error('非遗名称不能为空');
   }
 
-  const table = await findTableByName(tableName);
-  const records = await listRecords(table.table_id);
+  requireConfiguration();
+  const tableName = '产品';
+  const records = await listRecords(FEISHU_BITABLE_PRODUCT_TABLE_ID);
   const targetName = normalizeName(cleanHeritageName);
   const record = records.find(item => normalizeName(item.fields?.['非遗名称']) === targetName);
   if (!record) {
@@ -221,7 +186,7 @@ export async function getFeishuHeritageContext(
 
   return {
     tableName,
-    tableId: table.table_id,
+    tableId: FEISHU_BITABLE_PRODUCT_TABLE_ID,
     recordId: record.record_id,
     heritageName: cleanHeritageName,
     fields,
