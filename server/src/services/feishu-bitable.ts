@@ -174,7 +174,8 @@ async function getContextFromTable(
   tableName: string,
   tableId: string,
   heritageName: string,
-  heritageForm = ''
+  heritageForm = '',
+  titleContains = false
 ): Promise<FeishuHeritageContext> {
   const cleanHeritageName = heritageName.trim();
   if (!cleanHeritageName) throw new Error('非遗名称不能为空');
@@ -182,28 +183,47 @@ async function getContextFromTable(
   const records = await listRecords(tableId);
   const targetName = normalizeName(cleanHeritageName);
   const targetForm = normalizeName(heritageForm);
-  const record = records.find(item => (
-    normalizeName(item.fields?.['非遗名称']) === targetName
-    && (!targetForm || normalizeName(item.fields?.['非遗形式']) === targetForm)
-  ));
-  if (!record) {
+  const matchedRecords = records.filter(item => {
+    const recordName = normalizeName(item.fields?.['非遗名称']);
+    const nameMatches = titleContains ? recordName.includes(targetName) : recordName === targetName;
+    return nameMatches && (!targetForm || normalizeName(item.fields?.['非遗形式']) === targetForm);
+  });
+  if (matchedRecords.length === 0) {
     const formText = heritageForm ? `、非遗形式“${heritageForm}”` : '';
-    throw new Error(`飞书“${tableName}”表中没有找到非遗名称“${cleanHeritageName}”${formText}`);
+    const matchText = titleContains ? '标题包含' : '非遗名称';
+    throw new Error(`飞书“${tableName}”表中没有找到${matchText}“${cleanHeritageName}”${formText}的记录`);
   }
 
   const fields: Record<string, string> = {};
-  for (const [name, value] of Object.entries(record.fields || {})) {
-    if (/图片|附件|url|父记录/i.test(name)) continue;
-    const text = fieldToText(value);
-    if (text) fields[name] = text;
+  const contextBlocks = matchedRecords.map((record, index) => {
+    const recordFields: Record<string, string> = {};
+    for (const [name, value] of Object.entries(record.fields || {})) {
+      if (/图片|附件|url|父记录/i.test(name)) continue;
+      const text = fieldToText(value);
+      if (text) recordFields[name] = text;
+    }
+    if (matchedRecords.length === 1) Object.assign(fields, recordFields);
+    const block = Object.entries(recordFields).map(([name, value]) => `${name}：${value}`).join('\n');
+    return block ? `参考记录 ${index + 1}：\n${block}` : '';
+  }).filter(Boolean);
+
+  if (matchedRecords.length > 1) {
+    fields['匹配记录数'] = String(matchedRecords.length);
   }
 
-  const promptContext = Object.entries(fields).map(([name, value]) => `${name}：${value}`).join('\n');
+  const promptContext = contextBlocks.join('\n\n');
   if (!promptContext) {
     throw new Error(`飞书记录“${cleanHeritageName}”没有可用于生成的文字字段`);
   }
 
-  return { tableName, tableId, recordId: record.record_id, heritageName: cleanHeritageName, fields, promptContext };
+  return {
+    tableName,
+    tableId,
+    recordId: matchedRecords.map(record => record.record_id).join(','),
+    heritageName: cleanHeritageName,
+    fields,
+    promptContext,
+  };
 }
 
 export async function getFeishuPlayHeritageContext(
@@ -220,5 +240,5 @@ export async function getFeishuPlayHeritageContext(
     throw new Error('飞书多维表格配置缺失：FEISHU_BITABLE_PRODUCT_TABLE_ID');
   }
 
-  return getContextFromTable('非遗数据库', FEISHU_BITABLE_PRODUCT_TABLE_ID, heritageName, table);
+  return getContextFromTable('非遗数据库', FEISHU_BITABLE_PRODUCT_TABLE_ID, heritageName, table, true);
 }

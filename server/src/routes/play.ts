@@ -40,14 +40,14 @@ const TARGET_MARKET_NAMES: Record<string, string> = {
 };
 
 const PLAY_ICH_TYPE_NAMES: Record<string, string> = {
-  jingdezhen: '景德镇手工制瓷技艺',
-  guqin: '古琴艺术',
+  jingdezhen: '景德镇',
+  guqin: '古琴',
   xiangyunsha: '香云纱',
   ru: '汝瓷',
   luban: '鲁班锁',
-  silkworm: '桑蚕丝织技艺',
-  'paper-cut': '中国剪纸',
-  taiji: '太极拳',
+  silkworm: '桑蚕丝',
+  'paper-cut': '剪纸',
+  taiji: '太极',
   jingju: '京剧',
   other: '其他',
 };
