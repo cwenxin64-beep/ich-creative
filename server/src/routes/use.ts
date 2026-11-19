@@ -4,7 +4,7 @@ import { query } from '../storage/database/pg-client';
 import { authMiddleware } from './auth';
 import { createObjectStorage, extractObjectStorageKey } from '../services/object-storage';
 import { buildReferenceViewPrompt, type ReferenceView } from '../services/image-view-prompts';
-import { getWorkflowId, runCozeWorkflow } from '../services/coze-workflows';
+import { getFeishuHeritageContext } from '../services/feishu-bitable';
 
 const router = express.Router();
 
@@ -148,13 +148,6 @@ const VOLCENGINE_BASE_URL = process.env.VOLCENGINE_BASE_URL || 'https://ark.cn-b
 const TEXT_MODEL = process.env.VOLCENGINE_TEXT_MODEL || 'ep-20260326185613-8d6lx';
 const IMAGE_MODEL = process.env.VOLCENGINE_IMAGE_MODEL || 'ep-20260326185459-8rt74';
 
-const USE_WORKFLOW_IDS: Record<string, string> = {
-  fashion: getWorkflowId('COZE_WORKFLOW_USE_FASHION', '7705804894201036835'),
-  home: getWorkflowId('COZE_WORKFLOW_USE_HOME', '7705804522170105883'),
-  art: getWorkflowId('COZE_WORKFLOW_USE_ART', '7705804727346970658'),
-  gifts: getWorkflowId('COZE_WORKFLOW_USE_GIFTS', '7705804808095842314'),
-};
-
 const USE_CATEGORY_NAMES: Record<string, string> = {
   fashion: '时尚配饰',
   home: '家居装饰',
@@ -191,36 +184,6 @@ function normalizeOtherProduct(value: unknown) {
   return typeof value === 'string' ? value.trim().slice(0, 500) : '';
 }
 
-function buildUseWorkflowParameters(params: {
-  keywords: string;
-  ichType: string;
-  interactionType: string;
-  category: string;
-  material?: string;
-}) {
-  const ichName = getName(ICH_TYPE_NAMES, params.ichType);
-  const styleName = getName(USE_STYLE_NAMES, params.interactionType) || '现代';
-  const productType = USE_CATEGORY_NAMES[params.category] || params.category;
-  const coreProduct = params.keywords.trim();
-  const designRequirement = [
-    `核心产品：${coreProduct}`,
-    ichName ? `非遗类型：${ichName}` : '',
-    `应用品类：${productType}`,
-    `设计风格：${styleName}`,
-    `生成要求：画面主体必须是“${coreProduct}”本体，并将${ichName || '非遗'}元素融合到产品造型、材质、纹样或结构中`,
-    '禁止偏离：不要把包装盒、礼盒、海报、说明卡、展示牌作为主体；如出现包装，只能作为辅助背景',
-    params.material ? `参考素材：${params.material}` : '',
-  ].filter(Boolean).join('；');
-
-  return {
-    key_word: coreProduct,
-    design_requirement: designRequirement,
-    experience_style: styleName,
-    product_type: productType,
-    target_market: '中国年轻消费市场',
-  };
-}
-
 function buildUseImagePrompt(params: {
   keywords: string;
   ichType: string;
@@ -240,34 +203,6 @@ function buildUseImagePrompt(params: {
     `设计风格：${styleName}。`,
     '画面要求：单个产品本体清晰居中，占画面主要面积，干净浅色背景，高级产品摄影质感。',
     '禁止偏离：不要把包装盒、礼盒、海报、说明卡、展示牌作为主体；如果出现包装，只能作为很小的辅助背景。',
-    params.material ? `参考素材：${params.material}。` : '',
-  ].filter(Boolean).join('\n');
-}
-
-function buildUseViewPrompt(params: {
-  keywords: string;
-  ichType: string;
-  interactionType: string;
-  category: string;
-  material?: string;
-  view: 'side' | 'detail';
-}) {
-  const ichName = getName(ICH_TYPE_NAMES, params.ichType) || '中国非遗';
-  const styleName = getName(USE_STYLE_NAMES, params.interactionType) || '现代';
-  const productType = USE_CATEGORY_NAMES[params.category] || params.category;
-  const coreProduct = params.keywords.trim();
-  const viewRequirement = params.view === 'side'
-    ? '侧面/应用场景视图：展示产品的侧面结构、厚度、使用方式或真实摆放效果，不能与主视图构图相同。'
-    : '局部细节特写视图：聚焦非遗纹样、材质肌理、表面工艺、边缘结构和装饰细节，不能与主视图构图相同。';
-
-  return [
-    `设计一款真实可制作的非遗现代文创产品，产品主体必须是“${coreProduct}”。`,
-    `应用品类：${productType}。`,
-    `融合非遗类型：${ichName}。`,
-    `设计风格：${styleName}。`,
-    viewRequirement,
-    '要求：与主视图属于同一产品方案，主体清楚，高级产品摄影质感，干净浅色背景。',
-    '禁止偏离：不要把包装盒、礼盒、海报、说明卡、展示牌作为主体；不要生成与主视图完全相同的画面。',
     params.material ? `参考素材：${params.material}。` : '',
   ].filter(Boolean).join('\n');
 }
@@ -435,50 +370,36 @@ async function executeCustomizeTask(taskId: string, params: {
     
     const totalCategories = targetCategories.length;
     let completedCategories = 0;
+    const ichName = getName(ICH_TYPE_NAMES, ichType) || ichType;
+    const heritageContext = await getFeishuHeritageContext(ichName, '产品');
+    taskStore.update(taskId, { progress: 10 });
 
     for (const category of targetCategories) {
-      const workflowId = USE_WORKFLOW_IDS[category];
-      if (!workflowId) {
-        throw new Error(`未配置 ${USE_CATEGORY_NAMES[category] || category} 对应的 Coze 工作流`);
+      const baseImagePrompt = buildUseImagePrompt({
+        keywords,
+        ichType,
+        interactionType,
+        category,
+        material,
+      });
+      console.log(`[Task ${taskId}] Building design prompt from Feishu: category=${category}, recordId=${heritageContext.recordId}`);
+      const imagePrompt = await callVolcengineLLM([
+        {
+          role: 'system',
+          content: '你是非遗产品设计师。只能依据用户要求和数据库资料生成一段可直接用于图片模型的中文产品摄影提示词。不得虚构数据库没有提供的技艺事实，不要输出解释、标题、列表或 Markdown。',
+        },
+        {
+          role: 'user',
+          content: `${baseImagePrompt}\n\n数据库资料：\n${heritageContext.promptContext}`,
+        },
+      ]);
+      if (!imagePrompt.trim()) {
+        throw new Error('文字模型没有返回生图提示词');
       }
-
-      const generationParameters = buildUseWorkflowParameters({
-        keywords,
-        ichType,
-        interactionType,
-        category,
-        material,
-      });
-      const imagePrompt = buildUseImagePrompt({
-        keywords,
-        ichType,
-        interactionType,
-        category,
-        material,
-      });
-      const sideImagePrompt = buildUseViewPrompt({
-        keywords,
-        ichType,
-        interactionType,
-        category,
-        material,
-        view: 'side',
-      });
-      const detailImagePrompt = buildUseViewPrompt({
-        keywords,
-        ichType,
-        interactionType,
-        category,
-        material,
-        view: 'detail',
-      });
-      console.log(`[Task ${taskId}] Calling Coze workflow: category=${category}, workflowId=${workflowId}`);
-      const workflowResult = await runCozeWorkflow(workflowId, generationParameters);
-      console.log(`[Task ${taskId}] Coze workflow completed: category=${category}, workflowId=${workflowId}`);
-      const imageUrl = workflowResult.output;
+      const imageUrl = await callVolcengineImage(imagePrompt.trim());
       const [sideImageUrl, detailImageUrl] = await Promise.all([
-        callVolcengineImage(sideImagePrompt, imageUrl, 'side'),
-        callVolcengineImage(detailImagePrompt, imageUrl, 'detail'),
+        callVolcengineImage(imagePrompt.trim(), imageUrl, 'side'),
+        callVolcengineImage(imagePrompt.trim(), imageUrl, 'detail'),
       ]);
 
       results.push({
@@ -488,11 +409,11 @@ async function executeCustomizeTask(taskId: string, params: {
         subImageUrl2: detailImageUrl,
         creativeDescription: keywords,
         metadata: {
-          workflowId,
-          generationParameters,
+          database: 'feishu-bitable',
+          tableName: heritageContext.tableName,
+          tableId: heritageContext.tableId,
+          recordId: heritageContext.recordId,
           imagePrompt,
-          sideImagePrompt,
-          detailImagePrompt,
         },
       });
       
@@ -510,7 +431,7 @@ async function executeCustomizeTask(taskId: string, params: {
         success: true,
         results,
         keywords,
-        provider: 'coze-workflow'
+        provider: 'feishu-volcengine'
       }
     });
   } catch (error) {

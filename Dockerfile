@@ -26,18 +26,17 @@ COPY --from=builder /app/pnpm-lock.yaml ./
 RUN pnpm install --prod --frozen-lockfile --ignore-scripts \
     && pnpm rebuild sharp
 
-# 运行阶段：只保留正式依赖、编译结果和中文字体
+# 运行阶段：只保留正式依赖、编译结果和仓库内的中文字体
 FROM node:22-alpine AS runtime
 
 ENV NODE_OPTIONS="--dns-result-order=ipv4first"
 
 WORKDIR /app
 
-RUN apk add --no-cache font-wqy-zenhei
-
 COPY --from=builder /app/package.json ./
 COPY --from=production-dependencies /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
+COPY server/assets/fonts/wqy-zenhei.ttc /usr/share/fonts/wqy-zenhei/wqy-zenhei.ttc
 
 # 暴露端口
 EXPOSE 9091

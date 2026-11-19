@@ -23,7 +23,7 @@
 - `miniprogram/pages/photo/`：拍非遗，调用图片生成接口。
 - `miniprogram/pages/audio/`：唱非遗，调用音乐生成接口。
 - `miniprogram/pages/play/`：玩非遗，调用互动作品生成接口。
-- `miniprogram/pages/use/`：创非遗；四个产品分类分别接入对应 Coze 工作流，普通用户可提交需求单并查看订单，手艺人可查看接单大厅并接单。
+- `miniprogram/pages/use/`：创非遗；后端读取飞书“产品”表后直接生成设计图，普通用户可提交需求单并查看订单，手艺人可查看接单大厅并接单。
 - `miniprogram/pages/artisan-register/`：注册手艺人账号，写入 `craftsman` 角色。
 - `miniprogram/pages/favorites/`：收藏列表、删除、同步素材。
 - `miniprogram/pages/materials/`：素材列表、筛选、同步、删除。
@@ -38,9 +38,10 @@
 - 生成类页面先创建任务，再轮询状态接口。
 - 图片生成结果按三视图返回和展示：主视图、侧面/场景、细节图。
 - `server/src/services/coze-workflows.ts` 统一调用 Coze 工作流，Token 只从后端环境变量读取。
+- `server/src/services/feishu-bitable.ts` 使用飞书应用身份分页读取多维表格，并按“非遗名称”精确查找记录。
 - `server/src/services/email.ts` 通过后端邮件接口发送密码重置验证码，邮件密钥不进入小程序。
 - `server/src/routes/play.ts` 创建任务后调用 Coze 工作流，并按原接口格式返回结果。
-- `server/src/routes/photo.ts`、`server/src/routes/use.ts` 当前直接调用大模型和生图接口。
+- `server/src/routes/photo.ts` 直接调用大模型和生图接口；`server/src/routes/use.ts` 先读取飞书资料，再直接调用大模型和生图接口。
 - 收藏页把收藏同步到素材，素材页读取同步结果。
 - 普通用户通过 `POST /api/v1/use/customization-order` 提交定制需求单。
 - 手艺人通过 `GET /api/v1/use/customization-orders` 查看待接单，通过 `POST /api/v1/use/customization-orders/:id/accept` 接单。
@@ -53,4 +54,5 @@
 - `miniprogram` 独立成目录，原因是可以直接导入微信开发者工具，同时保留原来的前端代码。
 - 定制订单表预留支付字段和支付意向接口，原因是后续接微信支付时不需要重建订单主流程。
 - Coze 工作流只在后端调用，原因是小程序端不能暴露 API Token。
+- 飞书应用密钥只放在后端，创非遗查询不到数据表或准确记录时直接报错，避免用不可靠内容继续生图。
 - 邮箱解绑后必须保留用户名登录，原因是系统不能允许用户解绑唯一登录凭据后失去账号。
