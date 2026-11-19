@@ -26,7 +26,7 @@ COZE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.xxxxxxxxxxxxx
 # NODE_ENV=production
 
 # ========================================
-# Coze 工作流变量（玩非遗必需）
+# Coze 工作流变量（其他仍使用工作流的功能才需要）
 # ========================================
 
 # 扣子工作流 API Token，只能配置在后端环境变量里，不要写进小程序代码
@@ -50,14 +50,8 @@ COZE_BUCKET_ENDPOINT_URL=https://your-bucket.cos.ap-shanghai.myqcloud.com
 COZE_BUCKET_NAME=your-bucket-1234567890
 COZE_BUCKET_REGION=ap-shanghai
 
-# 玩非遗工作流（每种产品只保留下方更准确的工作流）
-COZE_WORKFLOW_PLAY_POSTER_ALT=7678261713996726314
-COZE_WORKFLOW_PLAY_FESTIVAL_ALT=7678261667716677683
-COZE_WORKFLOW_PLAY_BIRTHDAY_EXTRA=7678261565473292340
-COZE_WORKFLOW_PLAY_NEWYEAR=7678261114291159075
-
 # ========================================
-# 飞书多维表格（创非遗必需）
+# 飞书多维表格（玩非遗、创非遗必需）
 # ========================================
 
 # 飞书开放平台应用凭证，只能放在后端环境变量中
@@ -67,14 +61,14 @@ FEISHU_APP_SECRET=xxxxxxxxxxxxxxxx
 # 多维表格链接中 /base/ 后面的标识
 FEISHU_BITABLE_APP_TOKEN=xxxxxxxxxxxxxxxx
 
-# “产品”数据表网址中 table= 后面的标识
+# 非遗数据库网址中 table= 后面的标识；玩非遗和创非遗共用
 FEISHU_BITABLE_PRODUCT_TABLE_ID=tbl0Gv2jcy1C170G
 
 # ========================================
 # 注意事项
 # ========================================
 # 1. COZE_WORKFLOW_TOKEN、FEISHU_APP_SECRET 只能放在 CloudBase 后端环境变量中，不能放进小程序。
-# 2. 玩非遗工作流 ID 已按当前版本填入，如在扣子里复制了新工作流，可只改对应变量。
+# 2. 海报、节日卡、生日卡、新年卡是同一张表的不同视图，不需要分别配置 ID。
 # 3. 请将 xxxxxxxxxxx 替换为你的实际值。
-# 4. 拍非遗走后端直接生图；玩非遗调用扣子工作流；创非遗读取飞书“产品”表后直接调用大模型和生图接口。
+# 4. 拍非遗走后端直接生图；玩非遗读取飞书对应类型表；创非遗读取飞书“产品”表，两者都直接调用大模型和生图接口。
 # 5. 未配置 RESEND_API_KEY 和 EMAIL_FROM 时，忘记密码页面不能发送验证码。

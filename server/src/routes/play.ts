@@ -1,8 +1,8 @@
 import express, { type Request, type Response } from 'express';
 import { taskStore } from '../task-queue';
-import { getWorkflowId, runCozeWorkflow } from '../services/coze-workflows';
 import { createObjectStorage } from '../services/object-storage';
 import { buildReferenceViewPrompt, type ReferenceView } from '../services/image-view-prompts';
+import { getFeishuPlayHeritageContext, type FeishuPlayProductType } from '../services/feishu-bitable';
 
 const router = express.Router();
 
@@ -17,13 +17,6 @@ const VOLCENGINE_BASE_URL = process.env.VOLCENGINE_BASE_URL || 'https://ark.cn-b
 const TEXT_MODEL = process.env.VOLCENGINE_TEXT_MODEL || 'ep-20260326185613-8d6lx';
 const IMAGE_MODEL = process.env.VOLCENGINE_IMAGE_MODEL || 'ep-20260326185459-8rt74';
 const VIDEO_MODEL = process.env.VOLCENGINE_VIDEO_MODEL || 'ep-20260326185806-4fgdw';
-
-const PLAY_WORKFLOW_IDS: Record<string, string> = {
-  poster: getWorkflowId('COZE_WORKFLOW_PLAY_POSTER_ALT', '7678261713996726314'),
-  festival: getWorkflowId('COZE_WORKFLOW_PLAY_FESTIVAL_ALT', '7678261667716677683'),
-  birthday: getWorkflowId('COZE_WORKFLOW_PLAY_BIRTHDAY_EXTRA', '7678261565473292340'),
-  newyear: getWorkflowId('COZE_WORKFLOW_PLAY_NEWYEAR', '7678261114291159075'),
-};
 
 const PLAY_PRODUCT_NAMES: Record<string, string> = {
   poster: '海报',
@@ -643,9 +636,9 @@ ${productType || '生成所有类型：海报、节日卡、生日卡、新年�
 }
 
 /**
- * 执行 Coze 工作流生成任务
+ * 读取飞书数据后执行生成任务
  */
-async function executeCozeGenerationTask(
+async function executeFeishuGenerationTask(
   taskId: string,
   text: string,
   ichType: string,
@@ -656,26 +649,20 @@ async function executeCozeGenerationTask(
 ) {
   try {
     taskStore.update(taskId, { status: 'processing', progress: 10 });
-    console.log(`[${taskId}] Coze workflow task started`);
+    console.log(`[${taskId}] Feishu generation task started`);
 
     const allProductTypes = ['poster', 'festival', 'birthday', 'newyear'];
     if (productType && productType !== 'all' && !allProductTypes.includes(productType)) {
       throw new Error(`暂不支持的玩非遗产品类型：${productType}`);
     }
     const targetProductTypes = productType && productType !== 'all' ? [productType] : allProductTypes;
-    const workflowEntries = targetProductTypes.map((currentType) => ({
-      currentType,
-      workflowId: PLAY_WORKFLOW_IDS[currentType],
-    }));
     const results: any[] = [];
+    const ichName = resolveName(PLAY_ICH_TYPE_NAMES, ichType) || ichType;
 
-    for (let i = 0; i < workflowEntries.length; i++) {
-      const { currentType, workflowId } = workflowEntries[i];
-      if (!workflowId) {
-        throw new Error(`未配置 ${currentType} 对应的 Coze 工作流`);
-      }
-
-      const workflowParameters = buildPlayWorkflowParameters({
+    for (let i = 0; i < targetProductTypes.length; i++) {
+      const currentType = targetProductTypes[i] as FeishuPlayProductType;
+      const databaseContext = await getFeishuPlayHeritageContext(currentType, ichName);
+      const designParameters = buildPlayWorkflowParameters({
         text,
         ichType,
         productType: currentType,
@@ -683,9 +670,23 @@ async function executeCozeGenerationTask(
         targetMarket,
         material,
       });
-
-      const workflowResult = await runCozeWorkflow(workflowId, workflowParameters);
-      const imageUrl = workflowResult.output;
+      const imagePrompt = await callVolcengineLLM([
+        {
+          role: 'system',
+          content: '你是非遗视觉设计师。只能依据用户要求和数据库资料生成一段可直接用于图片模型的中文提示词。不得虚构数据库没有提供的技艺事实，不要输出解释、标题、列表或 Markdown。',
+        },
+        {
+          role: 'user',
+          content: `${designParameters.design_requirement}\n\n数据库资料：\n${databaseContext.promptContext}`,
+        },
+      ]);
+      if (!imagePrompt.trim()) {
+        throw new Error('文字模型没有返回生图提示词');
+      }
+      const imageUrl = await withRetry(
+        () => callVolcengineImage(imagePrompt.trim()),
+        3, 3000, `[${taskId}] ${currentType} Main View`
+      );
       const [sideImageUrl, detailImageUrl] = await Promise.all([
         withRetry(
           () => callVolcengineImage(buildPlayViewPrompt({
@@ -693,7 +694,7 @@ async function executeCozeGenerationTask(
             ichType,
             productType: currentType,
             targetMarket,
-            basePrompt: workflowParameters.design_requirement,
+            basePrompt: imagePrompt.trim(),
             view: 'side',
           }), imageUrl, 'side'),
           3, 3000, `[${taskId}] ${currentType} Side View`
@@ -704,7 +705,7 @@ async function executeCozeGenerationTask(
             ichType,
             productType: currentType,
             targetMarket,
-            basePrompt: workflowParameters.design_requirement,
+            basePrompt: imagePrompt.trim(),
             view: 'detail',
           }), imageUrl, 'detail'),
           3, 3000, `[${taskId}] ${currentType} Detail View`
@@ -719,8 +720,11 @@ async function executeCozeGenerationTask(
         subImageUrl2: detailImageUrl,
         creativeDescription: text,
         metadata: {
-          workflowId,
-          workflowParameters,
+          database: 'feishu-bitable',
+          tableName: databaseContext.tableName,
+          tableId: databaseContext.tableId,
+          recordId: databaseContext.recordId,
+          imagePrompt: imagePrompt.trim(),
         },
       });
 
@@ -733,12 +737,12 @@ async function executeCozeGenerationTask(
       progress: 100,
       result: {
         success: true,
-        provider: 'coze-workflow',
+        provider: 'feishu-volcengine',
         results,
       },
     });
   } catch (error: any) {
-    console.error(`[${taskId}] Coze workflow task failed:`, error);
+    console.error(`[${taskId}] Feishu generation task failed:`, error);
     taskStore.update(taskId, {
       status: 'failed',
       error: error.message || 'Unknown error',
@@ -776,7 +780,7 @@ router.post('/generate', async (req: Request, res: Response) => {
       ? interactionTypes
       : String(interactionType || '').split(',').filter(Boolean);
 
-    executeCozeGenerationTask(task.id, text, effectiveIchType, productType, cleanInteractionTypes, targetMarket, material || '').catch(err => {
+    executeFeishuGenerationTask(task.id, text, effectiveIchType, productType, cleanInteractionTypes, targetMarket, material || '').catch(err => {
       console.error(`Task ${task.id} error:`, err);
     });
 

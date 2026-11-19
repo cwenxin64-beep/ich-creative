@@ -61,11 +61,11 @@ https://cc-4gicfmjy884d01bf-1388119917.ap-shanghai.app.tcloudbase.com
 
 大模型工作流：
 
-- `玩非遗` 的生成入口由后端调用 Coze 工作流。
+- `玩非遗` 从飞书共用数据表中按“非遗名称 + 非遗形式”精确读取资料，再直接生成图片。
 - `拍非遗` 当前由后端直接调用大模型和生图接口；`创非遗` 先从飞书多维表格的“产品”表精确查找非遗记录，再调用大模型整理提示词并生成主图、侧面图和细节图。
 - 小程序不保存 Coze Token，只继续请求自己的后端。
 - 使用 Coze 工作流的入口需要在 CloudBase 环境变量中配置 `COZE_WORKFLOW_TOKEN`。
-- 创非遗需要配置 `FEISHU_APP_ID`、`FEISHU_APP_SECRET`、`FEISHU_BITABLE_APP_TOKEN` 和 `FEISHU_BITABLE_PRODUCT_TABLE_ID`，完整配置见 `docs/cloudbase-env.md`。
+- 玩非遗和创非遗共用现有飞书应用凭证、Base Token 和数据表 ID，完整配置见 `docs/cloudbase-env.md`。
 
 ## 本地运行方法
 

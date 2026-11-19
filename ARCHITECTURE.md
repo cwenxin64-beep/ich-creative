@@ -38,9 +38,9 @@
 - 生成类页面先创建任务，再轮询状态接口。
 - 图片生成结果按三视图返回和展示：主视图、侧面/场景、细节图。
 - `server/src/services/coze-workflows.ts` 统一调用 Coze 工作流，Token 只从后端环境变量读取。
-- `server/src/services/feishu-bitable.ts` 使用明确的数据表 ID 分页读取飞书“产品”表，并按“非遗名称”精确查找记录。
+- `server/src/services/feishu-bitable.ts` 使用明确的数据表 ID 分页读取飞书数据；创非遗按“非遗名称”查找，玩非遗再同时匹配“非遗形式”。
 - `server/src/services/email.ts` 通过后端邮件接口发送密码重置验证码，邮件密钥不进入小程序。
-- `server/src/routes/play.ts` 创建任务后调用 Coze 工作流，并按原接口格式返回结果。
+- `server/src/routes/play.ts` 创建任务后读取飞书对应类型数据表，再调用文字模型和生图模型，并按原接口格式返回结果。
 - `server/src/routes/photo.ts` 直接调用大模型和生图接口；`server/src/routes/use.ts` 先读取飞书资料，再直接调用大模型和生图接口。
 - 收藏页把收藏同步到素材，素材页读取同步结果。
 - 普通用户通过 `POST /api/v1/use/customization-order` 提交定制需求单。

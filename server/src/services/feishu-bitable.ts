@@ -3,6 +3,14 @@ const FEISHU_APP_ID = process.env.FEISHU_APP_ID || '';
 const FEISHU_APP_SECRET = process.env.FEISHU_APP_SECRET || '';
 const FEISHU_BITABLE_APP_TOKEN = process.env.FEISHU_BITABLE_APP_TOKEN || '';
 const FEISHU_BITABLE_PRODUCT_TABLE_ID = process.env.FEISHU_BITABLE_PRODUCT_TABLE_ID || '';
+const FEISHU_BITABLE_PLAY_TABLES = {
+  poster: '海报',
+  festival: '节日卡',
+  birthday: '生日卡',
+  newyear: '新年卡',
+} as const;
+
+export type FeishuPlayProductType = keyof typeof FEISHU_BITABLE_PLAY_TABLES;
 
 type FeishuResponse<T> = {
   code?: number;
@@ -28,12 +36,11 @@ let accessToken = '';
 let accessTokenExpiresAt = 0;
 const recordCache = new Map<string, { expiresAt: number; items: FeishuRecord[] }>();
 
-function requireConfiguration() {
+function requireBaseConfiguration() {
   const missing = [
     ['FEISHU_APP_ID', FEISHU_APP_ID],
     ['FEISHU_APP_SECRET', FEISHU_APP_SECRET],
     ['FEISHU_BITABLE_APP_TOKEN', FEISHU_BITABLE_APP_TOKEN],
-    ['FEISHU_BITABLE_PRODUCT_TABLE_ID', FEISHU_BITABLE_PRODUCT_TABLE_ID],
   ].filter(([, value]) => !value).map(([name]) => name);
 
   if (missing.length > 0) {
@@ -66,7 +73,7 @@ async function parseJsonResponse<T>(response: Response, action: string): Promise
 }
 
 async function getAccessToken(): Promise<string> {
-  requireConfiguration();
+  requireBaseConfiguration();
   if (accessToken && Date.now() < accessTokenExpiresAt) {
     return accessToken;
   }
@@ -156,18 +163,32 @@ function normalizeName(value: unknown): string {
 export async function getFeishuHeritageContext(
   heritageName: string
 ): Promise<FeishuHeritageContext> {
-  const cleanHeritageName = heritageName.trim();
-  if (!cleanHeritageName) {
-    throw new Error('非遗名称不能为空');
+  requireBaseConfiguration();
+  if (!FEISHU_BITABLE_PRODUCT_TABLE_ID) {
+    throw new Error('飞书多维表格配置缺失：FEISHU_BITABLE_PRODUCT_TABLE_ID');
   }
+  return getContextFromTable('产品', FEISHU_BITABLE_PRODUCT_TABLE_ID, heritageName, '产品');
+}
 
-  requireConfiguration();
-  const tableName = '产品';
-  const records = await listRecords(FEISHU_BITABLE_PRODUCT_TABLE_ID);
+async function getContextFromTable(
+  tableName: string,
+  tableId: string,
+  heritageName: string,
+  heritageForm = ''
+): Promise<FeishuHeritageContext> {
+  const cleanHeritageName = heritageName.trim();
+  if (!cleanHeritageName) throw new Error('非遗名称不能为空');
+
+  const records = await listRecords(tableId);
   const targetName = normalizeName(cleanHeritageName);
-  const record = records.find(item => normalizeName(item.fields?.['非遗名称']) === targetName);
+  const targetForm = normalizeName(heritageForm);
+  const record = records.find(item => (
+    normalizeName(item.fields?.['非遗名称']) === targetName
+    && (!targetForm || normalizeName(item.fields?.['非遗形式']) === targetForm)
+  ));
   if (!record) {
-    throw new Error(`飞书“${tableName}”表中没有找到非遗名称“${cleanHeritageName}”`);
+    const formText = heritageForm ? `、非遗形式“${heritageForm}”` : '';
+    throw new Error(`飞书“${tableName}”表中没有找到非遗名称“${cleanHeritageName}”${formText}`);
   }
 
   const fields: Record<string, string> = {};
@@ -177,19 +198,27 @@ export async function getFeishuHeritageContext(
     if (text) fields[name] = text;
   }
 
-  const promptContext = Object.entries(fields)
-    .map(([name, value]) => `${name}：${value}`)
-    .join('\n');
+  const promptContext = Object.entries(fields).map(([name, value]) => `${name}：${value}`).join('\n');
   if (!promptContext) {
     throw new Error(`飞书记录“${cleanHeritageName}”没有可用于生成的文字字段`);
   }
 
-  return {
-    tableName,
-    tableId: FEISHU_BITABLE_PRODUCT_TABLE_ID,
-    recordId: record.record_id,
-    heritageName: cleanHeritageName,
-    fields,
-    promptContext,
-  };
+  return { tableName, tableId, recordId: record.record_id, heritageName: cleanHeritageName, fields, promptContext };
+}
+
+export async function getFeishuPlayHeritageContext(
+  productType: FeishuPlayProductType,
+  heritageName: string
+): Promise<FeishuHeritageContext> {
+  const table = FEISHU_BITABLE_PLAY_TABLES[productType];
+  if (!table) {
+    throw new Error(`暂不支持的玩非遗产品类型：${productType}`);
+  }
+
+  requireBaseConfiguration();
+  if (!FEISHU_BITABLE_PRODUCT_TABLE_ID) {
+    throw new Error('飞书多维表格配置缺失：FEISHU_BITABLE_PRODUCT_TABLE_ID');
+  }
+
+  return getContextFromTable('非遗数据库', FEISHU_BITABLE_PRODUCT_TABLE_ID, heritageName, table);
 }
