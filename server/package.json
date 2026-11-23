@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "bash ../.cozeproj/scripts/server_dev_run.sh",
     "build": "node build.js",
+    "test:play": "node --test tests/play-generation.test.mjs",
     "postinstall": "node build.js",
     "start": "node dist/index.js"
   },

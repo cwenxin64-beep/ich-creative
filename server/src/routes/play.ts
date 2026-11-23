@@ -60,7 +60,7 @@ function normalizeOtherProduct(value: unknown) {
   return typeof value === 'string' ? value.trim().slice(0, 500) : '';
 }
 
-function buildPlayWorkflowParameters(params: {
+function buildPlayDesignParameters(params: {
   text: string;
   ichType: string;
   productType: string;
@@ -662,7 +662,7 @@ async function executeFeishuGenerationTask(
     for (let i = 0; i < targetProductTypes.length; i++) {
       const currentType = targetProductTypes[i] as FeishuPlayProductType;
       const databaseContext = await getFeishuPlayHeritageContext(currentType, ichName);
-      const designParameters = buildPlayWorkflowParameters({
+      const designParameters = buildPlayDesignParameters({
         text,
         ichType,
         productType: currentType,
@@ -728,7 +728,7 @@ async function executeFeishuGenerationTask(
         },
       });
 
-      const progress = 10 + Math.round(((i + 1) / workflowEntries.length) * 80);
+      const progress = 10 + Math.round(((i + 1) / targetProductTypes.length) * 80);
       taskStore.update(taskId, { progress });
     }
 
