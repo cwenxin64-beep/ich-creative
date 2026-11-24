@@ -160,6 +160,21 @@ function normalizeName(value: unknown): string {
   return fieldToText(value).replace(/\s+/g, '').trim();
 }
 
+// 页面使用完整技艺名称，数据库内容标题也可能使用简称。
+// 仅展开已知的同义名称，避免把不同技艺（如汝瓷和景德镇陶瓷）混在一起。
+const HERITAGE_NAME_GROUPS = [
+  ['景德镇陶瓷', '景德镇'],
+  ['古琴艺术', '古琴'],
+  ['桑蚕丝织技艺', '桑蚕丝'],
+  ['中国剪纸', '剪纸'],
+  ['太极拳', '太极'],
+];
+
+function getHeritageKeywords(heritageName: string): string[] {
+  const name = normalizeName(heritageName);
+  return HERITAGE_NAME_GROUPS.find(group => group.includes(name)) || [name];
+}
+
 export async function getFeishuHeritageContext(
   heritageName: string
 ): Promise<FeishuHeritageContext> {
@@ -174,24 +189,22 @@ async function getContextFromTable(
   tableName: string,
   tableId: string,
   heritageName: string,
-  heritageForm = '',
-  titleContains = false
+  heritageForm = ''
 ): Promise<FeishuHeritageContext> {
   const cleanHeritageName = heritageName.trim();
   if (!cleanHeritageName) throw new Error('非遗名称不能为空');
 
   const records = await listRecords(tableId);
-  const targetName = normalizeName(cleanHeritageName);
+  const targetNames = getHeritageKeywords(cleanHeritageName);
   const targetForm = normalizeName(heritageForm);
   const matchedRecords = records.filter(item => {
     const recordName = normalizeName(item.fields?.['非遗名称']);
-    const nameMatches = titleContains ? recordName.includes(targetName) : recordName === targetName;
+    const nameMatches = targetNames.some(name => recordName.includes(name));
     return nameMatches && (!targetForm || normalizeName(item.fields?.['非遗形式']) === targetForm);
   });
   if (matchedRecords.length === 0) {
     const formText = heritageForm ? `、非遗形式“${heritageForm}”` : '';
-    const matchText = titleContains ? '标题包含' : '非遗名称';
-    throw new Error(`飞书“${tableName}”表中没有找到${matchText}“${cleanHeritageName}”${formText}的记录`);
+    throw new Error(`飞书“${tableName}”表中没有找到标题包含“${cleanHeritageName}”${formText}的记录`);
   }
 
   const fields: Record<string, string> = {};
@@ -240,5 +253,5 @@ export async function getFeishuPlayHeritageContext(
     throw new Error('飞书多维表格配置缺失：FEISHU_BITABLE_PRODUCT_TABLE_ID');
   }
 
-  return getContextFromTable('非遗数据库', FEISHU_BITABLE_PRODUCT_TABLE_ID, heritageName, table, true);
+  return getContextFromTable('非遗数据库', FEISHU_BITABLE_PRODUCT_TABLE_ID, heritageName, table);
 }
