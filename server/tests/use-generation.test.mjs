@@ -26,8 +26,9 @@ const bundle = await build({
   } }],
 });
 
-for (const hasEvidence of [true, false]) {
-  test(`创非遗 request ${hasEvidence ? 'completes using real title matching' : 'fails before generation when product evidence is missing'}`, { timeout: 3000 }, async () => {
+for (const mode of ['database', 'missing', 'database-error']) {
+  const hasEvidence = mode === 'database';
+  test(`创非遗 request: ${mode}`, { timeout: 3000 }, async () => {
     const task = { id: 'test-use-task', status: 'pending' };
     const imageRequests = [];
     let resolveTask;
@@ -54,16 +55,25 @@ for (const hasEvidence of [true, false]) {
         if (url.endsWith('/tenant_access_token/internal')) {
           payload = { code: 0, tenant_access_token: 'test-token' };
         } else if (url.includes('/records?')) {
+          if (mode === 'database-error') {
+            return { ok: false, status: 403, text: async () => 'Feishu permission denied' };
+          }
           payload = { code: 0, data: { items: [{
             record_id: 'ceramic-product',
             fields: { 非遗名称: '景德镇青花瓷耳饰', 非遗形式: hasEvidence ? '产品' : '海报', 工艺: '瓷胎烧制' },
           }] } };
         } else if (url.endsWith('/chat/completions')) {
-          assert.ok(hasEvidence);
-          const content = JSON.parse(options.body).messages[1].content;
+          const messages = JSON.parse(options.body).messages;
+          const content = messages[1].content;
           assert.match(content, /景德镇陶瓷/);
-          assert.match(content, /景德镇青花瓷耳饰/);
-          assert.match(content, /瓷胎烧制/);
+          assert.match(content, /简约青花瓷耳饰/);
+          if (hasEvidence) {
+            assert.match(content, /景德镇青花瓷耳饰/);
+            assert.match(content, /瓷胎烧制/);
+          } else {
+            assert.match(messages[0].content, /直接生成/);
+            assert.doesNotMatch(content, /数据库参考资料|瓷胎烧制/);
+          }
           payload = { choices: [{ message: { content: '真实陶瓷产品摄影提示词' } }] };
         } else {
           assert.ok(url.endsWith('/images/generations'), `Unexpected request: ${url}`);
@@ -82,17 +92,18 @@ for (const hasEvidence of [true, false]) {
     }, error => { throw error || new Error('Route did not match'); });
     assert.equal(response.taskId, task.id);
     await finished;
-    if (!hasEvidence) {
+    if (mode === 'database-error') {
       assert.equal(task.status, 'failed');
-      assert.match(task.error, /没有找到标题包含/);
+      assert.match(task.error, /HTTP 403/);
       assert.equal(imageRequests.length, 0);
       return;
     }
     assert.equal(task.status, 'completed', task.error);
     assert.equal(task.progress, 100);
-    assert.equal(task.result.provider, 'feishu-volcengine');
+    assert.equal(task.result.provider, hasEvidence ? 'feishu-volcengine' : 'volcengine');
     const [product] = task.result.results;
-    assert.equal(product.metadata.recordId, 'ceramic-product');
+    assert.equal(product.metadata.recordId, hasEvidence ? 'ceramic-product' : null);
+    assert.equal(product.metadata.database, hasEvidence ? 'feishu-bitable' : null);
     assert.equal(product.category, 'fashion');
     assert.equal(imageRequests.length, 3);
     assert.equal(imageRequests[1].image, product.mainImageUrl);

@@ -32,7 +32,7 @@ const bundle = await build({
   }],
 });
 
-async function generate(productType) {
+async function generate(productType, { missingTypes = [], lookupError = false } = {}) {
   const task = { id: 'test-task', status: 'pending', progress: 0 };
   const progress = [];
   const contextTypes = [];
@@ -52,6 +52,8 @@ async function generate(productType) {
     async getContext(type, heritageName) {
       assert.equal(heritageName, '景德镇');
       contextTypes.push(type);
+      if (lookupError) throw new Error('Feishu permission denied');
+      if (missingTypes.includes(type)) return null;
       return { tableName: 'heritage', tableId: 'table', recordId: type, promptContext: 'Database heritage evidence' };
     },
   };
@@ -68,7 +70,14 @@ async function generate(productType) {
     async fetch(url, options) {
       const body = JSON.parse(options.body);
       if (url.endsWith('/chat/completions')) {
-        assert.match(body.messages[1].content, /Database heritage evidence/);
+        if (missingTypes.includes(contextTypes.at(-1))) {
+          assert.match(body.messages[0].content, /直接生成/);
+          assert.match(body.messages[1].content, /Heritage poster/);
+          assert.match(body.messages[1].content, /景德镇/);
+          assert.doesNotMatch(body.messages[1].content, /Database heritage evidence|数据库参考资料/);
+        } else {
+          assert.match(body.messages[1].content, /Database heritage evidence/);
+        }
         return { ok: true, json: async () => ({ choices: [{ message: { content: 'Heritage design prompt' } }] }) };
       }
       assert.ok(url.endsWith('/images/generations'), `Unexpected external request: ${url}`);
@@ -91,6 +100,30 @@ async function generate(productType) {
   await finished;
   return { task, progress, contextTypes, imageRequests };
 }
+
+for (const missingTypes of [['poster', 'festival', 'birthday', 'newyear'], ['birthday']]) {
+  test(`玩非遗 all completes with missing context for ${missingTypes.join(',')}`, { timeout: 3000 }, async () => {
+    const { task, imageRequests } = await generate('all', { missingTypes });
+    assert.equal(task.status, 'completed', task.error);
+    assert.equal(task.progress, 100);
+    assert.equal(imageRequests.length, 12);
+    assert.equal(task.result.provider, missingTypes.length === 4 ? 'volcengine' : 'feishu-volcengine');
+    for (const [i, result] of task.result.results.entries()) {
+      const missing = missingTypes.includes(result.type);
+      assert.equal(result.metadata.database, missing ? null : 'feishu-bitable');
+      assert.equal(result.metadata.recordId, missing ? null : result.type);
+      assert.equal(imageRequests[i * 3 + 1].image, result.mainImageUrl);
+      assert.equal(imageRequests[i * 3 + 2].image, result.mainImageUrl);
+    }
+  });
+}
+
+test('玩非遗 database access errors remain visible', { timeout: 3000 }, async () => {
+  const { task, imageRequests } = await generate('poster', { lookupError: true });
+  assert.equal(task.status, 'failed');
+  assert.match(task.error, /Feishu permission denied/);
+  assert.equal(imageRequests.length, 0);
+});
 
 for (const [productType, expectedTypes] of [
   ['poster', ['poster']],

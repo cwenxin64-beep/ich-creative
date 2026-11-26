@@ -382,15 +382,19 @@ async function executeCustomizeTask(taskId: string, params: {
         category,
         material,
       });
-      console.log(`[Task ${taskId}] Building design prompt from Feishu: category=${category}, recordId=${heritageContext.recordId}`);
+      console.log(`[Task ${taskId}] Building design prompt: category=${category}, source=${heritageContext ? 'feishu' : 'direct'}, recordId=${heritageContext?.recordId || ''}`);
       const imagePrompt = await callVolcengineLLM([
         {
           role: 'system',
-          content: '你是非遗产品设计师。只能依据用户要求和数据库资料生成一段可直接用于图片模型的中文产品摄影提示词。不得虚构数据库没有提供的技艺事实，不要输出解释、标题、列表或 Markdown。',
+          content: heritageContext
+            ? '你是非遗产品设计师。依据用户要求并参考数据库资料，生成一段可直接用于图片模型的中文产品摄影提示词。不要编造技艺事实，不要输出解释、标题、列表或 Markdown。'
+            : '你是非遗产品设计师。根据用户选择的非遗类型、风格、应用场景和创意需求，直接生成一段可用于图片模型的中文产品摄影提示词。可参考该非遗常见的造型、色彩和纹样，不要编造具体传承人、产地认证或技艺事实。不要输出解释、标题、列表或 Markdown。',
         },
         {
           role: 'user',
-          content: `${baseImagePrompt}\n\n数据库资料：\n${heritageContext.promptContext}`,
+          content: heritageContext
+            ? `${baseImagePrompt}\n\n数据库参考资料：\n${heritageContext.promptContext}`
+            : baseImagePrompt,
         },
       ]);
       if (!imagePrompt.trim()) {
@@ -409,10 +413,10 @@ async function executeCustomizeTask(taskId: string, params: {
         subImageUrl2: detailImageUrl,
         creativeDescription: keywords,
         metadata: {
-          database: 'feishu-bitable',
-          tableName: heritageContext.tableName,
-          tableId: heritageContext.tableId,
-          recordId: heritageContext.recordId,
+          database: heritageContext ? 'feishu-bitable' : null,
+          tableName: heritageContext?.tableName || null,
+          tableId: heritageContext?.tableId || null,
+          recordId: heritageContext?.recordId || null,
           imagePrompt,
         },
       });
@@ -431,7 +435,7 @@ async function executeCustomizeTask(taskId: string, params: {
         success: true,
         results,
         keywords,
-        provider: 'feishu-volcengine'
+        provider: heritageContext ? 'feishu-volcengine' : 'volcengine'
       }
     });
   } catch (error) {

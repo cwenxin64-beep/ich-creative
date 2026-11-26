@@ -181,7 +181,7 @@ function getHeritageKeywords(heritageName: string): string[] {
 
 export async function getFeishuHeritageContext(
   heritageName: string
-): Promise<FeishuHeritageContext> {
+): Promise<FeishuHeritageContext | null> {
   requireBaseConfiguration();
   if (!FEISHU_BITABLE_PRODUCT_TABLE_ID) {
     throw new Error('飞书多维表格配置缺失：FEISHU_BITABLE_PRODUCT_TABLE_ID');
@@ -194,7 +194,7 @@ async function getContextFromTable(
   tableId: string,
   heritageName: string,
   heritageForm = ''
-): Promise<FeishuHeritageContext> {
+): Promise<FeishuHeritageContext | null> {
   const cleanHeritageName = heritageName.trim();
   if (!cleanHeritageName) throw new Error('非遗名称不能为空');
 
@@ -207,8 +207,7 @@ async function getContextFromTable(
     return nameMatches && (!targetForm || normalizeName(item.fields?.['非遗形式']) === targetForm);
   });
   if (matchedRecords.length === 0) {
-    const formText = heritageForm ? `、非遗形式“${heritageForm}”` : '';
-    throw new Error(`飞书“${tableName}”表中没有找到标题包含“${targetNames.join(' / ')}”${formText}的记录`);
+    return null;
   }
 
   const fields: Record<string, string> = {};
@@ -230,7 +229,7 @@ async function getContextFromTable(
 
   const promptContext = contextBlocks.join('\n\n');
   if (!promptContext) {
-    throw new Error(`飞书记录“${cleanHeritageName}”没有可用于生成的文字字段`);
+    return null;
   }
 
   return {
@@ -246,7 +245,7 @@ async function getContextFromTable(
 export async function getFeishuPlayHeritageContext(
   productType: FeishuPlayProductType,
   heritageName: string
-): Promise<FeishuHeritageContext> {
+): Promise<FeishuHeritageContext | null> {
   const table = FEISHU_BITABLE_PLAY_TABLES[productType];
   if (!table) {
     throw new Error(`暂不支持的玩非遗产品类型：${productType}`);

@@ -126,9 +126,9 @@ test('other built-in categories also use broad craft keywords', async () => {
   }
 });
 
-test('missing product evidence does not fall back to matching poster records', async () => {
+test('missing product evidence returns no context instead of using poster records', async () => {
   const service = loadContext([[record('poster', '青花瓷:千年文化的绚烂绽放', '海报')]]);
-  await assert.rejects(service.getFeishuHeritageContext('景德镇陶瓷'), /陶瓷.*青花瓷.*非遗形式“产品”/);
+  assert.equal(await service.getFeishuHeritageContext('景德镇陶瓷'), null);
 });
 
 test('玩非遗 keeps all four forms isolated from product records', async () => {
@@ -154,14 +154,20 @@ test('rich text, whitespace, pagination and all matching evidence are supported'
   assert.doesNotMatch(context.promptContext, /private-url/);
 });
 
-test('custom heritage uses only its own name and missing evidence still fails', async () => {
+test('custom heritage uses only its own name and missing evidence returns no context', async () => {
   const service = loadContext([[
     record('custom', '潮绣手工香囊'),
     record('other', '景德镇青花瓷耳饰'),
   ]]);
   assert.equal((await service.getFeishuHeritageContext('潮绣')).recordId, 'custom');
   for (const name of ['不存在的技艺', '其他', '景德镇陶瓷新技艺']) {
-    await assert.rejects(service.getFeishuHeritageContext(name), /没有找到标题包含/);
+    assert.equal(await service.getFeishuHeritageContext(name), null);
   }
   await assert.rejects(service.getFeishuHeritageContext('   '), /非遗名称不能为空/);
+});
+
+test('an empty table returns no context for both generation routes', async () => {
+  const service = loadContext([[]]);
+  assert.equal(await service.getFeishuHeritageContext('景德镇陶瓷'), null);
+  assert.equal(await service.getFeishuPlayHeritageContext('poster', '景德镇'), null);
 });

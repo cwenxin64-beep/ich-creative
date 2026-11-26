@@ -673,11 +673,15 @@ async function executeFeishuGenerationTask(
       const imagePrompt = await callVolcengineLLM([
         {
           role: 'system',
-          content: '你是非遗视觉设计师。只能依据用户要求和数据库资料生成一段可直接用于图片模型的中文提示词。不得虚构数据库没有提供的技艺事实，不要输出解释、标题、列表或 Markdown。',
+          content: databaseContext
+            ? '你是非遗视觉设计师。依据用户要求并参考数据库资料，生成一段可直接用于图片模型的中文提示词。不要编造技艺事实，不要输出解释、标题、列表或 Markdown。'
+            : '你是非遗视觉设计师。根据用户选择的非遗类型、作品类型、体验方式、目标市场和创意需求，直接生成一段可用于图片模型的中文提示词。可参考该非遗常见的造型、色彩和纹样，不要编造具体传承人、产地认证或技艺事实。不要输出解释、标题、列表或 Markdown。',
         },
         {
           role: 'user',
-          content: `${designParameters.design_requirement}\n\n数据库资料：\n${databaseContext.promptContext}`,
+          content: databaseContext
+            ? `${designParameters.design_requirement}\n\n数据库参考资料：\n${databaseContext.promptContext}`
+            : designParameters.design_requirement,
         },
       ]);
       if (!imagePrompt.trim()) {
@@ -720,10 +724,10 @@ async function executeFeishuGenerationTask(
         subImageUrl2: detailImageUrl,
         creativeDescription: text,
         metadata: {
-          database: 'feishu-bitable',
-          tableName: databaseContext.tableName,
-          tableId: databaseContext.tableId,
-          recordId: databaseContext.recordId,
+          database: databaseContext ? 'feishu-bitable' : null,
+          tableName: databaseContext?.tableName || null,
+          tableId: databaseContext?.tableId || null,
+          recordId: databaseContext?.recordId || null,
           imagePrompt: imagePrompt.trim(),
         },
       });
@@ -737,7 +741,7 @@ async function executeFeishuGenerationTask(
       progress: 100,
       result: {
         success: true,
-        provider: 'feishu-volcengine',
+        provider: results.some(result => result.metadata.database) ? 'feishu-volcengine' : 'volcengine',
         results,
       },
     });
