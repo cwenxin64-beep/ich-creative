@@ -89,6 +89,48 @@ test('every built-in 创非遗 label matches the corresponding content title', a
   assert.equal(service.requests.length, 1, 'records remain cached across lookups');
 });
 
+test('陶瓷大类 includes the generic titles shown in the supplied table, within each form', async () => {
+  const titles = [
+    '创意简约陶瓷海报素材分享',
+    '青花瓷:千年文化的绚烂绽放',
+    '陶瓷玉石海报图片-玉石海报模板-设图网',
+    '瓷器活动专场广告模板-活动专场广告图片',
+  ];
+  const service = loadContext([[
+    ...titles.map((title, i) => record(`poster-${i}`, title, '海报')),
+    record('jade', '玉石海报图片-玉石海报模板-设图网', '海报'),
+    record('ceramic-product', '青花瓷耳饰', '产品'),
+    record('ceramic-product-2', '简约陶瓷茶具', '产品'),
+    record('ceramic-birthday', '瓷器主题生日卡', '生日卡'),
+  ]]);
+  const poster = await service.getFeishuPlayHeritageContext('poster', '景德镇');
+  assert.equal(poster.recordId, 'poster-0,poster-1,poster-2,poster-3');
+  assert.equal(poster.fields['匹配记录数'], '4');
+  const product = await service.getFeishuHeritageContext('景德镇陶瓷');
+  assert.equal(product.recordId, 'ceramic-product,ceramic-product-2');
+  assert.doesNotMatch(product.promptContext, /海报|生日卡/);
+});
+
+test('other built-in categories also use broad craft keywords', async () => {
+  const cases = [
+    ['古琴艺术', '七弦琴造型摆件'],
+    ['汝瓷', '汝窑茶具'],
+    ['鲁班锁', '榫卯木制玩具'],
+    ['桑蚕丝织技艺', '蚕丝围巾'],
+    ['中国剪纸', '刻纸灯罩'],
+    ['京剧', '脸谱胸针'],
+  ];
+  const service = loadContext([cases.map(([, title], i) => record(String(i), title))]);
+  for (const [i, [label]] of cases.entries()) {
+    assert.equal((await service.getFeishuHeritageContext(label)).recordId, String(i));
+  }
+});
+
+test('missing product evidence does not fall back to matching poster records', async () => {
+  const service = loadContext([[record('poster', '青花瓷:千年文化的绚烂绽放', '海报')]]);
+  await assert.rejects(service.getFeishuHeritageContext('景德镇陶瓷'), /陶瓷.*青花瓷.*非遗形式“产品”/);
+});
+
 test('玩非遗 keeps all four forms isolated from product records', async () => {
   const cases = [['poster', '海报'], ['festival', '节日卡'], ['birthday', '生日卡'], ['newyear', '新年卡']];
   const service = loadContext([[

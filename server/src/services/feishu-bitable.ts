@@ -160,19 +160,23 @@ function normalizeName(value: unknown): string {
   return fieldToText(value).replace(/\s+/g, '').trim();
 }
 
-// 页面使用完整技艺名称，数据库内容标题也可能使用简称。
-// 仅展开已知的同义名称，避免把不同技艺（如汝瓷和景德镇陶瓷）混在一起。
-const HERITAGE_NAME_GROUPS = [
-  ['景德镇陶瓷', '景德镇'],
-  ['古琴艺术', '古琴'],
-  ['桑蚕丝织技艺', '桑蚕丝'],
-  ['中国剪纸', '剪纸'],
-  ['太极拳', '太极'],
+// 按用户选择的非遗大类查资料，不要求标题写出完整项目名或具体产品名。
+// 输入名称和检索词分开：大类关键词不会反过来重写用户自填的其他技艺。
+const HERITAGE_CATEGORIES = [
+  { names: ['景德镇陶瓷', '景德镇'], keywords: ['景德镇', '陶瓷', '青花瓷', '瓷器'] },
+  { names: ['古琴艺术', '古琴'], keywords: ['古琴', '七弦琴'] },
+  { names: ['香云纱'], keywords: ['香云纱'] },
+  { names: ['汝瓷'], keywords: ['汝瓷', '汝窑'] },
+  { names: ['鲁班锁'], keywords: ['鲁班锁', '孔明锁', '榫卯'] },
+  { names: ['桑蚕丝织技艺', '桑蚕丝'], keywords: ['桑蚕丝', '蚕丝', '丝织'] },
+  { names: ['中国剪纸', '剪纸'], keywords: ['剪纸', '刻纸'] },
+  { names: ['太极拳', '太极'], keywords: ['太极'] },
+  { names: ['京剧'], keywords: ['京剧', '京戏', '脸谱'] },
 ];
 
 function getHeritageKeywords(heritageName: string): string[] {
   const name = normalizeName(heritageName);
-  return HERITAGE_NAME_GROUPS.find(group => group.includes(name)) || [name];
+  return HERITAGE_CATEGORIES.find(category => category.names.includes(name))?.keywords || [name];
 }
 
 export async function getFeishuHeritageContext(
@@ -204,7 +208,7 @@ async function getContextFromTable(
   });
   if (matchedRecords.length === 0) {
     const formText = heritageForm ? `、非遗形式“${heritageForm}”` : '';
-    throw new Error(`飞书“${tableName}”表中没有找到标题包含“${cleanHeritageName}”${formText}的记录`);
+    throw new Error(`飞书“${tableName}”表中没有找到标题包含“${targetNames.join(' / ')}”${formText}的记录`);
   }
 
   const fields: Record<string, string> = {};
