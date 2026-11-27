@@ -146,7 +146,7 @@ const VOLCENGINE_BASE_URL = process.env.VOLCENGINE_BASE_URL || 'https://ark.cn-b
 
 // 模型 ID 配置（使用推理接入点 ID）
 const TEXT_MODEL = process.env.VOLCENGINE_TEXT_MODEL || 'ep-20260326185613-8d6lx';
-const IMAGE_MODEL = process.env.VOLCENGINE_IMAGE_MODEL || 'ep-20260326185459-8rt74';
+const IMAGE_MODEL = process.env.VOLCENGINE_IMAGE_MODEL || 'ep-202601026144743-4jrq6';
 
 const USE_CATEGORY_NAMES: Record<string, string> = {
   fashion: '时尚配饰',
